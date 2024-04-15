@@ -16,7 +16,7 @@ class SigrunRestConsumer(private val webClient: WebClient) {
 }
 
 data class Hendelse(
-    val gjeldendePeriode: String,
+    val gjelderPeriode: String,
     val identifikator: String,
     val sekvensnummer: Int,
     val somAktoerid: Boolean
