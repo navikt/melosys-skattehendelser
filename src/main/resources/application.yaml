@@ -1,0 +1,7 @@
+spring:
+  application:
+    name: melosys-skattehendelser
+
+sigrun:
+  rest:
+    url: temp
