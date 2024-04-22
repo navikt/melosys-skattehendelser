@@ -83,7 +83,7 @@ internal class SigrunRestConsumerTest {
                 .withHeader("x-bruk-aktoerid", equalTo("true"))
                 .withHeader("Nav-Call-Id", equalTo("caller"))
                 .withHeader("Nav-Consumer-Id", equalTo("srvmelosys"))
-        );
+        )
 
     }
 
