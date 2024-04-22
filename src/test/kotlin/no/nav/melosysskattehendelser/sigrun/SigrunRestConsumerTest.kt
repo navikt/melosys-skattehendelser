@@ -2,6 +2,7 @@ package no.nav.melosysskattehendelser.sigrun
 
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock
+import com.github.tomakehurst.wiremock.client.WireMock.*
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration
 import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
 import io.kotest.matchers.collections.shouldHaveSize
@@ -14,7 +15,7 @@ import org.springframework.http.MediaType
 import org.springframework.web.reactive.function.client.WebClient
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-internal class SigrunRestConsumerTest() {
+internal class SigrunRestConsumerTest {
 
     private val wireMockServer = WireMockServer(WireMockConfiguration.wireMockConfig().dynamicPort()).apply {
         start()
@@ -58,8 +59,15 @@ internal class SigrunRestConsumerTest() {
                         )
                 )
         )
+        val request = HendelseRequest(
+            0,
+            1000,
+            true,
+            "caller",
+            "srvmelosys"
+        )
 
-        sigrunRestConsumer.hentHendelseListe().run {
+        sigrunRestConsumer.hentHendelseListe(request).run {
             shouldNotBeNull()
             shouldHaveSize(2)
             shouldContainExactlyInAnyOrder(
@@ -67,6 +75,15 @@ internal class SigrunRestConsumerTest() {
                 Hendelse("2023", "456789", 1, true)
             )
         }
+
+        wireMockServer.verify(
+            getRequestedFor(urlEqualTo("/api/skatteoppgjoer/hendelser"))
+                .withHeader("x-sekvensnummer-fra", equalTo("0"))
+                .withHeader("x-antall", equalTo("1000"))
+                .withHeader("x-bruk-aktoerid", equalTo("true"))
+                .withHeader("Nav-Call-Id", equalTo("caller"))
+                .withHeader("Nav-Consumer-Id", equalTo("srvmelosys"))
+        );
 
     }
 
