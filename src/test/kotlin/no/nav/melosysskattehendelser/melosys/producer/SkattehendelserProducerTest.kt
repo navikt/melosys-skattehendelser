@@ -8,6 +8,7 @@ import no.nav.melosysskattehendelser.sigrun.Hendelse
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.context.annotation.Import
 import org.springframework.kafka.test.context.EmbeddedKafka
 import org.springframework.test.annotation.DirtiesContext
 import org.springframework.test.context.ActiveProfiles
@@ -21,6 +22,7 @@ import java.util.concurrent.TimeUnit
     count = 1, controlledShutdown = true, partitions = 1,
     topics = ["teammelosys.skattehendelser.v1"],
 )
+@Import(KafkaTestConsumer::class)
 class SkattehendelserProducerTest(
     @Autowired private val kafkaTestConsumer: KafkaTestConsumer,
     @Autowired private val skattehendelserProducer: SkattehendelserProducer

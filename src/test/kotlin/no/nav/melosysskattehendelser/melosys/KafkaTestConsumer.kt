@@ -2,13 +2,14 @@ package no.nav.melosysskattehendelser.melosys
 
 import mu.KotlinLogging
 import org.apache.kafka.clients.consumer.ConsumerRecord
+import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Component
 import java.util.concurrent.CountDownLatch
 
 private val log = KotlinLogging.logger { }
 
-@Component
+@TestConfiguration
 class KafkaTestConsumer {
 
     var latch = CountDownLatch(1)
