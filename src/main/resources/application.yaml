@@ -2,6 +2,16 @@ spring:
   application:
     name: melosys-skattehendelser
 
+melosys:
+  kafka:
+    brokers: ${KAFKA_BROKERS:localhost:9092}
+    security:
+      keystorePath: ${KAFKA_KEYSTORE_PATH:/dev/zero}
+      truststorePath: ${KAFKA_TRUSTSTORE_PATH:/dev/zero}
+      credstorePassword: ${KAFKA_CREDSTORE_PASSWORD:pwd}
+    producer:
+      topic: ${KAFKA_TOPIC:teammelosys.skattehendelser.v1}
+
 sigrun:
   rest:
     url: temp
