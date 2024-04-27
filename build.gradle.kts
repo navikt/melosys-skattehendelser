@@ -18,16 +18,26 @@ repositories {
     mavenCentral()
 }
 
+allOpen {
+    annotation("jakarta.persistence.Entity")
+    annotation("jakarta.persistence.Embeddable")
+    annotation("jakarta.persistence.MappedSuperclass")
+}
+
 object dependencyVersions {
     const val kotestVersion = "5.5.4"
     const val logstashLogbackEncoder = "7.2"
     const val kotlinLogging = "3.0.5"
     const val wiremock = "3.0.1"
+    const val awaitility = "4.2.0"
+    const val mockk = "1.12.5"
 }
 
 dependencies {
+    runtimeOnly("org.postgresql:postgresql")
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-webflux")
+    implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("org.flywaydb:flyway-core")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
@@ -40,9 +50,12 @@ dependencies {
     testImplementation("org.springframework.kafka:spring-kafka-test")
     testImplementation("org.testcontainers:junit-jupiter")
     testImplementation("org.testcontainers:kafka")
+    testImplementation("org.testcontainers:postgresql")
     testImplementation("io.kotest:kotest-assertions-json-jvm:${dependencyVersions.kotestVersion}")
     testImplementation("io.kotest:kotest-assertions-core-jvm:${dependencyVersions.kotestVersion}")
     testImplementation("com.github.tomakehurst:wiremock-standalone:${dependencyVersions.wiremock}")
+    testImplementation("org.awaitility:awaitility:${dependencyVersions.awaitility}")
+    testImplementation("io.mockk:mockk:${dependencyVersions.mockk}")
 }
 
 tasks.withType<KotlinCompile> {

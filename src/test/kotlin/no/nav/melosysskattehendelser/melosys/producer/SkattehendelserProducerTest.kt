@@ -3,10 +3,16 @@ package no.nav.melosysskattehendelser.melosys.producer
 import io.kotest.assertions.json.shouldEqualJson
 import io.kotest.matchers.booleans.shouldBeTrue
 import io.kotest.matchers.nulls.shouldNotBeNull
+import no.nav.melosysskattehendelser.PostgresTestContainerBase
 import no.nav.melosysskattehendelser.melosys.KafkaTestConsumer
 import no.nav.melosysskattehendelser.sigrun.Hendelse
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration
+import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+import org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration
+import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.annotation.Import
 import org.springframework.kafka.test.context.EmbeddedKafka
@@ -26,7 +32,7 @@ import java.util.concurrent.TimeUnit
 class SkattehendelserProducerTest(
     @Autowired private val kafkaTestConsumer: KafkaTestConsumer,
     @Autowired private val skattehendelserProducer: SkattehendelserProducer
-) {
+): PostgresTestContainerBase() {
 
     @Test
     fun name() {

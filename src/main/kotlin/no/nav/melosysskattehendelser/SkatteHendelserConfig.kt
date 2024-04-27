@@ -1,5 +1,7 @@
 package no.nav.melosysskattehendelser
 
+import no.nav.melosysskattehendelser.domain.PersonRepository
+import no.nav.melosysskattehendelser.melosys.consumer.VedtakHendelseConsumer
 import no.nav.melosysskattehendelser.melosys.producer.SkattehendelserProducer
 import no.nav.melosysskattehendelser.sigrun.Hendelse
 import no.nav.melosysskattehendelser.sigrun.SigrunRestConsumer
@@ -27,5 +29,10 @@ class SkatteHendelserConfig(
     @Bean
     fun skatteHendelserProducer(kafkaTemplate: KafkaTemplate<String, Hendelse>): SkattehendelserProducer {
         return SkattehendelserProducer(kafkaTemplate, topicName)
+    }
+
+    @Bean
+    fun vedtakMelosysConsumer(vedtakHendelseRepository: PersonRepository): VedtakHendelseConsumer {
+        return VedtakHendelseConsumer(vedtakHendelseRepository)
     }
 }
