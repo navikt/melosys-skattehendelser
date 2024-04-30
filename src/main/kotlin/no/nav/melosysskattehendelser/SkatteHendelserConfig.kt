@@ -18,21 +18,19 @@ class SkatteHendelserConfig(
 ) {
 
     @Bean
-    fun sigrunRestConsumer(webClientBuilder: WebClient.Builder): SigrunRestConsumer {
-        return SigrunRestConsumer(
+    fun sigrunRestConsumer(webClientBuilder: WebClient.Builder): SigrunRestConsumer =
+        SigrunRestConsumer(
             webClientBuilder
                 .baseUrl(url)
                 .build()
         )
-    }
 
     @Bean
-    fun skatteHendelserProducer(kafkaTemplate: KafkaTemplate<String, Hendelse>): SkattehendelserProducer {
-        return SkattehendelserProducer(kafkaTemplate, topicName)
-    }
+    fun skatteHendelserProducer(kafkaTemplate: KafkaTemplate<String, Hendelse>): SkattehendelserProducer =
+        SkattehendelserProducer(kafkaTemplate, topicName)
+
 
     @Bean
-    fun vedtakMelosysConsumer(vedtakHendelseRepository: PersonRepository): VedtakHendelseConsumer {
-        return VedtakHendelseConsumer(vedtakHendelseRepository)
-    }
+    fun vedtakMelosysConsumer(vedtakHendelseRepository: PersonRepository): VedtakHendelseConsumer =
+        VedtakHendelseConsumer(vedtakHendelseRepository)
 }

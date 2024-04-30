@@ -27,7 +27,7 @@ open class PostgresTestContainerBase {
         }
 
         private fun useTestContainer(): Boolean =
-            System.getenv("USE-LOCAL-DB")?.lowercase() != "true" && useContainer
+            System.getenv("USE_LOCAL_DB")?.lowercase() != "true" && useContainer
     }
 
     protected fun addCleanUpAction(deleteAction: () -> Unit) {
