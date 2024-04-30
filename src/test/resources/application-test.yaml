@@ -1,0 +1,14 @@
+spring:
+  kafka:
+    consumer:
+      auto-offset-reset: earliest
+      group-id: skattehendelser-test
+    bootstrap-servers: ${spring.embedded.kafka.brokers}
+
+KAFKA_BROKERS: ${spring.embedded.kafka.brokers}
+
+DB_USERNAME: postgres
+DB_PASSWORD: mysecretpassword
+DB_HOST: localhost
+DB_PORT: 5432
+DB_DATABASE: skattehendelser
