@@ -20,7 +20,7 @@ class KafkaTestProducer {
         kafkaProperties: KafkaProperties,
         objectMapper: ObjectMapper?
     ): KafkaTemplate<String, VedtakHendelseMelding> {
-        val props = kafkaProperties.buildProducerProperties()
+        val props = kafkaProperties.buildProducerProperties(null)
         val producerFactory: ProducerFactory<String, VedtakHendelseMelding> =
             DefaultKafkaProducerFactory(props, StringSerializer(), JsonSerializer(objectMapper))
         return KafkaTemplate(producerFactory)
