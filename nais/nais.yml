@@ -44,17 +44,6 @@ spec:
         groups:
           - id: {{group_melosys_innlogging}}
   accessPolicy:
-    inbound:
-      rules:
-        - application: {{app_name_melosys_api}}
-          namespace: teammelosys
-          cluster: {{melosys_web_api_cluster}}
-          permissions:
-            roles:
-              - faktureringskomponenten-skriv
-        - application: {{app_name_melosys_web}}
-          namespace: teammelosys
-          cluster: {{melosys_web_api_cluster}}
     outbound:
       external:
         - host: "melosys-unleash-api.nav.cloud.nais.io"

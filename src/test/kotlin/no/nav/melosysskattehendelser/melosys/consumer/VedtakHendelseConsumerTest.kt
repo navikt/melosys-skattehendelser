@@ -2,6 +2,7 @@ package no.nav.melosysskattehendelser.melosys.consumer
 
 import no.nav.melosysskattehendelser.PostgresTestContainerBase
 import no.nav.melosysskattehendelser.melosys.KafkaTestProducer
+import no.nav.security.token.support.spring.test.EnableMockOAuth2Server
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -19,6 +20,7 @@ import org.springframework.test.context.ActiveProfiles
     topics = ["teammelosys.melosys.vedtak.v1"],
 )
 @Import(KafkaTestProducer::class)
+@EnableMockOAuth2Server
 class VedtakHendelseConsumerTest(
     @Autowired private val kafkaTemplate: KafkaTemplate<String, VedtakHendelseMelding>,
 ): PostgresTestContainerBase() {
