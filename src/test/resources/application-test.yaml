@@ -4,20 +4,16 @@ spring:
       auto-offset-reset: earliest
       group-id: skattehendelser-test
     bootstrap-servers: ${spring.embedded.kafka.brokers}
-no:
-  nav:
-    security:
-      jwt:
-        client:
-          registration:
-            sigrun:
-              token-endpoint-url: http://localhost:${mock-oauth2-server.port}/oauth2/v2.0/token
-              grant-type: urn:ietf:params:oauth:grant-type:jwt-bearer
-              scope: api://dummy
-              authentication:
-                client-id: dummy_client-id
-                client-secret: dummy_client-secret
-                client-auth-method: client_secret_basic
+
+no.nav.security.jwt.client.registration:
+  sigrun:
+    token-endpoint-url: http://localhost:${mock-oauth2-server.port}/oauth2/v2.0/token
+    grant-type: urn:ietf:params:oauth:grant-type:jwt-bearer
+    scope: api://dummy
+    authentication:
+      client-id: dummy_client-id
+      client-secret: dummy_client-secret
+      client-auth-method: client_secret_basic
 
 
 KAFKA_BROKERS: ${spring.embedded.kafka.brokers}

@@ -26,7 +26,7 @@ class VedtakHendelseConsumerTest(
 ): PostgresTestContainerBase() {
 
     @Test
-    fun name() {
+    fun `skal lagre ned aktuelle personer`() {
         val vedtakHendelseMelding = VedtakHendelseMelding(
             "456789123",
             Sakstyper.FTRL,

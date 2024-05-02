@@ -17,7 +17,7 @@
         <appender-ref ref="auditLogger"/>
     </logger>
 
-    <root level="DEBUG">
+    <root level="info">
         <appender-ref ref="console"/>
     </root>
 

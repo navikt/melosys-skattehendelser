@@ -17,7 +17,6 @@ import org.springframework.web.reactive.function.client.WebClient
 @Configuration
 class SkatteHendelserConfig(
     @Value("\${sigrun.rest.url}") private val url: String,
-    @Value("\${sigrun.rest.clientName}") private val clientName: String,
     @Value("\${melosys.kafka.producer.topic}") private val topicName: String
 ) {
 
@@ -30,7 +29,7 @@ class SkatteHendelserConfig(
         SigrunRestConsumer(
             webClientBuilder
                 .baseUrl(url)
-                .filter(AzureContextExchangeFilter(clientConfigurationProperties, oAuth2AccessTokenService, "sigrun"))
+                .filter(AzureContextExchangeFilter(clientConfigurationProperties, oAuth2AccessTokenService))
                 .build()
         )
 

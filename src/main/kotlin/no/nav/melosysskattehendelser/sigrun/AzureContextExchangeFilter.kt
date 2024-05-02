@@ -13,11 +13,10 @@ import reactor.core.publisher.Mono
 class AzureContextExchangeFilter(
     clientConfigurationProperties: ClientConfigurationProperties,
     private val oAuth2AccessTokenService: OAuth2AccessTokenService,
-    clientName: String
 ) : ExchangeFilterFunction {
     private val clientPropertiesForSystem: ClientProperties =
-        clientConfigurationProperties.registration[clientName]
-            ?: throw RuntimeException("Fant ikke OAuth2-config for $clientName")
+        clientConfigurationProperties.registration[CLIENT_NAME]
+            ?: throw RuntimeException("Fant ikke OAuth2-config for $CLIENT_NAME")
 
     private val systemToken: String
         get() = "Bearer " + oAuth2AccessTokenService.getAccessToken(clientPropertiesForSystem).accessToken
@@ -30,5 +29,9 @@ class AzureContextExchangeFilter(
 
     private fun withClientRequestBuilder(clientRequestBuilder: ClientRequest.Builder): ClientRequest.Builder {
         return clientRequestBuilder.header(HttpHeaders.AUTHORIZATION, systemToken)
+    }
+
+    companion object {
+        var CLIENT_NAME = "sigrun"
     }
 }

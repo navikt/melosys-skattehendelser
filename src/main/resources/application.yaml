@@ -15,7 +15,7 @@ spring:
 
 melosys:
   kafka:
-    brokers: ${KAFKA_BROKERS:localhost:9092}
+    brokers: ${KAFKA_BROKERS:localhost:29092}
     security:
       keystorePath: ${KAFKA_KEYSTORE_PATH:/dev/zero}
       truststorePath: ${KAFKA_TRUSTSTORE_PATH:/dev/zero}
@@ -29,7 +29,6 @@ melosys:
 sigrun:
   rest:
     url: temp
-    clientName: sigrun
 no:
   nav:
     security:
