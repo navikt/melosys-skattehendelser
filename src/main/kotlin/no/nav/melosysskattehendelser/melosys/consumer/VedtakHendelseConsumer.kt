@@ -16,7 +16,6 @@ class VedtakHendelseConsumer(
         groupId = "\${melosys.kafka.consumer.groupId}"
     )
     fun vedtakHendelseConsumer(consumerRecord: ConsumerRecord<String, VedtakHendelseMelding>) {
-        println(consumerRecord.value().toString())
         vedtakHendelseRepository.save(consumerRecord.value().toPerson())
     }
 }

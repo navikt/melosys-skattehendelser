@@ -21,15 +21,12 @@ class AzureContextExchangeFilter(
     private val systemToken: String
         get() = "Bearer " + oAuth2AccessTokenService.getAccessToken(clientPropertiesForSystem).accessToken
 
-    override fun filter(request: ClientRequest, next: ExchangeFunction): Mono<ClientResponse> {
-        return next.exchange(
-            withClientRequestBuilder(ClientRequest.from(request)).build()
-        )
-    }
+    override fun filter(request: ClientRequest, next: ExchangeFunction): Mono<ClientResponse> = next.exchange(
+        withClientRequestBuilder(ClientRequest.from(request)).build()
+    )
 
-    private fun withClientRequestBuilder(clientRequestBuilder: ClientRequest.Builder): ClientRequest.Builder {
-        return clientRequestBuilder.header(HttpHeaders.AUTHORIZATION, systemToken)
-    }
+    private fun withClientRequestBuilder(clientRequestBuilder: ClientRequest.Builder): ClientRequest.Builder =
+        clientRequestBuilder.header(HttpHeaders.AUTHORIZATION, systemToken)
 
     companion object {
         var CLIENT_NAME = "sigrun"

@@ -9,8 +9,16 @@ class Person(
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    val id: Long? = null,
+    val id: Long = 0,
 
     @Column(name = "ident", nullable = false)
-    var ident: String? = null
-)
+    val ident: String
+
+
+) {
+    override fun toString(): String {
+        return "Person(id=$id, ident='$ident')"
+    }
+}
+
+

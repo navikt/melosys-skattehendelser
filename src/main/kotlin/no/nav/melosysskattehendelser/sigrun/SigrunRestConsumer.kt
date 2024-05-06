@@ -6,8 +6,8 @@ import org.springframework.web.reactive.function.client.bodyToMono
 
 class SigrunRestConsumer(private val webClient: WebClient) {
 
-    fun hentHendelseListe(request: HendelseRequest): List<Hendelse> {
-        return webClient.get().uri("/api/skatteoppgjoer/hendelser")
+    fun hentHendelseListe(request: HendelseRequest): List<Hendelse> =
+        webClient.get().uri("/api/skatteoppgjoer/hendelser")
             .accept(MediaType.APPLICATION_JSON)
             .header("x-sekvensnummer-fra", request.seksvensnummerFra.toString())
             .header("x-antall", request.antall.toString())
@@ -17,7 +17,6 @@ class SigrunRestConsumer(private val webClient: WebClient) {
             .retrieve()
             .bodyToMono<List<Hendelse>>()
             .block() ?: emptyList()
-    }
 }
 
 data class HendelseRequest(
