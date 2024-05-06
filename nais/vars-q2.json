@@ -1,0 +1,13 @@
+{
+  "app_name": "skattehendelser-q2",
+  "database_name": "skattehendelser-db-q2",
+  "database_tier": "db-g1-small",
+  "namespace": "teammelosys",
+  "ingress": "https://skattehendelser-q2.intern.dev.nav.no",
+  "tenant": "trygdeetaten.no",
+  "kafka_pool": "nav-dev",
+  "melosys_web_api_cluster": "dev-fss",
+  "app_name_melosys_api": "melosys",
+  "app_name_melosys_web": "melosys-web",
+  "group_melosys_innlogging": "52981246-8032-40f0-863a-2bd2844f2d57"
+}

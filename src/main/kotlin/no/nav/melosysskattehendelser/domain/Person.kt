@@ -4,13 +4,21 @@ import jakarta.persistence.*
 
 
 @Entity
-@Table(name = "personer")
+@Table(name = "PERSON")
 class Person(
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    val id: Long? = null,
+    val id: Long = 0,
 
     @Column(name = "ident", nullable = false)
-    val ident: String? = null
-)
+    val ident: String
+
+
+) {
+    override fun toString(): String {
+        return "Person(id=$id, ident='$ident')"
+    }
+}
+
+

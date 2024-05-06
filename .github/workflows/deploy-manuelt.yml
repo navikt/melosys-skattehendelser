@@ -1,0 +1,117 @@
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Miljø (q1, q2 eller prod)'
+        required: true
+        default: 'q2'
+permissions:
+  contents: write
+  packages: write
+env:
+  IMAGE: ghcr.io/${{ github.repository }}/melosys-skattehendelser:${{ github.sha }}
+  IMAGE_MANIFEST: https://ghcr.io/v2/${{ github.repository }}/melosys-skattehendelser/manifests/${{ github.sha }}
+
+jobs:
+  check_docker_image_exists:
+    name: Sjekk hvis Docker-image eksisterer i registry
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "DOCKER_IMAGE_EXISTS_HTTP_STATUS=$(curl -X GET -s -o /dev/null -w "%{http_code}" ${{ env.IMAGE_MANIFEST }} -u ${{ github.actor }}:${{ secrets.GITHUB_TOKEN }})" >> $GITHUB_ENV
+      - id: set_output
+        run: |
+          if [ ${{ env.DOCKER_IMAGE_EXISTS_HTTP_STATUS }} -eq 200 ]
+          then
+            echo "DOCKER_IMAGE_EXISTS=true" >> $GITHUB_ENV
+          else
+            echo "DOCKER_IMAGE_EXISTS=false" >> $GITHUB_ENV
+          fi
+    outputs:
+      exists: ${{ env.DOCKER_IMAGE_EXISTS }}
+
+  build:
+    name: Build og push Docker image
+    runs-on: ubuntu-latest
+    needs: check_docker_image_exists
+    if: needs.check_docker_image_exists.outputs.exists != 'true'
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      PASSWORD: ${{ secrets.READER_TOKEN }}
+      REGISTRY: ghcr.io
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+      - name: Setup gradle dependency cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/.*gradle*') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.READER_TOKEN }}
+      - name: Run tests
+        run: ./gradlew test
+      - name: Build
+        run: ./gradlew clean build -x test
+      - name: GitHub Package Registry login
+        run: |
+          echo ${GITHUB_TOKEN} | docker login -u ${GITHUB_REPOSITORY} --password-stdin ghcr.io
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and publish Docker image
+        run: |
+          docker build -t ${IMAGE} .
+          docker push ${IMAGE}
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    if: always() && (needs.build.result == 'success' || needs.build.result == 'skipped')
+    steps:
+      - name: Deploy to dev-gcp
+        if: github.event.inputs.environment != 'prod'
+        run: |
+          echo "CLUSTER=dev-gcp" >> $GITHUB_ENV
+      - name: Deploy to prod-gcp
+        if: github.event.inputs.environment == 'prod'
+        run: |
+          echo "CLUSTER=prod-gcp" >> $GITHUB_ENV
+      - uses: actions/checkout@v4
+      - name: deploy new Unleash Apikey to ${{github.event.inputs.environment}}
+        uses: nais/deploy/actions/deploy@v1
+        env:
+          APIKEY: ${{ secrets.NAIS_DEPLOY_APIKEY }}
+          CLUSTER: ${{github.event.inputs.environment == 'prod' && 'prod-gcp' || 'dev-gcp' }}
+          RESOURCE: nais/unleash-apitoken.yml
+          VARS: nais/vars-${{github.event.inputs.environment}}.json
+      - uses: nais/deploy/actions/deploy@v1
+        env:
+          APIKEY: ${{ secrets.NAIS_DEPLOY_APIKEY }}
+          CLUSTER: ${{ env.CLUSTER }}
+          RESOURCE: nais/nais.yml
+          VARS: nais/vars-${{github.event.inputs.environment}}.json
+      - name: Get commit message
+        run: echo "COMMIT_MSG=$(git log --format=%s -n 1)" >> $GITHUB_ENV
+      - name: Slack Notification
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_COLOR: "${{ job.status == 'success' && 'good' || 'danger' }}"
+          SLACK_USERNAME: Github Actions
+          SLACK_ICON: https://github.com/github.png?size=48
+          SLACK_TITLE: "melosys-skattehendelser ${{ job.status == 'success' && 'ble deployet' || 'kunne ikke deployes' }} til ${{ github.event.inputs.environment }}"
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_MESSAGE: ${{ env.COMMIT_MSG }}

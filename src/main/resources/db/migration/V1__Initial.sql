@@ -1,0 +1,5 @@
+CREATE TABLE person
+(
+    id    SERIAL PRIMARY KEY,
+    ident VARCHAR(20) NOT NULL
+)
