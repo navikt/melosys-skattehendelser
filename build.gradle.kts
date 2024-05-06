@@ -18,6 +18,7 @@ repositories {
     mavenCentral()
 }
 
+
 allOpen {
     annotation("jakarta.persistence.Entity")
     annotation("jakarta.persistence.Embeddable")
@@ -58,7 +59,7 @@ dependencies {
     testImplementation("io.kotest:kotest-assertions-json-jvm:${dependencyVersions.kotestVersion}")
     testImplementation("io.kotest:kotest-assertions-core-jvm:${dependencyVersions.kotestVersion}")
     testImplementation("com.github.tomakehurst:wiremock-standalone:${dependencyVersions.wiremock}")
-    testImplementation("org.awaitility:awaitility:${dependencyVersions.awaitility}")
+    testImplementation("org.awaitility:awaitility-kotlin:${dependencyVersions.awaitility}")
     testImplementation("io.mockk:mockk:${dependencyVersions.mockk}")
     testImplementation("no.nav.security:token-validation-spring-test:${dependencyVersions.tokenSupport}")
 }

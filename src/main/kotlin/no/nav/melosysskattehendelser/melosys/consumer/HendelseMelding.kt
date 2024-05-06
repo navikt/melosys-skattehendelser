@@ -19,7 +19,9 @@ data class VedtakHendelseMelding(
 ) : HendelseMelding(){
 
     fun toPerson():Person{
-        return Person(null, folkeregisterIdent)
+        return Person().apply {
+            ident = folkeregisterIdent
+        }
     }
 }
 

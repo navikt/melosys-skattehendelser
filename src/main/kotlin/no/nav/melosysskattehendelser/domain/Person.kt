@@ -4,7 +4,7 @@ import jakarta.persistence.*
 
 
 @Entity
-@Table(name = "personer")
+@Table(name = "PERSON")
 class Person(
 
     @Id
@@ -12,5 +12,5 @@ class Person(
     val id: Long? = null,
 
     @Column(name = "ident", nullable = false)
-    val ident: String? = null
+    var ident: String? = null
 )
