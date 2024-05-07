@@ -63,7 +63,7 @@ spec:
     pool: {{kafka_pool}}
   env:
     - name: KAFKA_SKATTEHENDELSE_TOPIC
-      value: {{kafka_topic_name_faktura_bestilt}}
+      value: {{kafka_topic_name_skattehendelse}}
     - name: KAFKA_VEDTAK_TOPIC
-      value: {{kafka_topic_name_manglende_fakturabetaling}}
+      value: {{kafka_topic_name_hendelse}}
 
