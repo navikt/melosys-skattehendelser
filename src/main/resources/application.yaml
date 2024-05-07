@@ -23,7 +23,7 @@ melosys:
     producer:
       topic: ${KAFKA_SKATTEHENDELSE_TOPIC:teammelosys.skattehendelser.v1}
     consumer:
-      topic: ${KAFKA_VEDTAK_TOPIC:teammelosys.melosys.vedtak.v1}
+      topic: ${KAFKA_VEDTAK_TOPIC:teammelosys.melosys-hendelser.v1-q2}
       groupId: teammelosys-vedtakMelding-consumer
 
 sigrun:
