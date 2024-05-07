@@ -90,7 +90,7 @@ jobs:
         if: github.event.inputs.environment == 'prod'
         run: |
           echo "CLUSTER=prod-gcp" >> $GITHUB_ENV
-#      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 #      - name: deploy new Unleash Apikey to ${{github.event.inputs.environment}}
 #        uses: nais/deploy/actions/deploy@v2
 #        env:
