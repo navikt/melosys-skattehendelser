@@ -29,6 +29,7 @@ melosys:
 sigrun:
   rest:
     url: temp
+
 no.nav.security.jwt.client.registration:
   sigrun:
     token-endpoint-url: https://login.microsoftonline.com/966ac572-f5b7-4bbe-aa88-c76419c0f851/oauth2/v2.0/token
@@ -38,3 +39,10 @@ no.nav.security.jwt.client.registration:
       client-id: ${AZURE_APP_CLIENT_ID}
       client-secret: ${AZURE_APP_CLIENT_SECRET}
       client-auth-method: client_secret_basic
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+      base-path: /internal
