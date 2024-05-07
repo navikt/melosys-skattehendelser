@@ -1,8 +1,0 @@
-<configuration>
-    <springProfile name="nais">
-        <include resource="logback-nais.xml"/>
-    </springProfile>
-    <springProfile name="local">
-        <include resource="logback-local.xml"/>
-    </springProfile>
-</configuration>
