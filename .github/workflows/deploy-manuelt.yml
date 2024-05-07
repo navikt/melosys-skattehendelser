@@ -8,6 +8,7 @@ on:
 permissions:
   contents: write
   packages: write
+  id-token: write
 env:
   IMAGE: ghcr.io/${{ github.repository }}/melosys-skattehendelser:${{ github.sha }}
   IMAGE_MANIFEST: https://ghcr.io/v2/${{ github.repository }}/melosys-skattehendelser/manifests/${{ github.sha }}

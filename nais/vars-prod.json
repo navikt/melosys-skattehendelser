@@ -6,8 +6,5 @@
   "ingress": "https://skattehendelser.intern.nav.no",
   "tenant": "nav.no",
   "kafka_pool": "nav-prod",
-  "melosys_web_api_cluster": "prod-fss",
-  "app_name_melosys_api": "melosys",
-  "app_name_melosys_web": "melosys-web",
   "group_melosys_innlogging": "0d7c7755-fd5d-46ee-bbb9-975484cfb5b1"
 }
