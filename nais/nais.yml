@@ -66,6 +66,4 @@ spec:
       value: {{kafka_topic_name_faktura_bestilt}}
     - name: KAFKA_VEDTAK_TOPIC
       value: {{kafka_topic_name_manglende_fakturabetaling}}
-  envFrom:
-    - secret: skattehendelser
 
