@@ -40,7 +40,7 @@ class VedtakHendelseConsumerTest(
             Sakstemaer.TRYGDEAVGIFT
         )
 
-        kafkaTemplate.send("teammelosys.melosys.vedtak.v1", vedtakHendelseMelding)
+        kafkaTemplate.send("teammelosys.melosys-hendelser.v1-q2", vedtakHendelseMelding)
 
         await.timeout(5, TimeUnit.SECONDS)
             .pollDelay(Duration.ofMillis(1000))
