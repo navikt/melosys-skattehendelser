@@ -1,7 +1,5 @@
 package no.nav.melosysskattehendelser.melosys.consumer
 
-import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import no.nav.melosysskattehendelser.PostgresTestContainerBase
@@ -9,6 +7,7 @@ import no.nav.melosysskattehendelser.domain.PersonRepository
 import no.nav.melosysskattehendelser.melosys.KafkaTestProducer
 import no.nav.security.token.support.spring.test.EnableMockOAuth2Server
 import org.awaitility.kotlin.await
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
@@ -33,11 +32,19 @@ class VedtakHendelseConsumerTest(
     @Value("\${melosys.kafka.consumer.topic}") private val topic: String
 ) : PostgresTestContainerBase() {
 
+    private val ident = "456789123"
+
+    @AfterEach
+    fun tearDown() {
+        personRepository.findAll().filter { it.ident == ident }
+            .forEach { personRepository.delete(it) }
+    }
+
     @Test
     fun `skal lagre ned aktuelle personer`() {
         val vedtakHendelseMelding = MelosysHendelse(
             melding = VedtakHendelseMelding(
-                "456789123",
+                ident,
                 Sakstyper.FTRL,
                 Sakstemaer.TRYGDEAVGIFT
             )
@@ -48,9 +55,9 @@ class VedtakHendelseConsumerTest(
         await.timeout(5, TimeUnit.SECONDS)
             .pollDelay(Duration.ofMillis(1000))
             .untilAsserted {
-                personRepository.findAll().first()
+                personRepository.findAll().first { it.ident == ident }
                     .shouldNotBeNull()
-                    .ident.shouldBe("456789123")
+                    .ident.shouldBe(ident)
             }
     }
 }
