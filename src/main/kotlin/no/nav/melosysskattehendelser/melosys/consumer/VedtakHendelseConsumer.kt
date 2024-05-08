@@ -18,7 +18,7 @@ class VedtakHendelseConsumer(
     fun vedtakHendelseConsumer(consumerRecord: ConsumerRecord<String, MelosysHendelse>) {
         val vedtakHendelseMelding =
             consumerRecord.value().melding as? VedtakHendelseMelding
-                ?: throw IllegalArgumentException(
+                ?: throw IllegalStateException(
                     "Melding er ikke av type VedtakHendelseMelding\n" +
                             "consumerRecord: ${consumerRecord.value()}"
                 )
