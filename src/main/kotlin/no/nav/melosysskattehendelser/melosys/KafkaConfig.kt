@@ -1,6 +1,7 @@
 package no.nav.melosysskattehendelser.melosys
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import no.nav.melosysskattehendelser.melosys.consumer.MelosysHendelse
 import no.nav.melosysskattehendelser.melosys.consumer.VedtakHendelseMelding
 import no.nav.melosysskattehendelser.sigrun.Hendelse
 import org.apache.kafka.clients.CommonClientConfigs
@@ -49,8 +50,8 @@ class KafkaConfig(
     fun melosysVedtakListenerContainerFactory(
         kafkaProperties: KafkaProperties,
         @Value("\${melosys.kafka.consumer.groupId}") groupId: String
-    ): KafkaConsumerContainerFactory<VedtakHendelseMelding> =
-        kafkaListenerContainerFactory<VedtakHendelseMelding>(kafkaProperties, groupId)
+    ): KafkaConsumerContainerFactory<MelosysHendelse> =
+        kafkaListenerContainerFactory<MelosysHendelse>(kafkaProperties, groupId)
 
     private inline fun <reified T> kafkaListenerContainerFactory(
         kafkaProperties: KafkaProperties,

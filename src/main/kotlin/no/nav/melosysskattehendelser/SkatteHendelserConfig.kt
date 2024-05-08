@@ -1,6 +1,7 @@
 package no.nav.melosysskattehendelser
 
 import no.nav.melosysskattehendelser.domain.PersonRepository
+import no.nav.melosysskattehendelser.melosys.consumer.MelosysHendelse
 import no.nav.melosysskattehendelser.melosys.consumer.VedtakHendelseConsumer
 import no.nav.melosysskattehendelser.melosys.producer.SkattehendelserProducer
 import no.nav.melosysskattehendelser.sigrun.AzureContextExchangeFilter

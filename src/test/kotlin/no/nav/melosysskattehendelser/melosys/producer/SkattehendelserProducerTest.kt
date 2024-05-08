@@ -31,7 +31,7 @@ class SkattehendelserProducerTest(
 
     @Test
     fun `skal publisere meldinger med skattehendelser`() {
-        val hendelse = Hendelse(
+        val hendelse =  Hendelse(
             "2023",
             "123456",
             56,
