@@ -82,13 +82,13 @@ jobs:
           RESOURCE: nais/nais.yml
           VAR: image=${{env.image}}
           VARS: nais/vars-q2.json
-      - name: Deploy til dev (Q1)
-        uses: nais/deploy/actions/deploy@v2
-        env:
-          CLUSTER: dev-gcp
-          RESOURCE: nais/nais.yml
-          VAR: image=${{env.image}}
-          VARS: nais/vars-q1.json
+#      - name: Deploy til dev (Q1)
+#        uses: nais/deploy/actions/deploy@v2
+#        env:
+#          CLUSTER: dev-gcp
+#          RESOURCE: nais/nais.yml
+#          VAR: image=${{env.image}}
+#          VARS: nais/vars-q1.json
       - name: Get commit message
         run: echo "COMMIT_MSG=$(git log --format=%s -n 1)" >> $GITHUB_ENV
       - name: Slack Notification

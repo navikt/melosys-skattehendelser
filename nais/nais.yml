@@ -8,7 +8,7 @@ metadata:
 spec:
   startup:
     failureThreshold: 10
-    initialDelay: 35
+    initialDelay: 55
     path: /internal/health
     timeout: 5
   gcp:
@@ -25,15 +25,15 @@ spec:
   image: {{image}}
   port: 8080
   replicas:
-    min: 2
-    max: 2
+    min: 1
+    max: 1
   liveness:
     path: /internal/health
-    initialDelay: 40
+    initialDelay: 60
     timeout: 5
   readiness:
     path: /internal/health
-    initialDelay: 35
+    initialDelay: 55
     timeout: 5
   azure:
     application:
@@ -63,9 +63,7 @@ spec:
     pool: {{kafka_pool}}
   env:
     - name: KAFKA_SKATTEHENDELSE_TOPIC
-      value: {{kafka_topic_name_faktura_bestilt}}
+      value: {{kafka_topic_name_skattehendelse}}
     - name: KAFKA_VEDTAK_TOPIC
-      value: {{kafka_topic_name_manglende_fakturabetaling}}
-  envFrom:
-    - secret: skattehendelser
+      value: {{kafka_topic_name_hendelse}}
 

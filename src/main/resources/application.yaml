@@ -4,7 +4,7 @@ spring:
   datasource:
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
-    url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_DATABASE}
+    url: ${DB_JDBC_URL}
   flyway:
     locations: classpath:db/migration
     enabled: true
@@ -23,12 +23,13 @@ melosys:
     producer:
       topic: ${KAFKA_SKATTEHENDELSE_TOPIC:teammelosys.skattehendelser.v1}
     consumer:
-      topic: ${KAFKA_VEDTAK_TOPIC:teammelosys.melosys.vedtak.v1}
+      topic: ${KAFKA_VEDTAK_TOPIC:teammelosys.melosys-hendelser.v1-q2}
       groupId: teammelosys-vedtakMelding-consumer
 
 sigrun:
   rest:
     url: temp
+
 no.nav.security.jwt.client.registration:
   sigrun:
     token-endpoint-url: https://login.microsoftonline.com/966ac572-f5b7-4bbe-aa88-c76419c0f851/oauth2/v2.0/token
@@ -38,3 +39,10 @@ no.nav.security.jwt.client.registration:
       client-id: ${AZURE_APP_CLIENT_ID}
       client-secret: ${AZURE_APP_CLIENT_SECRET}
       client-auth-method: client_secret_basic
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+      base-path: /internal
