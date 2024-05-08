@@ -5,7 +5,6 @@ import io.kotest.matchers.shouldBe
 import no.nav.melosysskattehendelser.PostgresTestContainerBase
 import no.nav.melosysskattehendelser.domain.PersonRepository
 import no.nav.melosysskattehendelser.melosys.KafkaTestProducer
-import no.nav.security.token.support.spring.test.EnableMockOAuth2Server
 import org.awaitility.kotlin.await
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
@@ -25,7 +24,6 @@ import java.util.concurrent.TimeUnit
 @DirtiesContext
 @EmbeddedKafka(count = 1, controlledShutdown = true, partitions = 1)
 @Import(KafkaTestProducer::class)
-@EnableMockOAuth2Server
 class VedtakHendelseConsumerTest(
     @Autowired private val kafkaTemplate: KafkaTemplate<String, MelosysHendelse>,
     @Autowired private val personRepository: PersonRepository,
