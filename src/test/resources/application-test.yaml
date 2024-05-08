@@ -1,4 +1,8 @@
 spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/postgres?currentSchema=skattehendelser
+    username: postgres
+    password: mysecretpassword
   kafka:
     consumer:
       auto-offset-reset: earliest
@@ -17,9 +21,5 @@ no.nav.security.jwt.client.registration:
 
 
 KAFKA_BROKERS: ${spring.embedded.kafka.brokers}
+KAFKA_VEDTAK_TOPIC: teammelosys.melosys-hendelser-test
 
-DB_USERNAME: postgres
-DB_PASSWORD: mysecretpassword
-DB_HOST: localhost
-DB_PORT: 5432
-DB_DATABASE: skattehendelser

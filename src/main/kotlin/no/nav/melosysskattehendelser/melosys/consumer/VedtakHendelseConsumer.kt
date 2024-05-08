@@ -15,7 +15,14 @@ class VedtakHendelseConsumer(
         containerFactory = "melosysVedtakListenerContainerFactory",
         groupId = "\${melosys.kafka.consumer.groupId}"
     )
-    fun vedtakHendelseConsumer(consumerRecord: ConsumerRecord<String, VedtakHendelseMelding>) {
-        vedtakHendelseRepository.save(consumerRecord.value().toPerson())
+    fun vedtakHendelseConsumer(consumerRecord: ConsumerRecord<String, MelosysHendelse>) {
+        val vedtakHendelseMelding =
+            consumerRecord.value().melding as? VedtakHendelseMelding
+                ?: throw IllegalStateException(
+                    "Melding er ikke av type VedtakHendelseMelding\n" +
+                            "consumerRecord: ${consumerRecord.value()}"
+                )
+
+        vedtakHendelseRepository.save(vedtakHendelseMelding.toPerson())
     }
 }

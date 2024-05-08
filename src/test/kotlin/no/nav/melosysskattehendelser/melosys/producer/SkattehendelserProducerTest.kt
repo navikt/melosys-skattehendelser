@@ -27,7 +27,7 @@ import java.util.concurrent.TimeUnit
 class SkattehendelserProducerTest(
     @Autowired private val kafkaTestConsumer: KafkaTestConsumer,
     @Autowired private val skattehendelserProducer: SkattehendelserProducer
-): PostgresTestContainerBase() {
+) : PostgresTestContainerBase() {
 
     @Test
     fun `skal publisere meldinger med skattehendelser`() {

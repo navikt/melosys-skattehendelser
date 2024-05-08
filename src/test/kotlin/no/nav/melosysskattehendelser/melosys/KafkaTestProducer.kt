@@ -1,8 +1,7 @@
 package no.nav.melosysskattehendelser.melosys
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import no.nav.melosysskattehendelser.melosys.consumer.HendelseMelding
-import no.nav.melosysskattehendelser.melosys.consumer.VedtakHendelseMelding
+import no.nav.melosysskattehendelser.melosys.consumer.MelosysHendelse
 import org.apache.kafka.common.serialization.StringSerializer
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties
 import org.springframework.boot.test.context.TestConfiguration
@@ -19,9 +18,9 @@ class KafkaTestProducer {
     fun testKafkaTemplate(
         kafkaProperties: KafkaProperties,
         objectMapper: ObjectMapper?
-    ): KafkaTemplate<String, VedtakHendelseMelding> {
+    ): KafkaTemplate<String, MelosysHendelse> {
         val props = kafkaProperties.buildProducerProperties(null)
-        val producerFactory: ProducerFactory<String, VedtakHendelseMelding> =
+        val producerFactory: ProducerFactory<String, MelosysHendelse> =
             DefaultKafkaProducerFactory(props, StringSerializer(), JsonSerializer(objectMapper))
         return KafkaTemplate(producerFactory)
     }
