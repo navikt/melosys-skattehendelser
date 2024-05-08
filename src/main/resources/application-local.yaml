@@ -18,3 +18,5 @@ no.nav.security.jwt.client.registration:
       client-id: ${AZURE_APP_CLIENT_ID}
       client-secret: ${AZURE_APP_CLIENT_SECRET}
       client-auth-method: client_secret_basic
+
+KAFKA_VEDTAK_TOPIC: teammelosys.melosys-hendelser-local

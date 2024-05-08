@@ -17,6 +17,7 @@ no.nav.security.jwt.client.registration:
 
 
 KAFKA_BROKERS: ${spring.embedded.kafka.brokers}
+KAFKA_VEDTAK_TOPIC: teammelosys.melosys-hendelser-test
 
 DB_USERNAME: postgres
 DB_PASSWORD: mysecretpassword
