@@ -1,7 +1,6 @@
 package no.nav.melosysskattehendelser.melosys.consumer
 
 import io.kotest.matchers.nulls.shouldNotBeNull
-import io.kotest.matchers.shouldBe
 import no.nav.melosysskattehendelser.PostgresTestContainerBase
 import no.nav.melosysskattehendelser.domain.PersonRepository
 import no.nav.melosysskattehendelser.melosys.KafkaTestProducer
@@ -53,9 +52,8 @@ class VedtakHendelseConsumerTest(
         await.timeout(5, TimeUnit.SECONDS)
             .pollDelay(Duration.ofMillis(1000))
             .untilAsserted {
-                personRepository.findAll().first { it.ident == ident }
+                personRepository.findAll().firstOrNull { it.ident == ident }
                     .shouldNotBeNull()
-                    .ident.shouldBe(ident)
             }
     }
 }
