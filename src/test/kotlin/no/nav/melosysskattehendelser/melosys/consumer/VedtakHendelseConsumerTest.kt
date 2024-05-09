@@ -1,13 +1,14 @@
 package no.nav.melosysskattehendelser.melosys.consumer
 
 import io.kotest.matchers.nulls.shouldNotBeNull
+import io.kotest.matchers.shouldBe
 import no.nav.melosysskattehendelser.AwaitUtil.throwOnLogError
 import no.nav.melosysskattehendelser.LoggingTestUtils
 import no.nav.melosysskattehendelser.PostgresTestContainerBase
 import no.nav.melosysskattehendelser.domain.PersonRepository
 import no.nav.melosysskattehendelser.melosys.KafkaTestProducer
+import no.nav.melosysskattehendelser.melosys.KafkaOffsetChecker
 import org.awaitility.kotlin.await
-import org.awaitility.kotlin.untilNotNull
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -24,11 +25,12 @@ import java.util.concurrent.TimeUnit
 @SpringBootTest
 @DirtiesContext
 @EmbeddedKafka(count = 1, controlledShutdown = true, partitions = 1)
-@Import(KafkaTestProducer::class)
+@Import(KafkaTestProducer::class, KafkaOffsetChecker::class)
 class VedtakHendelseConsumerTest(
     @Autowired private val kafkaTemplate: KafkaTemplate<String, String>,
     @Autowired private val personRepository: PersonRepository,
-    @Value("\${melosys.kafka.consumer.topic}") private val topic: String
+    @Value("\${melosys.kafka.consumer.topic}") private val topic: String,
+    @Autowired private val kafkaOffsetChecker: KafkaOffsetChecker
 ) : PostgresTestContainerBase() {
 
     private val ident = "456789123"
@@ -52,13 +54,16 @@ class VedtakHendelseConsumerTest(
             }
         """
 
-        kafkaTemplate.send(topic, vedtakHendelseMelding)
+        kafkaOffsetChecker.offsetIncreased {
+            kafkaTemplate.send(topic, vedtakHendelseMelding)
 
-        await.timeout(5, TimeUnit.SECONDS)
-            .untilAsserted {
-                personRepository.findAll().firstOrNull { it.ident == ident }
-                    .shouldNotBeNull()
-            }
+            await.timeout(5, TimeUnit.SECONDS)
+                .untilAsserted {
+                    personRepository.findAll().firstOrNull { it.ident == ident }
+                        .shouldNotBeNull()
+                }
+        }.shouldBe(1)
+
     }
 
     @Test
@@ -71,16 +76,17 @@ class VedtakHendelseConsumerTest(
             }
         """
 
-        LoggingTestUtils.withLogCapture { logItems ->
-            kafkaTemplate.send(topic, vedtakHendelseMelding)
+        kafkaOffsetChecker.offsetIncreased {
+            LoggingTestUtils.withLogCapture { logItems ->
+                kafkaTemplate.send(topic, vedtakHendelseMelding)
 
-            await.throwOnLogError(logItems)
-                .timeout(5, TimeUnit.SECONDS)
-                .untilNotNull {
-                    logItems.firstOrNull() { it.formattedMessage.contains("Ignorerer melding av type UkjentMelding") }
-                }
-        }
+                await.throwOnLogError(logItems)
+                    .timeout(5, TimeUnit.SECONDS)
+                    .untilAsserted {
+                        logItems.firstOrNull() { it.formattedMessage.contains("Ignorerer melding av type UkjentMelding") }
+                            .shouldNotBeNull()
+                    }
+            }
+        }.shouldBe(1)
     }
 }
-
-

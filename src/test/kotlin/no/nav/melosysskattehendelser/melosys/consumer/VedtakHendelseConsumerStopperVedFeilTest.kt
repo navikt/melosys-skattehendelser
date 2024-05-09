@@ -3,6 +3,7 @@ package no.nav.melosysskattehendelser.melosys.consumer
 import ch.qos.logback.classic.Level
 import io.kotest.matchers.shouldBe
 import no.nav.melosysskattehendelser.LoggingTestUtils
+import no.nav.melosysskattehendelser.melosys.KafkaOffsetChecker
 import no.nav.melosysskattehendelser.melosys.KafkaTestProducer
 import org.awaitility.kotlin.await
 import org.awaitility.kotlin.untilNotNull
@@ -25,7 +26,8 @@ import java.util.concurrent.TimeUnit
 @Import(KafkaTestProducer::class)
 class VedtakHendelseConsumerStopperVedFeilTest(
     @Autowired private val kafkaTemplate: KafkaTemplate<String, String>,
-    @Value("\${melosys.kafka.consumer.topic}") private val topic: String
+    @Value("\${melosys.kafka.consumer.topic}") private val topic: String,
+    @Autowired private val kafkaOffsetChecker: KafkaOffsetChecker
 ) {
     @Test
     fun `skal feile ved ugyldlig json`() {
@@ -38,18 +40,20 @@ class VedtakHendelseConsumerStopperVedFeilTest(
             }"""
 
 
-        LoggingTestUtils.withLogCapture { logItems ->
-            kafkaTemplate.send(topic, meldingMedFeil)
+        kafkaOffsetChecker.offsetIncreased {
+            LoggingTestUtils.withLogCapture { logItems ->
+                kafkaTemplate.send(topic, meldingMedFeil)
 
-            val errorLogItem = await
-                .timeout(5, TimeUnit.SECONDS)
-                .untilNotNull {
-                    logItems.firstOrNull() { it.level == Level.ERROR }
+                val errorLogItem = await
+                    .timeout(5, TimeUnit.SECONDS)
+                    .untilNotNull {
+                        logItems.firstOrNull() { it.level == Level.ERROR }
+                    }
+                errorLogItem.throwableProxy.apply {
+                    className shouldBe KafkaException::class.qualifiedName
+                    message.shouldBe("Stopped container")
                 }
-            errorLogItem.throwableProxy.apply {
-                className shouldBe KafkaException::class.qualifiedName
-                message.shouldBe("Stopped container")
             }
-        }
+        }.shouldBe(0)
     }
 }
