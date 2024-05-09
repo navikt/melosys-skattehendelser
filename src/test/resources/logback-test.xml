@@ -2,7 +2,7 @@
 
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>%d{HH:mm:ss.SSS} %highlight(%-5level) %logger{10} - %msg%n</pattern>
+            <pattern>%d{HH:mm:ss.SSS} %highlight(%-5level) %logger - %msg%n</pattern>
         </encoder>
     </appender>
 
@@ -11,13 +11,12 @@
     </root>
 
     <logger name="org.apache.kafka" level="WARN"/>
+    <logger name="state.change.logger" level="WARN"/>
     <logger name="org.apache.zookeeper" level="WARN"/>
     <logger name="org.springframework.kafka" level="WARN"/>
     <logger name="org.flywaydb.core.internal" level="WARN"/>
     <logger name="org.hibernate" level="WARN"/>
     <logger name="kafka" level="WARN"/>
-    <logger name="springfox" level="WARN"/>
-
-    <logger name="no.nav.faktureringskomponenten.service.avregning" level="DEBUG"/>
+    <logger name="no.nav.melosysskattehendelser.melosys.consumer.VedtakHendelseConsumer" level="DEBUG"/>
 
 </configuration>
