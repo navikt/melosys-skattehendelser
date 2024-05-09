@@ -3,6 +3,7 @@ package no.nav.melosysskattehendelser.melosys.consumer
 import ch.qos.logback.classic.Level
 import io.kotest.matchers.shouldBe
 import no.nav.melosysskattehendelser.LoggingTestUtils
+import no.nav.melosysskattehendelser.PostgresTestContainerBase
 import no.nav.melosysskattehendelser.melosys.KafkaOffsetChecker
 import no.nav.melosysskattehendelser.melosys.KafkaTestProducer
 import org.awaitility.kotlin.await
@@ -28,7 +29,7 @@ class VedtakHendelseConsumerStopperVedFeilTest(
     @Autowired private val kafkaTemplate: KafkaTemplate<String, String>,
     @Value("\${melosys.kafka.consumer.topic}") private val topic: String,
     @Autowired private val kafkaOffsetChecker: KafkaOffsetChecker
-) {
+) : PostgresTestContainerBase() {
     @Test
     fun `skal feile ved ugyldlig json`() {
         val meldingMedFeil = """
