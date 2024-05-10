@@ -16,17 +16,15 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.core.env.Environment
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory
-import org.springframework.kafka.config.KafkaListenerContainerFactory
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory
 import org.springframework.kafka.core.DefaultKafkaProducerFactory
 import org.springframework.kafka.core.KafkaTemplate
 import org.springframework.kafka.core.ProducerFactory
-import org.springframework.kafka.listener.ConcurrentMessageListenerContainer
+import org.springframework.kafka.listener.CommonContainerStoppingErrorHandler
+import org.springframework.kafka.listener.ContainerProperties
 import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
 import org.springframework.kafka.support.serializer.JsonDeserializer
 import org.springframework.kafka.support.serializer.JsonSerializer
-
-typealias KafkaConsumerContainerFactory<T> = KafkaListenerContainerFactory<ConcurrentMessageListenerContainer<String, T>>
 
 @Configuration
 class KafkaConfig(
@@ -49,19 +47,17 @@ class KafkaConfig(
     fun melosysVedtakListenerContainerFactory(
         kafkaProperties: KafkaProperties,
         @Value("\${melosys.kafka.consumer.groupId}") groupId: String
-    ): KafkaConsumerContainerFactory<MelosysHendelse> =
-        kafkaListenerContainerFactory<MelosysHendelse>(kafkaProperties, groupId)
+    ) =
+        ConcurrentKafkaListenerContainerFactory<String, MelosysHendelse>().apply {
+            setCommonErrorHandler(CommonContainerStoppingErrorHandler())
 
-    private inline fun <reified T> kafkaListenerContainerFactory(
-        kafkaProperties: KafkaProperties,
-        groupId: String
-    ) = ConcurrentKafkaListenerContainerFactory<String, T>().apply {
-        consumerFactory = DefaultKafkaConsumerFactory(
-            kafkaProperties.buildConsumerProperties(null) + consumerConfig(groupId),
-            StringDeserializer(),
-            valueDeserializer<T>()
-        )
-    }
+            consumerFactory = DefaultKafkaConsumerFactory(
+                kafkaProperties.buildConsumerProperties(null) + consumerConfig(groupId),
+                StringDeserializer(),
+                valueDeserializer<MelosysHendelse>()
+            )
+            containerProperties.ackMode = ContainerProperties.AckMode.RECORD
+        }
 
     private inline fun <reified T> valueDeserializer(): ErrorHandlingDeserializer<T> =
         ErrorHandlingDeserializer(

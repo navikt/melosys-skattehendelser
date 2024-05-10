@@ -1,8 +1,11 @@
 package no.nav.melosysskattehendelser.melosys.consumer
 
+import mu.KotlinLogging
 import no.nav.melosysskattehendelser.domain.PersonRepository
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.springframework.kafka.annotation.KafkaListener
+
+private val log = KotlinLogging.logger { }
 
 class VedtakHendelseConsumer(
     private val vedtakHendelseRepository: PersonRepository
@@ -16,13 +19,11 @@ class VedtakHendelseConsumer(
         groupId = "\${melosys.kafka.consumer.groupId}"
     )
     fun vedtakHendelseConsumer(consumerRecord: ConsumerRecord<String, MelosysHendelse>) {
-        val vedtakHendelseMelding =
-            consumerRecord.value().melding as? VedtakHendelseMelding
-                ?: throw IllegalStateException(
-                    "Melding er ikke av type VedtakHendelseMelding\n" +
-                            "consumerRecord: ${consumerRecord.value()}"
-                )
+        val melding = consumerRecord.value().melding
+        val vedtakHendelseMelding = melding as? VedtakHendelseMelding
+            ?: return log.debug { "Ignorerer melding av type ${melding.javaClass.simpleName} " }
 
+        log.info("Mottatt vedtakshendelse sakstype: ${vedtakHendelseMelding.sakstype} sakstema: ${vedtakHendelseMelding.sakstema}")
         vedtakHendelseRepository.save(vedtakHendelseMelding.toPerson())
     }
 }
