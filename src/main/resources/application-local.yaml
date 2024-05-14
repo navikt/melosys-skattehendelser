@@ -13,12 +13,10 @@ sigrun:
     url: temp
 no.nav.security.jwt.client.registration:
   sigrun:
-    token-endpoint-url: https://login.microsoftonline.com/966ac572-f5b7-4bbe-aa88-c76419c0f851/oauth2/v2.0/token
-    grant-type: urn:ietf:params:oauth:grant-type:jwt-bearer
-    scope: api://dev-fss.team-inntekt.sigrun-q2/.default
+    token-endpoint-url: http://host.docker.internal:8082/isso/oauth2/v2.0/token
+    scope: melosys-skattehendleser-localhost
     authentication:
-      client-id: ${AZURE_APP_CLIENT_ID}
-      client-secret: ${AZURE_APP_CLIENT_SECRET}
-      client-auth-method: client_secret_basic
+      client-id: lol
+      client-secret: lol
 
 KAFKA_VEDTAK_TOPIC: teammelosys.melosys-hendelser-local
