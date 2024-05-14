@@ -1,0 +1,20 @@
+server:
+  port: 8089
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/postgres?currentSchema=skattehendelser
+    username: postgres
+    password: mysecretpassword
+  flyway:
+    locations: classpath:db/migration
+    enabled: true
+sigrun:
+  rest:
+    url: https://sigrun-q2.dev.adeo.no
+no.nav.security.jwt.client.registration:
+  sigrun:
+    grant-type: client_credentials
+    scope: api://dev-fss.team-inntekt.sigrun-q2/.default
+
+KAFKA_VEDTAK_TOPIC: teammelosys.melosys-hendelser-local
+AZURE_APP_CLIENT_ID: 1e140b30-6daf-4383-aab5-bba972467d32

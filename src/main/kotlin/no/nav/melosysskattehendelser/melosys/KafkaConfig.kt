@@ -97,6 +97,8 @@ class KafkaConfig(
         get() = env.activeProfiles.any {
             it.equals("local", ignoreCase = true) ||
                     it.equals("local-mock", ignoreCase = true) ||
+                    it.equals("ske", ignoreCase = true) ||
+                    it.equals("q2", ignoreCase = true) ||
                     it.equals("test", ignoreCase = true)
         }
 
