@@ -36,8 +36,14 @@ object dependencyVersions {
     const val tokenSupport = "3.2.0"
 }
 
+val osName = System.getProperty("os.name").lowercase()
+val osArch = System.getProperty("os.arch").lowercase()
+
 dependencies {
     runtimeOnly("org.postgresql:postgresql")
+    if (osName.contains("mac") && osArch.contains("aarch64")) {
+        implementation("io.netty:netty-resolver-dns-native-macos:4.1.109.Final:osx-aarch_64")
+    }
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-webflux")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
