@@ -1,5 +1,5 @@
 <configuration>
-    <springProfile name="!local">
+    <springProfile name="default">
         <appender name="stdout_json" class="ch.qos.logback.core.ConsoleAppender">
             <encoder class="net.logstash.logback.encoder.LogstashEncoder">
                 <fieldNames>
@@ -19,7 +19,7 @@
 
     </springProfile>
 
-    <springProfile name="local">
+    <springProfile name="!default">
         <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
             <encoder>
                 <pattern>%d{HH:mm:ss.SSS} %highlight(%-5level) %logger{10} - %msg%n</pattern>
