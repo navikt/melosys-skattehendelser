@@ -11,13 +11,13 @@ class VedtakHendelseConsumer(
     private val vedtakHendelseRepository: PersonRepository
 ) {
 
-    @KafkaListener(
-        id = "melosysVedtakMottatt",
-        clientIdPrefix = "melosys-vedtak-mottatt",
-        topics = ["\${melosys.kafka.consumer.topic}"],
-        containerFactory = "melosysVedtakListenerContainerFactory",
-        groupId = "\${melosys.kafka.consumer.groupId}"
-    )
+//    @KafkaListener(
+//        id = "melosysVedtakMottatt",
+//        clientIdPrefix = "melosys-vedtak-mottatt",
+//        topics = ["\${melosys.kafka.consumer.topic}"],
+//        containerFactory = "melosysVedtakListenerContainerFactory",
+//        groupId = "\${melosys.kafka.consumer.groupId}"
+//    )
     fun vedtakHendelseConsumer(consumerRecord: ConsumerRecord<String, MelosysHendelse>) {
         val melding = consumerRecord.value().melding
         val vedtakHendelseMelding = melding as? VedtakHendelseMelding

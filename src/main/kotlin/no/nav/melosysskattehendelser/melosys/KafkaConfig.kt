@@ -26,7 +26,7 @@ import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
 import org.springframework.kafka.support.serializer.JsonDeserializer
 import org.springframework.kafka.support.serializer.JsonSerializer
 
-@Configuration
+//@Configuration
 class KafkaConfig(
     @Autowired private val env: Environment,
     @Value("\${melosys.kafka.brokers}") private val brokersUrl: String,
