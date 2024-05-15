@@ -29,6 +29,6 @@ class AzureContextExchangeFilter(
         clientRequestBuilder.header(HttpHeaders.AUTHORIZATION, systemToken)
 
     companion object {
-        var CLIENT_NAME = "sigrun"
+        const val CLIENT_NAME = "sigrun"
     }
 }
