@@ -7,6 +7,8 @@ import com.github.tomakehurst.wiremock.core.WireMockConfiguration
 import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.nulls.shouldNotBeNull
+import no.nav.melosysskattehendelser.skatt.Hendelse
+import no.nav.melosysskattehendelser.skatt.HendelseRequest
 import no.nav.melosysskattehendelser.skatt.sigrun.SigrunRestConsumer
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Test
@@ -63,9 +65,7 @@ internal class SigrunRestConsumerTest {
         val request = HendelseRequest(
             0,
             1000,
-            true,
-            "caller",
-            "srvmelosys"
+            true
         )
 
         sigrunRestConsumer.hentHendelseListe(request).run {
@@ -82,8 +82,6 @@ internal class SigrunRestConsumerTest {
                 .withHeader("x-sekvensnummer-fra", equalTo("0"))
                 .withHeader("x-antall", equalTo("1000"))
                 .withHeader("x-bruk-aktoerid", equalTo("true"))
-                .withHeader("Nav-Call-Id", equalTo("caller"))
-                .withHeader("Nav-Consumer-Id", equalTo("srvmelosys"))
         )
 
     }
