@@ -1,7 +1,6 @@
 package no.nav.melosysskattehendelser.sigrun
 
 import com.github.tomakehurst.wiremock.WireMockServer
-import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock.*
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration
 import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
@@ -37,9 +36,9 @@ internal class SigrunRestConsumerTest {
     @Test
     fun `skal hende liste med hendelser`() {
         wireMockServer.stubFor(
-            WireMock.get("/api/skatteoppgjoer/hendelser")
+            get("/api/skatteoppgjoer/hendelser")
                 .willReturn(
-                    WireMock.aResponse()
+                    aResponse()
                         .withStatus(200)
                         .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                         .withBody(
