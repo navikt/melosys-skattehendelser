@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component
 class SkattHendelserFetcher(private val skattHendelseConsumer: SkattHendelseConsumer) {
     private val log = KotlinLogging.logger { }
 
-    fun hentHendelser(startSeksvensnummer: Int) = sequence<Hendelse> {
+    fun hentHendelser(startSeksvensnummer: Long) = sequence<Hendelse> {
         var seksvensnummerFra = startSeksvensnummer
         var hentHendelseListe: List<Hendelse>
         val antall = 500

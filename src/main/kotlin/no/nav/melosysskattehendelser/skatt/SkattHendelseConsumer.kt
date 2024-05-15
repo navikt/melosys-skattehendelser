@@ -6,7 +6,7 @@ fun interface SkattHendelseConsumer {
 }
 
 data class HendelseRequest(
-    val seksvensnummerFra: Int,
+    val seksvensnummerFra: Long,
     val antall: Int,
     val brukAktoerId: Boolean
 )
@@ -14,6 +14,6 @@ data class HendelseRequest(
 data class Hendelse(
     val gjelderPeriode: String,
     val identifikator: String,
-    val sekvensnummer: Int,
+    val sekvensnummer: Long,
     val somAktoerid: Boolean
 )
