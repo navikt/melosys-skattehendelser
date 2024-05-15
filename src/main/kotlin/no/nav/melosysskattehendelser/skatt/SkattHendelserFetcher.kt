@@ -2,6 +2,7 @@ package no.nav.melosysskattehendelser.skatt
 
 import mu.KotlinLogging
 import org.springframework.stereotype.Component
+import java.time.LocalDate
 
 @Component
 class SkattHendelserFetcher(private val skattHendelseConsumer: SkattHendelseConsumer) {
@@ -10,25 +11,40 @@ class SkattHendelserFetcher(private val skattHendelseConsumer: SkattHendelseCons
     fun hentHendelser(startSeksvensnummer: Long) = sequence<Hendelse> {
         var seksvensnummerFra = startSeksvensnummer
         var hentHendelseListe: List<Hendelse>
-        val antall = 500
+        val batchSize = 500
+        var totaltAntallHendelser = 0
         do {
             hentHendelseListe = skattHendelseConsumer.hentHendelseListe(
                 HendelseRequest(
                     seksvensnummerFra = seksvensnummerFra,
-                    antall = antall,
+                    antall = batchSize,
                     brukAktoerId = false
                 )
             )
-            val last = hentHendelseListe.last()
-            seksvensnummerFra = last.sekvensnummer + 1
+            if (hentHendelseListe.size > batchSize) error("hentHendelseListe.size${hentHendelseListe.size} > batchSize$batchSize")
+            val last = hentHendelseListe.lastOrNull() ?: break
             log.info(
                 "Hentet ${hentHendelseListe.size} hendelser fra sekvensnummer $seksvensnummerFra til ${last.sekvensnummer} " +
                         "gjelderPeriode ${last.gjelderPeriode}"
             )
-            if (hentHendelseListe.size < antall) {
-                log.info("Siste hendelse funnet: ${hentHendelseListe.last()}")
-            }
+            seksvensnummerFra = last.sekvensnummer + 1
             yieldAll(hentHendelseListe)
-        } while (hentHendelseListe.size >= antall)
+            totaltAntallHendelser += hentHendelseListe.size
+            if (hentHendelseListe.size < batchSize) {
+                break
+            }
+        } while (hentHendelseListe.size == batchSize)
+        log.info("totalt antall hendelser prossessert: $totaltAntallHendelser seksvensnummerFra er nå: $seksvensnummerFra")
     }
+
+    val consumerId
+        get() = skattHendelseConsumer.getConsumerId()
+
+    val startSekvensnummer
+        get() = skattHendelseConsumer.getStartSekvensnummer(
+            LocalDate.of(2022, 1, 1) // TODO: fin ut hva vi starter på, eller hvor vi henter dette fra
+                .apply {
+                    log.info("start dato for startSekvensnummer er nå hardkodet til $this")
+                }
+        )
 }
