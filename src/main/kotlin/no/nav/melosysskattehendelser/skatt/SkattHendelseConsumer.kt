@@ -1,8 +1,12 @@
 package no.nav.melosysskattehendelser.skatt
 
+import java.time.LocalDate
 
-fun interface SkattHendelseConsumer {
+
+interface SkattHendelseConsumer {
     fun hentHendelseListe(request: HendelseRequest) : List<Hendelse>
+    fun getConsumerId(): String
+    fun getStartSekvensnummer(start: LocalDate): Long
 }
 
 data class HendelseRequest(
