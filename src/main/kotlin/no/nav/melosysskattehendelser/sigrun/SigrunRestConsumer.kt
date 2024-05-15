@@ -1,12 +1,12 @@
 package no.nav.melosysskattehendelser.sigrun
 
-import org.springframework.http.MediaType
+import no.nav.melosysskattehendelser.skatt.SkattHendelseConsumer
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.bodyToMono
 
-class SigrunRestConsumer(private val webClient: WebClient) {
+class SigrunRestConsumer(private val webClient: WebClient) : SkattHendelseConsumer {
 
-    fun hentHendelseListe(request: HendelseRequest): List<Hendelse> =
+    override fun hentHendelseListe(request: HendelseRequest): List<Hendelse> =
         webClient.get().uri("/api/skatteoppgjoer/hendelser")
             .header("x-sekvensnummer-fra", request.seksvensnummerFra.toString())
             .header("x-antall", request.antall.toString())
