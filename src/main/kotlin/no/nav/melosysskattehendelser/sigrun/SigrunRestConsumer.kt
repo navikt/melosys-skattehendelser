@@ -1,5 +1,7 @@
 package no.nav.melosysskattehendelser.sigrun
 
+import no.nav.melosysskattehendelser.skatt.Hendelse
+import no.nav.melosysskattehendelser.skatt.HendelseRequest
 import no.nav.melosysskattehendelser.skatt.SkattHendelseConsumer
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.bodyToMono
@@ -15,16 +17,3 @@ class SigrunRestConsumer(private val webClient: WebClient) : SkattHendelseConsum
             .bodyToMono<List<Hendelse>>()
             .block() ?: emptyList()
 }
-
-data class HendelseRequest(
-    val seksvensnummerFra: Int,
-    val antall: Int,
-    val brukAktoerId: Boolean
-)
-
-data class Hendelse(
-    val gjelderPeriode: String,
-    val identifikator: String,
-    val sekvensnummer: Int,
-    val somAktoerid: Boolean
-)

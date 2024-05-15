@@ -1,8 +1,19 @@
 package no.nav.melosysskattehendelser.skatt
 
-import no.nav.melosysskattehendelser.sigrun.Hendelse
-import no.nav.melosysskattehendelser.sigrun.HendelseRequest
 
 fun interface SkattHendelseConsumer {
     fun hentHendelseListe(request: HendelseRequest) : List<Hendelse>
 }
+
+data class HendelseRequest(
+    val seksvensnummerFra: Int,
+    val antall: Int,
+    val brukAktoerId: Boolean
+)
+
+data class Hendelse(
+    val gjelderPeriode: String,
+    val identifikator: String,
+    val sekvensnummer: Int,
+    val somAktoerid: Boolean
+)

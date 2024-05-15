@@ -2,7 +2,7 @@ package no.nav.melosysskattehendelser.melosys
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import no.nav.melosysskattehendelser.melosys.consumer.MelosysHendelse
-import no.nav.melosysskattehendelser.sigrun.Hendelse
+import no.nav.melosysskattehendelser.skatt.Hendelse
 import org.apache.kafka.clients.CommonClientConfigs
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.producer.ProducerConfig

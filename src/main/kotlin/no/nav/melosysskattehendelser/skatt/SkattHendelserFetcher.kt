@@ -1,8 +1,6 @@
 package no.nav.melosysskattehendelser.skatt
 
 import mu.KotlinLogging
-import no.nav.melosysskattehendelser.sigrun.Hendelse
-import no.nav.melosysskattehendelser.sigrun.HendelseRequest
 import org.springframework.stereotype.Component
 
 @Component
