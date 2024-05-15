@@ -1,4 +1,4 @@
-package no.nav.melosysskattehendelser.melosys
+package no.nav.melosysskattehendelser
 
 import no.nav.melosysskattehendelser.skatt.SkattHendelserFetcher
 import org.springframework.stereotype.Component
