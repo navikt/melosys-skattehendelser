@@ -1,4 +1,4 @@
-package no.nav.melosysskattehendelser.sigrun
+package no.nav.melosysskattehendelser.skatt.sigrun
 
 import no.nav.security.token.support.client.core.ClientProperties
 import no.nav.security.token.support.client.core.oauth2.OAuth2AccessTokenService

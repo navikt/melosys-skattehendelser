@@ -3,8 +3,8 @@ package no.nav.melosysskattehendelser
 import no.nav.melosysskattehendelser.domain.PersonRepository
 import no.nav.melosysskattehendelser.melosys.consumer.VedtakHendelseConsumer
 import no.nav.melosysskattehendelser.melosys.producer.SkattehendelserProducer
-import no.nav.melosysskattehendelser.sigrun.AzureContextExchangeFilter
-import no.nav.melosysskattehendelser.sigrun.SigrunRestConsumer
+import no.nav.melosysskattehendelser.skatt.sigrun.AzureContextExchangeFilter
+import no.nav.melosysskattehendelser.skatt.sigrun.SigrunRestConsumer
 import no.nav.melosysskattehendelser.skatt.Hendelse
 import no.nav.security.token.support.client.core.oauth2.OAuth2AccessTokenService
 import no.nav.security.token.support.client.spring.ClientConfigurationProperties

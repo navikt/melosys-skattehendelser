@@ -1,4 +1,4 @@
-package no.nav.melosysskattehendelser.sigrun
+package no.nav.melosysskattehendelser.skatt.sigrun
 
 import no.nav.melosysskattehendelser.skatt.Hendelse
 import no.nav.melosysskattehendelser.skatt.HendelseRequest
