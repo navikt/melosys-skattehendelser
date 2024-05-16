@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component
 import kotlin.jvm.optionals.getOrNull
 
 @Component
-class SkatteHendelseProsessering(
+class SkatteHendelsePublisering(
     private val skatteHendelserFetcher: SkatteHendelserFetcher,
     private val personRepository: PersonRepository,
     private val skatteHendelserStatusRepository: SkatteHendelserStatusRepository,
