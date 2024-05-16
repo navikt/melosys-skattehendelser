@@ -8,34 +8,36 @@ import java.time.LocalDate
 class SkattHendelserFetcher(private val skattHendelseConsumer: SkattHendelseConsumer) {
     private val log = KotlinLogging.logger { }
 
-    fun hentHendelser(startSeksvensnummer: Long) = sequence<Hendelse> {
+    fun hentHendelser(startSeksvensnummer: Long, batchDone: (seksvensnummer: Long) -> Unit = {}) = sequence<Hendelse> {
         var seksvensnummerFra = startSeksvensnummer
-        var hentHendelseListe: List<Hendelse>
-        val batchSize = 500
+        var hendelseListe: List<Hendelse>
         var totaltAntallHendelser = 0
         do {
-            hentHendelseListe = skattHendelseConsumer.hentHendelseListe(
-                HendelseRequest(
-                    seksvensnummerFra = seksvensnummerFra,
-                    antall = batchSize,
-                    brukAktoerId = false
-                )
-            )
-            if (hentHendelseListe.size > batchSize) error("hentHendelseListe.size${hentHendelseListe.size} > batchSize$batchSize")
-            val last = hentHendelseListe.lastOrNull() ?: break
+            hendelseListe = hentSkatteHendelseser(seksvensnummerFra)
+            if (hendelseListe.size > BATCH_SIZE) error("hendelseListe.size${hendelseListe.size} > batchSize$BATCH_SIZE")
+            val last = hendelseListe.lastOrNull() ?: break
             log.info(
-                "Hentet ${hentHendelseListe.size} hendelser fra sekvensnummer $seksvensnummerFra til ${last.sekvensnummer} " +
+                "Hentet ${hendelseListe.size} hendelser fra sekvensnummer $seksvensnummerFra til ${last.sekvensnummer} " +
                         "gjelderPeriode ${last.gjelderPeriode}"
             )
             seksvensnummerFra = last.sekvensnummer + 1
-            yieldAll(hentHendelseListe)
-            totaltAntallHendelser += hentHendelseListe.size
-            if (hentHendelseListe.size < batchSize) {
+            yieldAll(hendelseListe)
+            batchDone(seksvensnummerFra)
+            totaltAntallHendelser += hendelseListe.size
+            if (hendelseListe.size < BATCH_SIZE) {
                 break
             }
-        } while (hentHendelseListe.size == batchSize)
+        } while (hendelseListe.size == BATCH_SIZE)
         log.info("totalt antall hendelser prossessert: $totaltAntallHendelser seksvensnummerFra er nå: $seksvensnummerFra")
     }
+
+    private fun hentSkatteHendelseser(seksvensnummerFra: Long) = skattHendelseConsumer.hentHendelseListe(
+        HendelseRequest(
+            seksvensnummerFra = seksvensnummerFra,
+            antall = BATCH_SIZE,
+            brukAktoerId = false
+        )
+    )
 
     val consumerId
         get() = skattHendelseConsumer.getConsumerId()
@@ -47,4 +49,8 @@ class SkattHendelserFetcher(private val skattHendelseConsumer: SkattHendelseCons
                     log.info("start dato for startSekvensnummer er nå hardkodet til $this")
                 }
         )
+
+    companion object {
+        const val BATCH_SIZE = 500
+    }
 }
