@@ -8,7 +8,7 @@ import java.time.LocalDate
 class SkatteHendelserFetcher(private val skatteHendelseConsumer: SkatteHendelseConsumer) {
     private val log = KotlinLogging.logger { }
 
-    fun hentHendelser(startSeksvensnummer: Long, batchDone: (seksvensnummer: Long) -> Unit = {}) = sequence<Hendelse> {
+    fun hentHendelser(startSeksvensnummer: Long, batchDone: (seksvensnummer: Long) -> Unit) = sequence<Hendelse> {
         var seksvensnummerFra = startSeksvensnummer
         var hendelseListe: List<Hendelse>
         var totaltAntallHendelser = 0

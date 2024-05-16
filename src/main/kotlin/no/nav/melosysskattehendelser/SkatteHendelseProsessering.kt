@@ -24,15 +24,20 @@ class SkatteHendelseProsessering(
         val start = skatteHendelserStatusRepository.findById(skatteHendelserFetcher.consumerId)
             .getOrNull()?.sekvensnummer ?: skatteHendelserFetcher.startSekvensnummer
 
-        skatteHendelserFetcher.hentHendelser(start) { sekvensnummer ->
-            skatteHendelserStatusRepository.save(SkatteHendelserStatus(skatteHendelserFetcher.consumerId, sekvensnummer))
-        }.forEach { hendelse ->
+        skatteHendelserFetcher.hentHendelser(
+            startSeksvensnummer = start,
+            batchDone = { sekvensnummer -> oppdaterStatus(sekvensnummer) }
+        ).forEach { hendelse ->
             personRepository.findPersonByIdent(hendelse.identifikator)?.let { person ->
                 log.info { "Fant person ${person.ident} for hendelse ${hendelse.sekvensnummer}" }
                 // skal vi publisere dette direkte? f.eks sekvensnummer er har jo ingen verdi for meloys
                 skattehendelserProducer.publiserMelding(hendelse)
-                skatteHendelserStatusRepository.save(SkatteHendelserStatus(skatteHendelserFetcher.consumerId, hendelse.sekvensnummer + 1))
+                oppdaterStatus(hendelse.sekvensnummer + 1)
             }
         }
+    }
+
+    private fun oppdaterStatus(sekvensnummer: Long) {
+        skatteHendelserStatusRepository.save(SkatteHendelserStatus(skatteHendelserFetcher.consumerId, sekvensnummer))
     }
 }
