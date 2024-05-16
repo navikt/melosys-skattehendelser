@@ -52,7 +52,6 @@ dependencies {
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("org.flywaydb:flyway-core")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
-    implementation("org.springframework.kafka:spring-kafka")
     implementation("net.logstash.logback:logstash-logback-encoder:${dependencyVersions.logstashLogbackEncoder}")
     implementation("io.github.microutils:kotlin-logging-jvm:${dependencyVersions.kotlinLogging}")
     implementation("no.nav.security:token-validation-spring:${dependencyVersions.tokenSupport}")

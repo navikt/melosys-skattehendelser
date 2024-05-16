@@ -5,11 +5,11 @@
         </encoder>
     </appender>
 
-    <logger name="org.apache.kafka" level="INFO"/>
-    <logger name="org.springframework.kafka" level="INFO"/>
+    <logger name="org.apache.kafka" level="DEBUG"/>
+    <logger name="org.springframework.kafka" level="DEBUG"/>
     <logger name="com.zaxxer.hikari" level="INFO"/>
 
-    <root level="INFO">
+    <root level="DEBUG">
         <appender-ref ref="console"/>
     </root>
 </configuration>

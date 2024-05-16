@@ -17,6 +17,5 @@
     <logger name="org.flywaydb.core.internal" level="WARN"/>
     <logger name="org.hibernate" level="WARN"/>
     <logger name="kafka" level="WARN"/>
-    <logger name="no.nav.melosysskattehendelser.melosys.consumer.VedtakHendelseConsumer" level="DEBUG"/>
 
 </configuration>
