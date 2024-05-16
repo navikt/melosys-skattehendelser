@@ -54,8 +54,6 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("net.logstash.logback:logstash-logback-encoder:${dependencyVersions.logstashLogbackEncoder}")
     implementation("io.github.microutils:kotlin-logging-jvm:${dependencyVersions.kotlinLogging}")
-    implementation("no.nav.security:token-validation-spring:${dependencyVersions.tokenSupport}")
-    implementation("no.nav.security:token-client-spring:${dependencyVersions.tokenSupport}")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
