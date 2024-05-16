@@ -1,6 +1,6 @@
 package no.nav.melosysskattehendelser.skatt.sigrun
 
-import no.nav.melosysskattehendelser.skatt.SkattHendelseConsumer
+import no.nav.melosysskattehendelser.skatt.SkatteHendelseConsumer
 import no.nav.security.token.support.client.core.oauth2.OAuth2AccessTokenService
 import no.nav.security.token.support.client.spring.ClientConfigurationProperties
 import org.springframework.beans.factory.annotation.Value
@@ -21,7 +21,7 @@ class SigrunConsumerConfig(@Value("\${sigrun.rest.url}") private val url: String
         webClientBuilder: WebClient.Builder,
         clientConfigurationProperties: ClientConfigurationProperties,
         oAuth2AccessTokenService: OAuth2AccessTokenService
-    ): SkattHendelseConsumer =
+    ): SkatteHendelseConsumer =
         SigrunRestConsumer(
             webClientBuilder
                 .baseUrl(url)

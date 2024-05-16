@@ -8,8 +8,8 @@ import org.springframework.context.ApplicationListener
  * Brukt for raskere testing av sigrun q2/ske, skal fjernes
  */
 @Component
-class StartupRunner(private val skattHendelseProsessering: SkattHendelseProsessering) : ApplicationListener<ApplicationReadyEvent> {
+class StartupRunner(private val skatteHendelseProsessering: SkatteHendelseProsessering) : ApplicationListener<ApplicationReadyEvent> {
     override fun onApplicationEvent(event: ApplicationReadyEvent) {
-        skattHendelseProsessering.prosesserHendelser()
+        skatteHendelseProsessering.prosesserHendelser()
     }
 }

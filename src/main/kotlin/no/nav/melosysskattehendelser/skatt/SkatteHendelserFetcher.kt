@@ -5,7 +5,7 @@ import org.springframework.stereotype.Component
 import java.time.LocalDate
 
 @Component
-class SkattHendelserFetcher(private val skattHendelseConsumer: SkattHendelseConsumer) {
+class SkatteHendelserFetcher(private val skatteHendelseConsumer: SkatteHendelseConsumer) {
     private val log = KotlinLogging.logger { }
 
     fun hentHendelser(startSeksvensnummer: Long, batchDone: (seksvensnummer: Long) -> Unit = {}) = sequence<Hendelse> {
@@ -31,7 +31,7 @@ class SkattHendelserFetcher(private val skattHendelseConsumer: SkattHendelseCons
         log.info("totalt antall hendelser prossessert: $totaltAntallHendelser seksvensnummerFra er nå: $seksvensnummerFra")
     }
 
-    private fun hentSkatteHendelseser(seksvensnummerFra: Long) = skattHendelseConsumer.hentHendelseListe(
+    private fun hentSkatteHendelseser(seksvensnummerFra: Long) = skatteHendelseConsumer.hentHendelseListe(
         HendelseRequest(
             seksvensnummerFra = seksvensnummerFra,
             antall = BATCH_SIZE,
@@ -40,10 +40,10 @@ class SkattHendelserFetcher(private val skattHendelseConsumer: SkattHendelseCons
     )
 
     val consumerId
-        get() = skattHendelseConsumer.getConsumerId()
+        get() = skatteHendelseConsumer.getConsumerId()
 
     val startSekvensnummer
-        get() = skattHendelseConsumer.getStartSekvensnummer(
+        get() = skatteHendelseConsumer.getStartSekvensnummer(
             LocalDate.of(2022, 1, 1) // TODO: fin ut hva vi starter på, eller hvor vi henter dette fra
                 .apply {
                     log.info("start dato for startSekvensnummer er nå hardkodet til $this")

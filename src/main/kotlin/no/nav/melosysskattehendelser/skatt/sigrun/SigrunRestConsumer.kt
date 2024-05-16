@@ -3,12 +3,12 @@ package no.nav.melosysskattehendelser.skatt.sigrun
 import mu.KotlinLogging
 import no.nav.melosysskattehendelser.skatt.Hendelse
 import no.nav.melosysskattehendelser.skatt.HendelseRequest
-import no.nav.melosysskattehendelser.skatt.SkattHendelseConsumer
+import no.nav.melosysskattehendelser.skatt.SkatteHendelseConsumer
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.bodyToMono
 import java.time.LocalDate
 
-class SigrunRestConsumer(private val webClient: WebClient) : SkattHendelseConsumer {
+class SigrunRestConsumer(private val webClient: WebClient) : SkatteHendelseConsumer {
     private val log = KotlinLogging.logger { }
 
     override fun hentHendelseListe(request: HendelseRequest): List<Hendelse> =
