@@ -1,14 +1,13 @@
-package no.nav.melosysskattehendelser.sigrun
+package no.nav.melosysskattehendelser.skatt.sigrun
 
 import com.github.tomakehurst.wiremock.WireMockServer
-import com.github.tomakehurst.wiremock.client.WireMock.*
+import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration
 import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.nulls.shouldNotBeNull
 import no.nav.melosysskattehendelser.skatt.Hendelse
 import no.nav.melosysskattehendelser.skatt.HendelseRequest
-import no.nav.melosysskattehendelser.skatt.sigrun.SigrunRestConsumer
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
@@ -36,9 +35,9 @@ internal class SigrunRestConsumerTest {
     @Test
     fun `skal hende liste med hendelser`() {
         wireMockServer.stubFor(
-            get("/api/skatteoppgjoer/hendelser")
+            WireMock.get("/api/skatteoppgjoer/hendelser")
                 .willReturn(
-                    aResponse()
+                    WireMock.aResponse()
                         .withStatus(200)
                         .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                         .withBody(
@@ -77,10 +76,10 @@ internal class SigrunRestConsumerTest {
         }
 
         wireMockServer.verify(
-            getRequestedFor(urlEqualTo("/api/skatteoppgjoer/hendelser"))
-                .withHeader("x-sekvensnummer-fra", equalTo("0"))
-                .withHeader("x-antall", equalTo("1000"))
-                .withHeader("x-bruk-aktoerid", equalTo("true"))
+            WireMock.getRequestedFor(WireMock.urlEqualTo("/api/skatteoppgjoer/hendelser"))
+                .withHeader("x-sekvensnummer-fra", WireMock.equalTo("0"))
+                .withHeader("x-antall", WireMock.equalTo("1000"))
+                .withHeader("x-bruk-aktoerid", WireMock.equalTo("true"))
         )
 
     }
