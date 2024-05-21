@@ -10,7 +10,7 @@ private val log = KotlinLogging.logger { }
 @Component
 class SkatteHendelserFetcher(
     private val skatteHendelseConsumer: SkatteHendelseConsumer,
-    @Value("\$skatt.fetcher.batch-size") private val batchSize: Int
+    @Value("\${skatt.fetcher.batch-size}") private val batchSize: Int
 ) {
     init {
         log.info("batchSize er satt til $batchSize")

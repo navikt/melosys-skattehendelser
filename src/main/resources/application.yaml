@@ -32,7 +32,7 @@ sigrun:
 
 skatt:
   fetcher:
-    batch-size: SKATT_FETCHER_BATCH_SIZE:500
+    batch-size: ${SKATT_FETCHER_BATCH_SIZE:500}
 
 no.nav.security.jwt.client.registration:
   sigrun:
