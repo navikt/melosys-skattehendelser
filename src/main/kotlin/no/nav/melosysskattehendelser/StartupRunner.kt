@@ -10,6 +10,7 @@ import org.springframework.context.ApplicationListener
 @Component
 class StartupRunner(private val skatteHendelsePublisering: SkatteHendelsePublisering) : ApplicationListener<ApplicationReadyEvent> {
     override fun onApplicationEvent(event: ApplicationReadyEvent) {
-        skatteHendelsePublisering.prosesserHendelser()
+        val runOnStartup = false // Sett til true for å kjøre ved oppstart
+        if (runOnStartup) skatteHendelsePublisering.prosesserHendelser()
     }
 }
