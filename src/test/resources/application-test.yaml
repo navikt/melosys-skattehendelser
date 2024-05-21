@@ -12,7 +12,6 @@ spring:
 no.nav.security.jwt.client.registration:
   sigrun:
     token-endpoint-url: http://localhost:${mock-oauth2-server.port}/oauth2/v2.0/token
-    grant-type: urn:ietf:params:oauth:grant-type:jwt-bearer
     scope: api://dummy
     authentication:
       client-id: dummy_client-id
