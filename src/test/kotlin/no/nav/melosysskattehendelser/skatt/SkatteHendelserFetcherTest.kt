@@ -1,5 +1,6 @@
 package no.nav.melosysskattehendelser.skatt
 
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.Test
@@ -49,6 +50,20 @@ class SkatteHendelserFetcherTest {
             .shouldHaveSize(3)
             .shouldBe(listOf(110, 120, 124))
 
+    }
+
+    @Test
+    fun `kast feil om consumer retunere større liste en batch size`() {
+        val skatteHendelserFetcher = SkatteHendelserFetcher(skatteHendelserConsumer(11, 20), 10)
+        val batchDoneCallbacks = mutableListOf<Long>()
+
+
+        shouldThrow<IllegalStateException> {
+            skatteHendelserFetcher.hentHendelser(
+                startSeksvensnummer = 1,
+                batchDone = { batchDoneCallbacks.add(it) }
+            ).toList()
+        }.message.shouldBe("hendelseListe.size 11 > batchSize 10")
     }
 
     private fun skatteHendelserConsumer(batchSize: Int = 10, stopAt: Long = 35L) = object : SkatteHendelseConsumer {
