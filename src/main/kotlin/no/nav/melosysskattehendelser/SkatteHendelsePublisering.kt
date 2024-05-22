@@ -30,7 +30,7 @@ class SkatteHendelsePublisering(
         ).forEach { hendelse ->
             personRepository.findPersonByIdent(hendelse.identifikator)?.let { person ->
                 log.info { "Fant person ${person.ident} for hendelse ${hendelse.sekvensnummer}" }
-                // skal vi publisere dette direkte? f.eks sekvensnummer er har jo ingen verdi for meloys
+                // skal vi publisere dette direkte? f.eks sekvensnummer er har jo ingen verdi for melosys
                 skattehendelserProducer.publiserMelding(hendelse)
                 oppdaterStatus(hendelse.sekvensnummer + 1)
             }

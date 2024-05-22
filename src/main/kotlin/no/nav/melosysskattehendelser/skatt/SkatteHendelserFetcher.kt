@@ -52,7 +52,7 @@ class SkatteHendelserFetcher(
 
     val startSekvensnummer
         get() = skatteHendelseConsumer.getStartSekvensnummer(
-            LocalDate.of(2022, 1, 1) // TODO: fin ut hva vi starter på, eller hvor vi henter dette fra
+            LocalDate.of(2022, 1, 1) // TODO: finn ut hva vi starter på, eller hvor vi henter dette fra
                 .apply {
                     log.info("start dato for startSekvensnummer er nå hardkodet til $this")
                 }
