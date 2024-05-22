@@ -1,6 +1,6 @@
 package no.nav.melosysskattehendelser.melosys.producer
 
-import no.nav.melosysskattehendelser.sigrun.Hendelse
+import no.nav.melosysskattehendelser.skatt.Hendelse
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.springframework.kafka.core.KafkaTemplate
 

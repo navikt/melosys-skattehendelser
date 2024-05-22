@@ -30,11 +30,15 @@ sigrun:
   rest:
     url: temp
 
+skatt:
+  fetcher:
+    batch-size: ${SKATT_FETCHER_BATCH_SIZE:500}
+
 no.nav.security.jwt.client.registration:
   sigrun:
     token-endpoint-url: https://login.microsoftonline.com/966ac572-f5b7-4bbe-aa88-c76419c0f851/oauth2/v2.0/token
-    grant-type: urn:ietf:params:oauth:grant-type:jwt-bearer
-    scope: api://dev-fss.team-inntekt.sigrun-q2/.default
+    grant-type: client_credentials
+    scope: api://prod-fss.team-inntekt.sigrun/.default
     authentication:
       client-id: ${AZURE_APP_CLIENT_ID}
       client-secret: ${AZURE_APP_CLIENT_SECRET}

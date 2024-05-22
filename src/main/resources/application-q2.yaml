@@ -10,13 +10,10 @@ spring:
     enabled: true
 sigrun:
   rest:
-    url: temp
+    url: https://sigrun-q2.dev.adeo.no
 no.nav.security.jwt.client.registration:
   sigrun:
-    token-endpoint-url: http://host.docker.internal:8082/isso/oauth2/v2.0/token
-    scope: melosys-skattehendleser-localhost
-    authentication:
-      client-id: lol
-      client-secret: lol
+    scope: api://dev-fss.team-inntekt.sigrun-q2/.default
 
 KAFKA_VEDTAK_TOPIC: teammelosys.melosys-hendelser-local
+AZURE_APP_CLIENT_ID: 1e140b30-6daf-4383-aab5-bba972467d32

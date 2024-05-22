@@ -5,7 +5,7 @@ import io.kotest.matchers.booleans.shouldBeTrue
 import io.kotest.matchers.nulls.shouldNotBeNull
 import no.nav.melosysskattehendelser.PostgresTestContainerBase
 import no.nav.melosysskattehendelser.melosys.KafkaTestConsumer
-import no.nav.melosysskattehendelser.sigrun.Hendelse
+import no.nav.melosysskattehendelser.skatt.Hendelse
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest

@@ -1,12 +1,13 @@
-package no.nav.melosysskattehendelser.sigrun
+package no.nav.melosysskattehendelser.skatt.sigrun
 
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock
-import com.github.tomakehurst.wiremock.client.WireMock.*
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration
 import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.nulls.shouldNotBeNull
+import no.nav.melosysskattehendelser.skatt.Hendelse
+import no.nav.melosysskattehendelser.skatt.HendelseRequest
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
@@ -62,9 +63,7 @@ internal class SigrunRestConsumerTest {
         val request = HendelseRequest(
             0,
             1000,
-            true,
-            "caller",
-            "srvmelosys"
+            true
         )
 
         sigrunRestConsumer.hentHendelseListe(request).run {
@@ -77,12 +76,10 @@ internal class SigrunRestConsumerTest {
         }
 
         wireMockServer.verify(
-            getRequestedFor(urlEqualTo("/api/skatteoppgjoer/hendelser"))
-                .withHeader("x-sekvensnummer-fra", equalTo("0"))
-                .withHeader("x-antall", equalTo("1000"))
-                .withHeader("x-bruk-aktoerid", equalTo("true"))
-                .withHeader("Nav-Call-Id", equalTo("caller"))
-                .withHeader("Nav-Consumer-Id", equalTo("srvmelosys"))
+            WireMock.getRequestedFor(WireMock.urlEqualTo("/api/skatteoppgjoer/hendelser"))
+                .withHeader("x-sekvensnummer-fra", WireMock.equalTo("0"))
+                .withHeader("x-antall", WireMock.equalTo("1000"))
+                .withHeader("x-bruk-aktoerid", WireMock.equalTo("true"))
         )
 
     }
