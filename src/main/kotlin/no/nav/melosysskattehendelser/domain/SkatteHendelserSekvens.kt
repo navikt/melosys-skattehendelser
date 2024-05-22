@@ -3,8 +3,8 @@ package no.nav.melosysskattehendelser.domain
 import jakarta.persistence.*
 
 @Entity
-@Table(name = "SKATTE_HENDELSER_STATUS")
-class SkatteHendelserStatus(
+@Table(name = "SKATTE_HENDELSER_SEKVENS")
+class SkatteHendelserSekvens(
 
     @Id
     @Column(name = "consumer_id", nullable = false)

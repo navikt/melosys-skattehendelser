@@ -2,7 +2,7 @@ package no.nav.melosysskattehendelser
 
 import mu.KotlinLogging
 import no.nav.melosysskattehendelser.domain.PersonRepository
-import no.nav.melosysskattehendelser.domain.SkatteHendelserStatus
+import no.nav.melosysskattehendelser.domain.SkatteHendelserSekvens
 import no.nav.melosysskattehendelser.domain.SkatteHendelserStatusRepository
 import no.nav.melosysskattehendelser.melosys.producer.SkattehendelserProducer
 import no.nav.melosysskattehendelser.skatt.SkatteHendelserFetcher
@@ -38,6 +38,6 @@ class SkatteHendelsePublisering(
     }
 
     private fun oppdaterStatus(sekvensnummer: Long) {
-        skatteHendelserStatusRepository.save(SkatteHendelserStatus(skatteHendelserFetcher.consumerId, sekvensnummer))
+        skatteHendelserStatusRepository.save(SkatteHendelserSekvens(skatteHendelserFetcher.consumerId, sekvensnummer))
     }
 }
