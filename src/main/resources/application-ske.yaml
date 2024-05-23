@@ -17,3 +17,4 @@ no.nav.security.jwt.client.registration:
 
 KAFKA_VEDTAK_TOPIC: teammelosys.melosys-hendelser-local
 AZURE_APP_CLIENT_ID: 1e140b30-6daf-4383-aab5-bba972467d32
+PROSESSER_SKATT_HENDELSER: "0 */1 * * * *" # Kjør hver minutt

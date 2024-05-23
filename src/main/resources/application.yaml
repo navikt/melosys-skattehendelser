@@ -30,6 +30,11 @@ sigrun:
   rest:
     url: temp
 
+cron:
+  job:
+    prosesser-skatt-hendelser: ${PROSESSER_SKATT_HENDELSER:"0 0 2 * * *"} # Kjør kl 02:00 hver dag
+
+
 skatt:
   fetcher:
     batch-size: ${SKATT_FETCHER_BATCH_SIZE:500}

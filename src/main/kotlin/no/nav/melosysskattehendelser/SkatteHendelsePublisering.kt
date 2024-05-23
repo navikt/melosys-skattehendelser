@@ -6,6 +6,7 @@ import no.nav.melosysskattehendelser.domain.SkatteHendelserSekvens
 import no.nav.melosysskattehendelser.domain.SkatteHendelserStatusRepository
 import no.nav.melosysskattehendelser.melosys.producer.SkattehendelserProducer
 import no.nav.melosysskattehendelser.skatt.SkatteHendelserFetcher
+import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Component
 import kotlin.jvm.optionals.getOrNull
 
@@ -18,9 +19,13 @@ class SkatteHendelsePublisering(
 ) {
     private val log = KotlinLogging.logger { }
 
-    //@Async
-    //@Synchronized
-    fun prosesserHendelser() {
+    @Async
+    fun asynkronProsesseringAvSkattHendelser() {
+        prosesserSkattHendelser()
+    }
+
+    @Synchronized
+    fun prosesserSkattHendelser() {
         val start = skatteHendelserStatusRepository.findById(skatteHendelserFetcher.consumerId)
             .getOrNull()?.sekvensnummer ?: skatteHendelserFetcher.startSekvensnummer
 
