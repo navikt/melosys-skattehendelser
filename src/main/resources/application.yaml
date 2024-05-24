@@ -34,6 +34,7 @@ cron:
   job:
     prosesser-skatt-hendelser: ${PROSESSER_SKATT_HENDELSER:0 0 2 * * *} # Kjør kl 02:00 hver dag
 
+
 skatt:
   fetcher:
     batch-size: ${SKATT_FETCHER_BATCH_SIZE:500}
@@ -42,7 +43,7 @@ no.nav.security.jwt.client.registration:
   sigrun:
     token-endpoint-url: https://login.microsoftonline.com/966ac572-f5b7-4bbe-aa88-c76419c0f851/oauth2/v2.0/token
     grant-type: client_credentials
-    scope: api://${cluster_sigrun}.team-inntekt.${app_name_sigrun}/.default
+    scope: api://${CLUSTER_SIGRUN}.team-inntekt.${APP_NAME_SIGRUN}/.default
     authentication:
       client-id: ${AZURE_APP_CLIENT_ID}
       client-secret: ${AZURE_APP_CLIENT_SECRET}

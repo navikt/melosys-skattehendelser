@@ -66,4 +66,8 @@ spec:
       value: {{kafka_topic_name_skattehendelse}}
     - name: KAFKA_VEDTAK_TOPIC
       value: {{kafka_topic_name_hendelse}}
+    - name: CLUSTER_SIGRUN
+      value: {{cluster_sigrun}}
+    - name: APP_NAME_SIGRUN
+      value: {{app_name_sigrun}}
 
