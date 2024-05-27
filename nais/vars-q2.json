@@ -3,7 +3,7 @@
   "database_name": "skattehendelser-db-q2",
   "database_tier": "db-g1-small",
   "namespace": "teammelosys",
-  "ingress": "https://skattehendelser-q2.intern.dev.nav.no",
+  "ingress": "https://team-inntekt-proxy.dev-fss-pub.nais.io/proxy/sigrun-ske",
   "tenant": "trygdeetaten.no",
   "kafka_pool": "nav-dev",
   "group_melosys_innlogging": "52981246-8032-40f0-863a-2bd2844f2d57",
