@@ -28,7 +28,7 @@ melosys:
 
 sigrun:
   rest:
-    url: ${SIGRUN_REST_URL:https://team-inntekt-proxy.dev-fss-pub.nais.io/proxy/sigrun-ske}
+    url: ${SIGRUN_REST_URL}
 
 cron:
   job:
