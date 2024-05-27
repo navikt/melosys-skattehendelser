@@ -10,5 +10,8 @@
   "kafka_topic_name_skattehendelse": "teammelosys.skattehendelser.v1",
   "kafka_topic_name_hendelse": "teammelosys.melosys-hendelser.v1",
   "cluster_sigrun": "prod-fss",
-  "app_name_sigrun": "sigrun"
+  "app_name_sigrun": "sigrun",
+  "sigrun_host": "team-inntekt-proxy.prod-fss-pub.nais.io",
+  "sigrun_rest_url": "https://team-inntekt-proxy.prod-fss-pub.nais.io/proxy/sigrun"
+
 }

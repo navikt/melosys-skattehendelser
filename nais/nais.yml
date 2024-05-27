@@ -47,7 +47,7 @@ spec:
     outbound:
       external:
         - host: "melosys-unleash-api.nav.cloud.nais.io"
-        - host: "team-inntekt-proxy.dev-fss-pub.nais.io"
+        - host: {{sigrun_host}}
   prometheus:
     enabled: true
     path: /internal/prometheus
@@ -71,6 +71,5 @@ spec:
       value: {{cluster_sigrun}}
     - name: APP_NAME_SIGRUN
       value: {{app_name_sigrun}}
-
-  envFrom:
-    - secret: {{app_name}}
+    - name: SIGRUN_REST_URL
+      value: {{sigrun_rest_url}}
