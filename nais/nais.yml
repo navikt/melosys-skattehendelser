@@ -73,3 +73,6 @@ spec:
       value: {{app_name_sigrun}}
     - name: SIGRUN_REST_URL
       value: {{sigrun_rest_url}}
+
+  envFrom:
+    - secret: {{app_name}}
