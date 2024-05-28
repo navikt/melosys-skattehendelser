@@ -16,10 +16,16 @@ class SkatteHendelserFetcher(
         log.info("batchSize er satt til $batchSize")
     }
 
-    fun hentHendelser(startSeksvensnummer: Long, batchDone: (seksvensnummer: Long) -> Unit) = sequence<Hendelse> {
+
+    fun hentHendelser(
+        startSeksvensnummer: Long,
+        batchDone: (seksvensnummer: Long) -> Unit,
+        reportStats: (stats: Stats) -> Unit = {}
+    ) = sequence<Hendelse> {
         var seksvensnummerFra = startSeksvensnummer
         var hendelseListe: List<Hendelse>
         var totaltAntallHendelser = 0
+        var antallBatcher = 0
         do {
             hendelseListe = hentSkatteHendelseser(seksvensnummerFra)
             if (hendelseListe.size > batchSize) error("hendelseListe.size ${hendelseListe.size} > batchSize $batchSize")
@@ -32,6 +38,11 @@ class SkatteHendelserFetcher(
             yieldAll(hendelseListe)
             batchDone(seksvensnummerFra)
             totaltAntallHendelser += hendelseListe.size
+            Stats(
+                totaltAntallHendelser = totaltAntallHendelser,
+                antallBatcher = ++antallBatcher,
+                sisteBatchSize = hendelseListe.size
+            ).applyReport(reportStats)
             if (hendelseListe.size < batchSize) {
                 break
             }
@@ -57,4 +68,14 @@ class SkatteHendelserFetcher(
                     log.info("start dato for startSekvensnummer er nå hardkodet til $this")
                 }
         )
+
+    data class Stats(
+        val totaltAntallHendelser: Int,
+        val antallBatcher: Int,
+        val sisteBatchSize: Int
+    ) {
+        fun applyReport(reportStats: (Stats) -> Unit) {
+            reportStats(this)
+        }
+    }
 }

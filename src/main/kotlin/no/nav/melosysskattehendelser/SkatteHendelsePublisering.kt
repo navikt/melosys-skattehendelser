@@ -19,7 +19,7 @@ class SkatteHendelsePublisering(
     private val skattehendelserProducer: SkattehendelserProducer
 ) {
     private val log = KotlinLogging.logger { }
-    private val status: Status = Status(0, 0)
+    private val status: Status = Status()
 
     @Async
     fun asynkronProsesseringAvSkattHendelser() {
@@ -36,7 +36,13 @@ class SkatteHendelsePublisering(
 
             skatteHendelserFetcher.hentHendelser(
                 startSeksvensnummer = start,
-                batchDone = { sekvensnummer -> oppdaterStatus(sekvensnummer) },
+                batchDone = { sekvensnummer ->
+                    oppdaterStatus(sekvensnummer)
+                },
+                reportStats = { stats ->
+                    antallBatcher = stats.antallBatcher
+                    sisteBatchSize = stats.sisteBatchSize
+                }
             ).forEach { hendelse ->
                 if (stop) return@run
                 totaltAntallHendelser++
@@ -59,21 +65,28 @@ class SkatteHendelsePublisering(
     fun status() = status.status()
 
     private fun oppdaterStatus(sekvensnummer: Long) {
+        status.sisteSekvensnummer = sekvensnummer
         skatteHendelserStatusRepository.save(SkatteHendelserSekvens(skatteHendelserFetcher.consumerId, sekvensnummer))
     }
 
     class Status(
-        @Volatile var totaltAntallHendelser: Int,
-        @Volatile var personerFunnet: Int,
+        @Volatile var totaltAntallHendelser: Int = 0,
+        @Volatile var personerFunnet: Int = 0,
         @Volatile var isRunning: Boolean = false,
         @Volatile var startedAt: LocalDateTime = LocalDateTime.MIN,
-        @Volatile var stop: Boolean = false
+        @Volatile var stop: Boolean = false,
+        @Volatile var sisteSekvensnummer: Long = 0,
+        @Volatile var antallBatcher: Int = 0,
+        @Volatile var sisteBatchSize: Int = 0
     ) {
         fun run(block: Status.() -> Unit) {
             totaltAntallHendelser = 0
             personerFunnet = 0
             isRunning = true
             startedAt = LocalDateTime.now()
+            sisteSekvensnummer = 0
+            antallBatcher = 0
+            sisteBatchSize = 0
             try {
                 this.block()
             } finally {
@@ -86,8 +99,10 @@ class SkatteHendelsePublisering(
             "isRunning" to isRunning,
             "startedAt" to startedAt,
             "totaltAntallHendelser" to totaltAntallHendelser,
+            "antallBatcher" to antallBatcher,
+            "sisteBatchSize" to sisteBatchSize,
+            "sisteSekvensnummer" to sisteSekvensnummer,
             "personerFunnet" to personerFunnet
         )
-
     }
 }

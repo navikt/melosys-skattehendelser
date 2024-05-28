@@ -15,6 +15,7 @@ class AdminController(
 ) {
     @PostMapping("/hendelseprosessering/start")
     fun startHendelseProsessering(): ResponseEntity<String> {
+        skatteHendelsePublisering.asynkronProsesseringAvSkattHendelser()
         return ResponseEntity.ok("Hendelseprosessering startet")
     }
 
