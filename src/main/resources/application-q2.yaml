@@ -14,4 +14,4 @@ APP_NAME_SIGRUN: sigrun-q2
 KAFKA_VEDTAK_TOPIC: teammelosys.melosys-hendelser-local
 AZURE_APP_CLIENT_ID: 1e140b30-6daf-4383-aab5-bba972467d32
 SIGRUN_REST_URL: https://sigrun-q2.dev.adeo.no
-PROSESSER_SKATT_HENDELSER: 0 */1 * * * * # Kjør hver minutt
+CRON_JOB_PROSESSER_SKATT_HENDELSER: 0 */1 * * * * # Kjør hver minutt
