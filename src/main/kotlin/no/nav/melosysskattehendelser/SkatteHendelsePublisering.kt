@@ -6,7 +6,10 @@ import no.nav.melosysskattehendelser.domain.SkatteHendelserSekvens
 import no.nav.melosysskattehendelser.domain.SkatteHendelserStatusRepository
 import no.nav.melosysskattehendelser.melosys.producer.SkattehendelserProducer
 import no.nav.melosysskattehendelser.skatt.SkatteHendelserFetcher
+import no.nav.melosysskattehendelser.melosys.toMelosysSkatteHendelse
+import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Component
+import java.time.LocalDateTime
 import kotlin.jvm.optionals.getOrNull
 
 @Component
@@ -17,27 +20,89 @@ class SkatteHendelsePublisering(
     private val skattehendelserProducer: SkattehendelserProducer
 ) {
     private val log = KotlinLogging.logger { }
+    private val status: Status = Status()
 
-    //@Async
-    //@Synchronized
-    fun prosesserHendelser() {
-        val start = skatteHendelserStatusRepository.findById(skatteHendelserFetcher.consumerId)
-            .getOrNull()?.sekvensnummer ?: skatteHendelserFetcher.startSekvensnummer
+    @Async
+    fun asynkronProsesseringAvSkattHendelser() {
+        prosesserSkattHendelser()
+    }
 
-        skatteHendelserFetcher.hentHendelser(
-            startSeksvensnummer = start,
-            batchDone = { sekvensnummer -> oppdaterStatus(sekvensnummer) }
-        ).forEach { hendelse ->
-            personRepository.findPersonByIdent(hendelse.identifikator)?.let { person ->
-                log.info { "Fant person ${person.ident} for hendelse ${hendelse.sekvensnummer}" }
-                // skal vi publisere dette direkte? f.eks sekvensnummer er har jo ingen verdi for melosys
-                skattehendelserProducer.publiserMelding(hendelse)
-                oppdaterStatus(hendelse.sekvensnummer + 1)
+    fun prosesserSkattHendelser() {
+        if (status.isRunning) {
+            log.warn("Prosessering av skatt hendelser er allerede i gang!")
+        }
+        status.run {
+            val start = skatteHendelserStatusRepository.findById(skatteHendelserFetcher.consumerId)
+                .getOrNull()?.sekvensnummer ?: skatteHendelserFetcher.startSekvensnummer
+
+            skatteHendelserFetcher.hentHendelser(
+                startSeksvensnummer = start,
+                batchDone = { sekvensnummer ->
+                    oppdaterStatus(sekvensnummer)
+                },
+                reportStats = { stats ->
+                    antallBatcher = stats.antallBatcher
+                    sisteBatchSize = stats.sisteBatchSize
+                }
+            ).forEach { hendelse ->
+                if (stop) return@run
+                totaltAntallHendelser++
+                personRepository.findPersonByIdent(hendelse.identifikator)?.let { person ->
+                    personerFunnet++
+                    log.info { "Fant person ${person.ident} for hendelse ${hendelse.sekvensnummer}" }
+                    skattehendelserProducer.publiserMelding(hendelse.toMelosysSkatteHendelse())
+                    oppdaterStatus(hendelse.sekvensnummer + 1)
+                }
             }
         }
     }
 
+    fun stopProsesseringAvSkattHendelser() {
+        log.info("Stopper prosessering av skatt hendelser!")
+        status.stop = true
+    }
+
+    fun status() = status.status()
+
     private fun oppdaterStatus(sekvensnummer: Long) {
+        status.sisteSekvensnummer = sekvensnummer
         skatteHendelserStatusRepository.save(SkatteHendelserSekvens(skatteHendelserFetcher.consumerId, sekvensnummer))
+    }
+
+    class Status(
+        @Volatile var totaltAntallHendelser: Int = 0,
+        @Volatile var personerFunnet: Int = 0,
+        @Volatile var isRunning: Boolean = false,
+        @Volatile var startedAt: LocalDateTime = LocalDateTime.MIN,
+        @Volatile var stop: Boolean = false,
+        @Volatile var sisteSekvensnummer: Long = 0,
+        @Volatile var antallBatcher: Int = 0,
+        @Volatile var sisteBatchSize: Int = 0
+    ) {
+        fun run(block: Status.() -> Unit) {
+            totaltAntallHendelser = 0
+            personerFunnet = 0
+            isRunning = true
+            startedAt = LocalDateTime.now()
+            sisteSekvensnummer = 0
+            antallBatcher = 0
+            sisteBatchSize = 0
+            try {
+                this.block()
+            } finally {
+                isRunning = false
+                stop = false
+            }
+        }
+
+        fun status(): Map<String, Any> = mapOf(
+            "isRunning" to isRunning,
+            "startedAt" to startedAt,
+            "totaltAntallHendelser" to totaltAntallHendelser,
+            "antallBatcher" to antallBatcher,
+            "sisteBatchSize" to sisteBatchSize,
+            "sisteSekvensnummer" to sisteSekvensnummer,
+            "personerFunnet" to personerFunnet
+        )
     }
 }

@@ -47,6 +47,7 @@ spec:
     outbound:
       external:
         - host: "melosys-unleash-api.nav.cloud.nais.io"
+        - host: {{sigrun_host}}
   prometheus:
     enabled: true
     path: /internal/prometheus
@@ -66,4 +67,12 @@ spec:
       value: {{kafka_topic_name_skattehendelse}}
     - name: KAFKA_VEDTAK_TOPIC
       value: {{kafka_topic_name_hendelse}}
+    - name: CLUSTER_SIGRUN
+      value: {{cluster_sigrun}}
+    - name: APP_NAME_SIGRUN
+      value: {{app_name_sigrun}}
+    - name: SIGRUN_REST_URL
+      value: {{sigrun_rest_url}}
 
+  envFrom:
+    - secret: {{app_name}}

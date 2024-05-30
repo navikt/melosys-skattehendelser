@@ -2,7 +2,6 @@ package no.nav.melosysskattehendelser.melosys
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import no.nav.melosysskattehendelser.melosys.consumer.MelosysHendelse
-import no.nav.melosysskattehendelser.skatt.Hendelse
 import org.apache.kafka.clients.CommonClientConfigs
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.producer.ProducerConfig
@@ -36,9 +35,9 @@ class KafkaConfig(
 ) {
 
     @Bean
-    fun kafkaTemplate(objectMapper: ObjectMapper?): KafkaTemplate<String, Hendelse> {
+    fun kafkaTemplate(objectMapper: ObjectMapper?): KafkaTemplate<String, MelosysSkatteHendelse> {
         val config: Map<String, Any> = producerConfig()
-        val producerFactory: ProducerFactory<String, Hendelse> =
+        val producerFactory: ProducerFactory<String, MelosysSkatteHendelse> =
             DefaultKafkaProducerFactory(config, StringSerializer(), JsonSerializer(objectMapper))
         return KafkaTemplate(producerFactory)
     }

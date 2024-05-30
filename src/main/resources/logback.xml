@@ -27,6 +27,7 @@
         </appender>
 
         <logger name="org.apache.kafka" level="INFO"/>
+        <logger name="org.apache.kafka.clients.consumer.internals" level="WARN"/>
         <logger name="org.springframework.kafka" level="INFO"/>
         <logger name="com.zaxxer.hikari" level="INFO"/>
 

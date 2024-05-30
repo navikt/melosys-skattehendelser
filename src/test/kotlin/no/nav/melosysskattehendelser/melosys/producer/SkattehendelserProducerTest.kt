@@ -5,7 +5,7 @@ import io.kotest.matchers.booleans.shouldBeTrue
 import io.kotest.matchers.nulls.shouldNotBeNull
 import no.nav.melosysskattehendelser.PostgresTestContainerBase
 import no.nav.melosysskattehendelser.melosys.KafkaTestConsumer
-import no.nav.melosysskattehendelser.skatt.Hendelse
+import no.nav.melosysskattehendelser.melosys.MelosysSkatteHendelse
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -31,11 +31,9 @@ class SkattehendelserProducerTest(
 
     @Test
     fun `skal publisere meldinger med skattehendelser`() {
-        val hendelse = Hendelse(
+        val hendelse = MelosysSkatteHendelse(
             "2023",
-            "123456",
-            56,
-            true
+            "123456"
         )
         skattehendelserProducer.publiserMelding(hendelse)
         kafkaTestConsumer.latch.await(10, TimeUnit.SECONDS)
@@ -46,9 +44,7 @@ class SkattehendelserProducerTest(
                 """
                     {
                       "gjelderPeriode":"2023",
-                      "identifikator":"123456",
-                      "sekvensnummer":56,
-                      "somAktoerid":true
+                      "identifikator":"123456"
                     }
                 """
             )

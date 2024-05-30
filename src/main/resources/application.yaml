@@ -28,7 +28,14 @@ melosys:
 
 sigrun:
   rest:
-    url: temp
+    url: ${SIGRUN_REST_URL}
+
+cron:
+  job:
+    prosesser-skatt-hendelser: ${CRON_JOB_PROSESSER_SKATTE_HENDELSER:0 0 2 * * *} # Kjør kl 02:00 hver dag
+
+admin:
+  api-key: ${ADMIN_API_KEY:dummy}
 
 skatt:
   fetcher:
@@ -38,7 +45,7 @@ no.nav.security.jwt.client.registration:
   sigrun:
     token-endpoint-url: https://login.microsoftonline.com/966ac572-f5b7-4bbe-aa88-c76419c0f851/oauth2/v2.0/token
     grant-type: client_credentials
-    scope: api://prod-fss.team-inntekt.sigrun/.default
+    scope: api://${CLUSTER_SIGRUN}.team-inntekt.${APP_NAME_SIGRUN}/.default
     authentication:
       client-id: ${AZURE_APP_CLIENT_ID}
       client-secret: ${AZURE_APP_CLIENT_SECRET}
