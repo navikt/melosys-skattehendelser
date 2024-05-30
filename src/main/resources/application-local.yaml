@@ -1,4 +1,4 @@
-  server:
+server:
   port: 8089
 spring:
   datasource:
@@ -10,7 +10,7 @@ spring:
     enabled: true
 sigrun:
   rest:
-    url: temp
+    url: http://localhost:8083/sigrun
 no.nav.security.jwt.client.registration:
   sigrun:
     token-endpoint-url: http://host.docker.internal:8082/isso/oauth2/v2.0/token
@@ -20,4 +20,3 @@ no.nav.security.jwt.client.registration:
       client-secret: lol
 
 KAFKA_VEDTAK_TOPIC: teammelosys.melosys-hendelser-local
-CRON_JOB_PROSESSER_SKATTE_HENDELSER: 0 */1 * * * * # Kjør hver minutt
