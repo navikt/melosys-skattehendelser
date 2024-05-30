@@ -6,6 +6,7 @@ import no.nav.melosysskattehendelser.domain.SkatteHendelserSekvens
 import no.nav.melosysskattehendelser.domain.SkatteHendelserStatusRepository
 import no.nav.melosysskattehendelser.melosys.producer.SkattehendelserProducer
 import no.nav.melosysskattehendelser.skatt.SkatteHendelserFetcher
+import no.nav.melosysskattehendelser.melosys.toMelosysSkatteHendelse
 import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Component
 import java.time.LocalDateTime
@@ -49,8 +50,7 @@ class SkatteHendelsePublisering(
                 personRepository.findPersonByIdent(hendelse.identifikator)?.let { person ->
                     personerFunnet++
                     log.info { "Fant person ${person.ident} for hendelse ${hendelse.sekvensnummer}" }
-                    // skal vi publisere dette direkte? f.eks sekvensnummer er har jo ingen verdi for melosys
-                    skattehendelserProducer.publiserMelding(hendelse)
+                    skattehendelserProducer.publiserMelding(hendelse.toMelosysSkatteHendelse())
                     oppdaterStatus(hendelse.sekvensnummer + 1)
                 }
             }
