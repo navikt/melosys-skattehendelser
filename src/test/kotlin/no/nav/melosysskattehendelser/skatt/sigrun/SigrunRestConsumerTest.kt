@@ -33,7 +33,7 @@ internal class SigrunRestConsumerTest {
     }
 
     @Test
-    fun `skal hende liste med hendelser`() {
+    fun `skal hente liste med hendelser`() {
         wireMockServer.stubFor(
             WireMock.get("/api/skatteoppgjoer/hendelser")
                 .willReturn(
@@ -47,13 +47,15 @@ internal class SigrunRestConsumerTest {
                                 "gjelderPeriode": "2023",
                                 "identifikator": "123456",
                                 "sekvensnummer": 0,
-                                "somAktoerid": true
+                                "somAktoerid": true,
+                                "hendelsetype":"ny"
                               },
                               {
                                 "gjelderPeriode": "2023",
                                 "identifikator": "456789",
                                 "sekvensnummer": 1,
-                                "somAktoerid": true
+                                "somAktoerid": true,
+                                "hendelsetype":"ny"
                               }
                             ]
                         """.trimIndent()
@@ -70,8 +72,8 @@ internal class SigrunRestConsumerTest {
             shouldNotBeNull()
             shouldHaveSize(2)
             shouldContainExactlyInAnyOrder(
-                Hendelse("2023", "123456", 0, true),
-                Hendelse("2023", "456789", 1, true)
+                Hendelse("2023", "123456", 0, true, hendelsetype = "ny"),
+                Hendelse("2023", "456789", 1, true, hendelsetype = "ny")
             )
         }
 
