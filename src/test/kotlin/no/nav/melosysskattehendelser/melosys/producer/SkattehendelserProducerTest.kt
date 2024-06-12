@@ -33,7 +33,8 @@ class SkattehendelserProducerTest(
     fun `skal publisere meldinger med skattehendelser`() {
         val hendelse = MelosysSkatteHendelse(
             "2023",
-            "123456"
+            "123456",
+            "ny"
         )
         skattehendelserProducer.publiserMelding(hendelse)
         kafkaTestConsumer.latch.await(10, TimeUnit.SECONDS)
@@ -44,7 +45,8 @@ class SkattehendelserProducerTest(
                 """
                     {
                       "gjelderPeriode":"2023",
-                      "identifikator":"123456"
+                      "identifikator":"123456",
+                      "hendelsetype":"ny"
                     }
                 """
             )

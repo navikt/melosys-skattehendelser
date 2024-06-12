@@ -77,7 +77,8 @@ class SkatteHendelserFetcherTest {
                         gjelderPeriode = "2023",
                         identifikator = ident.plus(i).toString(),
                         sekvensnummer = sekvensnummer,
-                        somAktoerid = false
+                        somAktoerid = false,
+                        hendelsetype = "ny",
                     )
                 )
             }

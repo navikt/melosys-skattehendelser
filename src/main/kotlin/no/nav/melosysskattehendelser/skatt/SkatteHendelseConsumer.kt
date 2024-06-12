@@ -19,5 +19,6 @@ data class Hendelse(
     val gjelderPeriode: String,
     val identifikator: String,
     val sekvensnummer: Long,
-    val somAktoerid: Boolean
+    val somAktoerid: Boolean,
+    val hendelsetype: String,
 )
