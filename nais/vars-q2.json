@@ -10,7 +10,7 @@
   "kafka_topic_name_skattehendelse": "teammelosys.skattehendelser.v1-q2",
   "kafka_topic_name_hendelse": "teammelosys.melosys-hendelser.v1-q2",
   "cluster_sigrun": "dev-fss",
-  "app_name_sigrun": "sigrun-q4",
+  "app_name_sigrun": "sigrun-q2",
   "sigrun_host": "team-inntekt-proxy.dev-fss-pub.nais.io",
-  "sigrun_rest_url": "https://team-inntekt-proxy.dev-fss-pub.nais.io/proxy/sigrun-ske"
+  "sigrun_rest_url": "https://team-inntekt-proxy.dev-fss-pub.nais.io/proxy/sigrun-q2"
 }
