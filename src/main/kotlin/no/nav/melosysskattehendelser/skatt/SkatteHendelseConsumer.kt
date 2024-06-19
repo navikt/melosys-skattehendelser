@@ -20,5 +20,5 @@ data class Hendelse(
     val identifikator: String,
     val sekvensnummer: Long,
     val somAktoerid: Boolean,
-    val hendelsetype: String,
+    val hendelsetype: String = "ny"
 )
