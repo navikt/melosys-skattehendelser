@@ -34,6 +34,8 @@ object dependencyVersions {
     const val awaitility = "4.2.0"
     const val mockk = "1.12.5"
     const val tokenSupport = "3.2.0"
+    const val shedlockVersion = "4.4.0"
+    const val shedlockProvicerJdbcVersion = "4.43.0"
 }
 
 val osName = System.getProperty("os.name").lowercase()
@@ -60,6 +62,8 @@ dependencies {
     implementation("io.github.microutils:kotlin-logging-jvm:${dependencyVersions.kotlinLogging}")
     implementation("no.nav.security:token-validation-spring:${dependencyVersions.tokenSupport}")
     implementation("no.nav.security:token-client-spring:${dependencyVersions.tokenSupport}")
+    implementation("net.javacrumbs.shedlock:shedlock-spring:${dependencyVersions.shedlockVersion}")
+    implementation("net.javacrumbs.shedlock:shedlock-provider-jdbc-template:${dependencyVersions.shedlockProvicerJdbcVersion}")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
