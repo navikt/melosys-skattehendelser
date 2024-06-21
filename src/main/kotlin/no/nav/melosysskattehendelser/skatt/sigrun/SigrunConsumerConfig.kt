@@ -27,7 +27,7 @@ class SigrunConsumerConfig(@Value("\${sigrun.rest.url}") private val url: String
             webClientBuilder
                 .baseUrl(url)
                 .filter(AzureContextExchangeFilter(clientConfigurationProperties, oAuth2AccessTokenService))
-                .filter(CallIdFilterFunction())
+                .filter(callIdFilterFunction())
                 .defaultHeaders {
                     it.add(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
                     it.add("Nav-Consumer-Id", CONSUMER_ID)
@@ -35,7 +35,7 @@ class SigrunConsumerConfig(@Value("\${sigrun.rest.url}") private val url: String
                 .build()
         )
 
-    private fun CallIdFilterFunction() = ExchangeFilterFunction.ofRequestProcessor { request: ClientRequest ->
+    private fun callIdFilterFunction() = ExchangeFilterFunction.ofRequestProcessor { request: ClientRequest ->
         Mono.just(
             ClientRequest.from(request)
                 .header("Nav-Call-Id", generateCallId())
