@@ -10,7 +10,6 @@ private val log = KotlinLogging.logger { }
 class VedtakHendelseConsumer(
     private val vedtakHendelseRepository: PersonRepository
 ) {
-
     @KafkaListener(
         id = "melosysVedtakMottatt",
         clientIdPrefix = "melosys-vedtak-mottatt",
@@ -24,6 +23,12 @@ class VedtakHendelseConsumer(
             ?: return log.debug { "Ignorerer melding av type ${melding.javaClass.simpleName} " }
 
         log.info("Mottatt vedtakshendelse sakstype: ${vedtakHendelseMelding.sakstype} sakstema: ${vedtakHendelseMelding.sakstema}")
+
+        vedtakHendelseRepository.findPersonByIdent(vedtakHendelseMelding.folkeregisterIdent)?.let {
+            log.warn("person med ident(${vedtakHendelseMelding.folkeregisterIdent}) finnes allerede")
+            return
+        }
+
         vedtakHendelseRepository.save(vedtakHendelseMelding.toPerson())
     }
 }
