@@ -26,13 +26,12 @@ class SkatteHendelserFetcher(
         var hendelseListe: List<Hendelse>
         var totaltAntallHendelser = 0
         var antallBatcher = 0
-        do {
+        while (true) {
             hendelseListe = hentSkatteHendelseser(seksvensnummerFra)
             if (hendelseListe.size > batchSize) error("hendelseListe.size ${hendelseListe.size} > batchSize $batchSize")
             val last = hendelseListe.lastOrNull() ?: break
             log.info(
-                "Hentet ${hendelseListe.size} hendelser fra sekvensnummer $seksvensnummerFra til ${last.sekvensnummer} " +
-                        "gjelderPeriode ${last.gjelderPeriode}"
+                "Hentet ${hendelseListe.size} hendelser fra sekvensnummer $seksvensnummerFra til ${last.sekvensnummer}"
             )
             seksvensnummerFra = last.sekvensnummer + 1
             yieldAll(hendelseListe)
@@ -43,10 +42,7 @@ class SkatteHendelserFetcher(
                 antallBatcher = ++antallBatcher,
                 sisteBatchSize = hendelseListe.size
             ).applyReport(reportStats)
-            if (hendelseListe.size < batchSize) {
-                break
-            }
-        } while (hendelseListe.size == batchSize)
+        }
         log.info("totalt antall hendelser prossessert: $totaltAntallHendelser seksvensnummerFra er nå: $seksvensnummerFra")
     }
 
