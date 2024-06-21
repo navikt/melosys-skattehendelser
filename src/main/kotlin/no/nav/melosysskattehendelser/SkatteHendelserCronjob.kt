@@ -12,7 +12,7 @@ class SkatteHendelserCronjob(
     private val skatteHendelsePublisering: SkatteHendelsePublisering
 ) {
     @Scheduled(cron = "\${cron.job.prosesser-skatt-hendelser}")
-    @SchedulerLock(name = "hent skattehendelser", lockAtMostFor = "PT15M")
+    @SchedulerLock(name = "hent skattehendelser", lockAtMostFor = "PT12H")
     fun startHendelseProsessering() {
         log.info("Kjører cronjob for å hente og publisere skattehendelser")
         skatteHendelsePublisering.prosesserSkattHendelser()
