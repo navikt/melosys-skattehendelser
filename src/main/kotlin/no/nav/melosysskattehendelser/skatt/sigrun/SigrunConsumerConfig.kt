@@ -12,6 +12,7 @@ import org.springframework.web.reactive.function.client.ClientRequest
 import org.springframework.web.reactive.function.client.ExchangeFilterFunction
 import org.springframework.web.reactive.function.client.WebClient
 import reactor.core.publisher.Mono
+import java.security.SecureRandom
 
 @Configuration
 class SigrunConsumerConfig(@Value("\${sigrun.rest.url}") private val url: String) {
@@ -26,13 +27,7 @@ class SigrunConsumerConfig(@Value("\${sigrun.rest.url}") private val url: String
             webClientBuilder
                 .baseUrl(url)
                 .filter(AzureContextExchangeFilter(clientConfigurationProperties, oAuth2AccessTokenService))
-                .filter(ExchangeFilterFunction.ofRequestProcessor { request: ClientRequest ->
-                    Mono.just(
-                        ClientRequest.from(request)
-                            .header("Nav-Call-Id", "rune-tester-melosys-skattehendelser-fra-local-mac") // TODO add MDCOperations
-                            .build()
-                    )
-                })
+                .filter(CallIdFilterFunction())
                 .defaultHeaders {
                     it.add(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
                     it.add("Nav-Consumer-Id", CONSUMER_ID)
@@ -40,7 +35,21 @@ class SigrunConsumerConfig(@Value("\${sigrun.rest.url}") private val url: String
                 .build()
         )
 
+    private fun CallIdFilterFunction() = ExchangeFilterFunction.ofRequestProcessor { request: ClientRequest ->
+        Mono.just(
+            ClientRequest.from(request)
+                .header("Nav-Call-Id", generateCallId())
+                .build()
+        )
+    }
+
+    private fun generateCallId(): String {
+        val randomNr = SecureRandom().nextInt(Int.MAX_VALUE)
+        val systemTime = System.currentTimeMillis()
+        return "CallId_${systemTime}_$randomNr"
+    }
+
     companion object {
-        private const val CONSUMER_ID = "srvmelosys"
+        private const val CONSUMER_ID = "melosys-skattehendelser"
     }
 }
