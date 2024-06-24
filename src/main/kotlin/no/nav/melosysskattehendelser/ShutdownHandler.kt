@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component
 private val logger = KotlinLogging.logger { }
 
 @Component
-class GracefulShutdownBean(
+class ShutdownHandler(
     private val skatteHendelsePublisering: SkatteHendelsePublisering
 ) : SmartLifecycle {
 
