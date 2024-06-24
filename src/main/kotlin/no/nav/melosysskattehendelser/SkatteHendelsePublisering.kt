@@ -49,7 +49,7 @@ class SkatteHendelsePublisering(
                 totaltAntallHendelser++
                 personRepository.findPersonByIdent(hendelse.identifikator)?.let { person ->
                     personerFunnet++
-                    log.info { "Fant person ${person.ident} for hendelse ${hendelse.sekvensnummer}" }
+                    log.info { "Fant person ${person.ident} for sekvensnummer ${hendelse.sekvensnummer}" }
                     skattehendelserProducer.publiserMelding(hendelse.toMelosysSkatteHendelse())
                     oppdaterStatus(hendelse.sekvensnummer + 1)
                 }
