@@ -14,11 +14,10 @@ class ApiKeyInterceptor(
 ) : HandlerInterceptor {
 
     override fun preHandle(request: HttpServletRequest, response: HttpServletResponse, handler: Any): Boolean {
-        val requestApiKey = request.getHeader(API_KEY_HEADER)
-        if (requestApiKey != apiKey) {
-            throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "Ugyldig apikey")
+        request.getHeader(API_KEY_HEADER).let {
+            if (it == apiKey) return true
         }
-        return true
+        throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "Ugyldig apikey")
     }
 
     companion object {
