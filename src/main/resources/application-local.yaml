@@ -20,3 +20,4 @@ no.nav.security.jwt.client.registration:
       client-secret: lol
 
 KAFKA_VEDTAK_TOPIC: teammelosys.melosys-hendelser-local
+SHUTDOWN_TIMEOUT: 3s
