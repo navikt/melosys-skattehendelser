@@ -12,13 +12,13 @@ class Person(
     val id: Long = 0,
 
     @Column(name = "ident", nullable = false)
-    val ident: String
+    val ident: String,
 
+    @OneToMany(mappedBy = "person", cascade = [CascadeType.ALL], orphanRemoval = true)
+    val perioder: MutableList<Periode> = mutableListOf()
 
 ) {
     override fun toString(): String {
-        return "Person(id=$id, ident='$ident')"
+        return "Person(id=$id, ident='$ident', perioder=$perioder)"
     }
 }
-
-
