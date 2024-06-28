@@ -1,10 +1,13 @@
 package no.nav.melosysskattehendelser.melosys.consumer
 
+import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import no.nav.melosysskattehendelser.AwaitUtil.throwOnLogError
 import no.nav.melosysskattehendelser.LoggingTestUtils
 import no.nav.melosysskattehendelser.PostgresTestContainerBase
+import no.nav.melosysskattehendelser.domain.Periode
+import no.nav.melosysskattehendelser.domain.Person
 import no.nav.melosysskattehendelser.domain.PersonRepository
 import no.nav.melosysskattehendelser.melosys.KafkaOffsetChecker
 import no.nav.melosysskattehendelser.melosys.KafkaTestProducer
@@ -19,6 +22,7 @@ import org.springframework.kafka.core.KafkaTemplate
 import org.springframework.kafka.test.context.EmbeddedKafka
 import org.springframework.test.annotation.DirtiesContext
 import org.springframework.test.context.ActiveProfiles
+import java.time.LocalDate
 import java.util.concurrent.TimeUnit
 
 @ActiveProfiles("test")
@@ -98,7 +102,7 @@ class VedtakHendelseConsumerTest(
 
     @Test
     fun `skal legge til periode om person finnes`() {
-        personTestService.savePerson(ident)
+        personTestService.savePerson(Person(ident = ident))
 
         val vedtakHendelseMelding = """
             {
@@ -120,6 +124,54 @@ class VedtakHendelseConsumerTest(
 
             await.timeout(5, TimeUnit.SECONDS).until {
                 personRepository.findPersonByIdent(ident)?.perioder?.size == 1
+            }
+
+        }.shouldBe(1)
+    }
+
+    @Test
+    fun `skal ikke legge til duplikat periode`() {
+        personTestService.savePerson(
+            Person(ident = ident).apply {
+                perioder.add(
+                    Periode(
+                        id = 0,
+                        this,
+                        LocalDate.of(2021, 1, 1),
+                        LocalDate.of(2022, 1, 1)
+                    )
+                )
+            }
+        )
+
+        val vedtakHendelseMelding = """
+            {
+              "melding" : {
+                "type" : "VedtakHendelseMelding",
+                "folkeregisterIdent" : "$ident",
+                "sakstype" : "FTRL",
+                "sakstema" : "TRYGDEAVGIFT",
+                "periode": {
+                      "fom": [2021, 1, 1],
+                      "tom": [2022, 1, 1]
+                }
+              }
+            }
+        """
+
+        kafkaOffsetChecker.offsetIncreased {
+            LoggingTestUtils.withLogCapture { logItems ->
+                kafkaTemplate.send(topic, vedtakHendelseMelding)
+
+                await.timeout(5, TimeUnit.SECONDS)
+                    .untilAsserted {
+                        logItems.firstOrNull() { it.formattedMessage.contains("finnes allerede på person med id:") }
+                            .shouldNotBeNull()
+                    }
+
+                personRepository.findPersonByIdent(ident)
+                    .shouldNotBeNull()
+                    .perioder.shouldHaveSize(1)
             }
 
         }.shouldBe(1)

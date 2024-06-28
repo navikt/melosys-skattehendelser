@@ -10,7 +10,7 @@ class PersonTestService(
     private val personRepository: PersonRepository
 ) {
     @Transactional
-    fun savePerson(ident: String) {
-        personRepository.save(Person(ident = ident))
+    fun savePerson(person: Person) {
+        personRepository.save(person)
     }
 }

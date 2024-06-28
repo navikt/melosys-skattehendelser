@@ -1,10 +1,10 @@
 package no.nav.melosysskattehendelser.melosys.consumer
 
 import mu.KotlinLogging
+import no.nav.melosysskattehendelser.domain.Person
 import no.nav.melosysskattehendelser.domain.PersonRepository
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.springframework.kafka.annotation.KafkaListener
-import org.springframework.transaction.annotation.Transactional
 
 private val log = KotlinLogging.logger { }
 
@@ -28,7 +28,13 @@ class VedtakHendelseConsumer(
 
         vedtakHendelseRepository.findPersonByIdent(vedtakHendelseMelding.folkeregisterIdent)?.let { person ->
             log.info("person med ident(${vedtakHendelseMelding.folkeregisterIdent}) finnes allerede")
+
             vedtakHendelseMelding.periode?.let { periode ->
+                if (person.harPeriode(periode)) {
+                    log.info("perioden $periode finnes allerede på person med id:${person.id}")
+                    return
+                }
+
                 log.info("legger til periode $periode på person")
                 person.perioder.add(periode.toDbPeriode(person))
                 vedtakHendelseRepository.save(person)
@@ -37,5 +43,9 @@ class VedtakHendelseConsumer(
         }
 
         vedtakHendelseRepository.save(vedtakHendelseMelding.toPerson())
+    }
+
+    private fun Person.harPeriode(periode: Periode) = perioder.any {
+        it.fom == periode.fom && it.tom == periode.tom
     }
 }

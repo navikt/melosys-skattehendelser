@@ -7,5 +7,6 @@ CREATE TABLE PERIODE
     CONSTRAINT fk_person
         FOREIGN KEY (person_id)
             REFERENCES PERSON (id)
-            ON DELETE CASCADE
+            ON DELETE CASCADE,
+    CONSTRAINT unique_periode UNIQUE (person_id, fom, tom)
 );
