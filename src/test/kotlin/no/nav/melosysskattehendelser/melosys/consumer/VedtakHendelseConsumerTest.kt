@@ -10,7 +10,6 @@ import no.nav.melosysskattehendelser.melosys.KafkaOffsetChecker
 import no.nav.melosysskattehendelser.melosys.KafkaTestProducer
 import org.awaitility.kotlin.await
 import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
@@ -39,8 +38,9 @@ class VedtakHendelseConsumerTest(
 
     @AfterEach
     fun tearDown() {
-        personRepository.findAll().filter { it.ident == ident }
-            .forEach { personRepository.delete(it) }
+        personRepository.findPersonByIdent(ident)?.let {
+            personRepository.delete(it)
+        }
     }
 
     @Test

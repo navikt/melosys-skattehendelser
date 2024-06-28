@@ -49,7 +49,11 @@ class MelosysHendelseTest {
                     "type": "VedtakHendelseMelding",
                     "folkeregisterIdent": "12345",
                     "sakstype": "TRYGDEAVTALE",
-                    "sakstema": "TRYGDEAVGIFT"
+                    "sakstema": "TRYGDEAVGIFT",
+                    "periode": {
+                      "fom": [2021, 1, 1],
+                      "tom": [2022, 1, 1]
+                    }                    
                 }
             }"""
     }
