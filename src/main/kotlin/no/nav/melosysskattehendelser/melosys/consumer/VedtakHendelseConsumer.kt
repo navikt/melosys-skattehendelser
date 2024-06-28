@@ -8,7 +8,7 @@ import org.springframework.transaction.annotation.Transactional
 
 private val log = KotlinLogging.logger { }
 
-open class VedtakHendelseConsumer(
+class VedtakHendelseConsumer(
     private val vedtakHendelseRepository: PersonRepository
 ) {
     @KafkaListener(
@@ -19,8 +19,7 @@ open class VedtakHendelseConsumer(
         groupId = "\${melosys.kafka.consumer.groupId}"
     )
 
-    @Transactional
-    open fun vedtakHendelseConsumer(consumerRecord: ConsumerRecord<String, MelosysHendelse>) {
+    fun vedtakHendelseConsumer(consumerRecord: ConsumerRecord<String, MelosysHendelse>) {
         val melding = consumerRecord.value().melding
         val vedtakHendelseMelding = melding as? VedtakHendelseMelding
             ?: return log.debug { "Ignorerer melding av type ${melding.javaClass.simpleName} " }
