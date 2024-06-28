@@ -6,10 +6,11 @@ import no.nav.melosysskattehendelser.AwaitUtil.throwOnLogError
 import no.nav.melosysskattehendelser.LoggingTestUtils
 import no.nav.melosysskattehendelser.PostgresTestContainerBase
 import no.nav.melosysskattehendelser.domain.PersonRepository
-import no.nav.melosysskattehendelser.melosys.KafkaTestProducer
 import no.nav.melosysskattehendelser.melosys.KafkaOffsetChecker
+import no.nav.melosysskattehendelser.melosys.KafkaTestProducer
 import org.awaitility.kotlin.await
 import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
@@ -25,12 +26,13 @@ import java.util.concurrent.TimeUnit
 @SpringBootTest
 @DirtiesContext
 @EmbeddedKafka(count = 1, controlledShutdown = true, partitions = 1)
-@Import(KafkaTestProducer::class, KafkaOffsetChecker::class)
+@Import(KafkaTestProducer::class, KafkaOffsetChecker::class, PersonTestService::class)
 class VedtakHendelseConsumerTest(
     @Autowired private val kafkaTemplate: KafkaTemplate<String, String>,
     @Autowired private val personRepository: PersonRepository,
     @Value("\${melosys.kafka.consumer.topic}") private val topic: String,
-    @Autowired private val kafkaOffsetChecker: KafkaOffsetChecker
+    @Autowired private val kafkaOffsetChecker: KafkaOffsetChecker,
+    @Autowired private val personTestService: PersonTestService
 ) : PostgresTestContainerBase() {
 
     private val ident = "456789123"
@@ -65,6 +67,64 @@ class VedtakHendelseConsumerTest(
         }.shouldBe(1)
 
     }
+
+    @Test
+    fun `skal lagre ned aktuelle personer med perioder`() {
+        val vedtakHendelseMelding = """
+            {
+              "melding" : {
+                "type" : "VedtakHendelseMelding",
+                "folkeregisterIdent" : "$ident",
+                "sakstype" : "FTRL",
+                "sakstema" : "TRYGDEAVGIFT",
+                "periode": {
+                      "fom": [2021, 1, 1],
+                      "tom": [2022, 1, 1]
+                }
+              }
+            }
+        """
+
+        kafkaOffsetChecker.offsetIncreased {
+            kafkaTemplate.send(topic, vedtakHendelseMelding)
+
+            await.timeout(5, TimeUnit.SECONDS)
+                .until {
+                    personRepository.findPersonByIdent(ident) != null
+
+                }
+        }.shouldBe(1)
+    }
+
+    @Test
+    fun `skal legge til periode om person finnes`() {
+        personTestService.savePerson(ident)
+
+        val vedtakHendelseMelding = """
+            {
+              "melding" : {
+                "type" : "VedtakHendelseMelding",
+                "folkeregisterIdent" : "$ident",
+                "sakstype" : "FTRL",
+                "sakstema" : "TRYGDEAVGIFT",
+                "periode": {
+                      "fom": [2021, 1, 1],
+                      "tom": [2022, 1, 1]
+                }
+              }
+            }
+        """
+
+        kafkaOffsetChecker.offsetIncreased {
+            kafkaTemplate.send(topic, vedtakHendelseMelding)
+
+            await.timeout(5, TimeUnit.SECONDS).until {
+                personRepository.findPersonByIdent(ident)?.perioder?.size == 1
+            }
+
+        }.shouldBe(1)
+    }
+
 
     @Test
     fun `skal ignorere ukjent melding uten å feile`() {
