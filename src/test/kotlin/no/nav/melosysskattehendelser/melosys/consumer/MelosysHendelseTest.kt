@@ -1,16 +1,18 @@
 package no.nav.melosysskattehendelser.melosys.consumer
 
 import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import io.kotest.assertions.json.shouldEqualJson
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
 import org.junit.jupiter.api.Test
+import java.time.LocalDate
 
 
 class MelosysHendelseTest {
-    val objectMapper = jacksonObjectMapper()
+    val objectMapper = jacksonObjectMapper().registerModules(JavaTimeModule())
 
     @Test
     fun `serialize tom hendelse`() {
@@ -32,7 +34,11 @@ class MelosysHendelseTest {
             VedtakHendelseMelding(
                 folkeregisterIdent = "12345",
                 sakstype = Sakstyper.TRYGDEAVTALE,
-                sakstema = Sakstemaer.TRYGDEAVGIFT
+                sakstema = Sakstemaer.TRYGDEAVGIFT,
+                periode = Periode(
+                    LocalDate.of(2021, 1, 1),
+                    LocalDate.of(2022, 1, 1),
+                )
             )
         )
 
@@ -43,7 +49,11 @@ class MelosysHendelseTest {
                     "type": "VedtakHendelseMelding",
                     "folkeregisterIdent": "12345",
                     "sakstype": "TRYGDEAVTALE",
-                    "sakstema": "TRYGDEAVGIFT"
+                    "sakstema": "TRYGDEAVGIFT",
+                    "periode": {
+                      "fom": [2021, 1, 1],
+                      "tom": [2022, 1, 1]
+                    }                    
                 }
             }"""
     }
@@ -86,6 +96,40 @@ class MelosysHendelseTest {
                 folkeregisterIdent = "12345",
                 sakstype = Sakstyper.TRYGDEAVTALE,
                 sakstema = Sakstemaer.TRYGDEAVGIFT
+            )
+        )
+    }
+
+    @Test
+    fun `deserialize VedtakHendelseMelding med periode`() {
+        val json = """
+            {
+                "melding": {
+                    "type": "VedtakHendelseMelding",
+                    "folkeregisterIdent": "12345",
+                    "sakstype": "TRYGDEAVTALE",
+                    "sakstema": "TRYGDEAVGIFT",
+                    "periode": {
+                          "fom": [2021, 1, 1],
+                          "tom": [2022, 1, 1]
+                    }
+                    
+                }
+            }"""
+
+
+        val result = objectMapper.readValue<MelosysHendelse>(json)
+
+
+        result.melding.shouldBe(
+            VedtakHendelseMelding(
+                folkeregisterIdent = "12345",
+                sakstype = Sakstyper.TRYGDEAVTALE,
+                sakstema = Sakstemaer.TRYGDEAVGIFT,
+                periode = Periode(
+                    LocalDate.of(2021, 1, 1),
+                    LocalDate.of(2022, 1, 1)
+                )
             )
         )
     }
