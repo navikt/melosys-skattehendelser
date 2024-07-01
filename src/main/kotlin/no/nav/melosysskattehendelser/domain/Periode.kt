@@ -24,4 +24,6 @@ class Periode(
     override fun toString(): String {
         return "Periode(id=$id, fom=$fom, tom=$tom)"
     }
+
+    fun harTreff(year: Int) = fom.year <= year && tom.year >= year
 }

@@ -1,12 +1,11 @@
 package no.nav.melosysskattehendelser
 
 import mu.KotlinLogging
-import no.nav.melosysskattehendelser.domain.PersonRepository
-import no.nav.melosysskattehendelser.domain.SkatteHendelserSekvens
-import no.nav.melosysskattehendelser.domain.SkatteHendelserStatusRepository
+import no.nav.melosysskattehendelser.domain.*
 import no.nav.melosysskattehendelser.melosys.producer.SkattehendelserProducer
 import no.nav.melosysskattehendelser.skatt.SkatteHendelserFetcher
 import no.nav.melosysskattehendelser.melosys.toMelosysSkatteHendelse
+import no.nav.melosysskattehendelser.skatt.Hendelse
 import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Component
 import java.time.LocalDateTime
@@ -47,15 +46,20 @@ class SkatteHendelsePublisering(
             ).forEach { hendelse ->
                 if (stop) return@run
                 totaltAntallHendelser++
-                personRepository.findPersonByIdent(hendelse.identifikator)?.let { person ->
+                finnPersonMedTreffIGjelderPeriode(hendelse)?.let { person ->
                     personerFunnet++
-                    log.info { "Fant person ${person.ident} for sekvensnummer ${hendelse.sekvensnummer}" }
+                    log.info("Fant person ${person.ident} for sekvensnummer ${hendelse.sekvensnummer}")
                     skattehendelserProducer.publiserMelding(hendelse.toMelosysSkatteHendelse())
                     oppdaterStatus(hendelse.sekvensnummer + 1)
                 }
             }
         }
     }
+
+    private fun finnPersonMedTreffIGjelderPeriode(hendelse: Hendelse): Person? =
+        personRepository.findPersonByIdent(hendelse.identifikator)?.takeIf { person ->
+            person.perioder.any { it.harTreff(hendelse.gjelderPeriodeSomÅr()) }
+        }
 
     fun stopProsesseringAvSkattHendelser() {
         log.info("Stopper prosessering av skatt hendelser!")
