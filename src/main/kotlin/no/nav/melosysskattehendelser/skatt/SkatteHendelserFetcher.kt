@@ -10,7 +10,8 @@ private val log = KotlinLogging.logger { }
 @Component
 class SkatteHendelserFetcher(
     private val skatteHendelseConsumer: SkatteHendelseConsumer,
-    @Value("\${skatt.fetcher.batch-size}") private val batchSize: Int
+    @Value("\${skatt.fetcher.batch-size}") private val batchSize: Int,
+    @Value("\${skatt.fetcher.start-dato}") private val startDato: LocalDate
 ) {
     init {
         log.info("batchSize er satt til $batchSize")
@@ -59,9 +60,9 @@ class SkatteHendelserFetcher(
 
     val startSekvensnummer
         get() = skatteHendelseConsumer.getStartSekvensnummer(
-            LocalDate.of(2022, 1, 1) // TODO: finn ut hva vi starter på, eller hvor vi henter dette fra
+            startDato
                 .apply {
-                    log.info("start dato for startSekvensnummer er nå hardkodet til $this")
+                    log.info("start dato for startSekvensnummer: $this")
                 }
         )
 
