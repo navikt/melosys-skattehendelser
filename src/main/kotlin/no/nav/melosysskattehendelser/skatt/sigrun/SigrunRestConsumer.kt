@@ -23,8 +23,19 @@ class SigrunRestConsumer(private val webClient: WebClient) : SkatteHendelseConsu
     override fun getConsumerId(): String = "sigrun-skatteoppgjoer-hendelser"
 
     override fun getStartSekvensnummer(start: LocalDate): Long {
-        // Sigrun teamet lager endepunkt for dette
-        log.info("startSekvensnummer for $start er nå hardkodet til 1")
-        return 1
+        return hentStartSekvensnummer(start).sekvensnummer
     }
+
+    private fun hentStartSekvensnummer(start: LocalDate): StartSekvensnummer =
+        webClient.get()
+            .uri { uriBuilder ->
+                uriBuilder.path("/api/skatteoppgjoer/hendelser/start")
+                    .queryParam("dato", start.toString())
+                    .build()
+            }
+            .retrieve()
+            .bodyToMono<StartSekvensnummer>()
+            .block() ?: throw IllegalStateException("Ingen body - kunne ikke hente start sekvensnummer")
+
+    private data class StartSekvensnummer(val sekvensnummer: Long)
 }
