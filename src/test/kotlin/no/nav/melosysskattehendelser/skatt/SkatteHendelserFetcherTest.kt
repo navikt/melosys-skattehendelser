@@ -10,7 +10,11 @@ class SkatteHendelserFetcherTest {
     @Test
     fun `batch-size 5 og startSeksvensnummer=1 og stopAt=14`() {
         val batchSize = 5
-        val skatteHendelserFetcher = SkatteHendelserFetcher(skatteHendelserConsumer(batchSize, 14), batchSize)
+        val skatteHendelserFetcher = SkatteHendelserFetcher(
+            skatteHendelserConsumer(batchSize, 14),
+            batchSize,
+            LocalDate.of(2023, 1, 1)
+        )
         val batchDoneCallbacks = mutableListOf<Long>()
 
 
@@ -32,7 +36,11 @@ class SkatteHendelserFetcherTest {
     @Test
     fun `batch-size 10 og startSeksvensnummer=100 og stopAt=124`() {
         val batchSize = 10
-        val skatteHendelserFetcher = SkatteHendelserFetcher(skatteHendelserConsumer(batchSize, 124), batchSize)
+        val skatteHendelserFetcher = SkatteHendelserFetcher(
+            skatteHendelserConsumer(batchSize, 124),
+            batchSize,
+            LocalDate.of(2023, 1, 1)
+        )
         val batchDoneCallbacks = mutableListOf<Long>()
 
 
@@ -54,7 +62,11 @@ class SkatteHendelserFetcherTest {
 
     @Test
     fun `kast feil om consumer retunere større liste en batch size`() {
-        val skatteHendelserFetcher = SkatteHendelserFetcher(skatteHendelserConsumer(11, 20), 10)
+        val skatteHendelserFetcher = SkatteHendelserFetcher(
+            skatteHendelserConsumer(11, 20),
+            10,
+            LocalDate.of(2023, 1, 1)
+        )
         val batchDoneCallbacks = mutableListOf<Long>()
 
 

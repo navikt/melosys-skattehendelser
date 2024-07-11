@@ -45,6 +45,7 @@ admin:
 skatt:
   fetcher:
     batch-size: ${SKATT_FETCHER_BATCH_SIZE:500}
+    start-dato: ${SKATT_START_DATO:2023-01-01}
 
 no.nav.security.jwt.client.registration:
   sigrun:
