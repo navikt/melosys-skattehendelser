@@ -65,7 +65,7 @@ class VedtakHendelseConsumerTest(
 
             await.timeout(5, TimeUnit.SECONDS)
                 .untilAsserted {
-                    personRepository.findAll().firstOrNull { it.ident == ident }
+                    personRepository.findPersonByIdent(ident)
                         .shouldNotBeNull()
                 }
         }.shouldBe(1)
@@ -81,7 +81,7 @@ class VedtakHendelseConsumerTest(
                 "folkeregisterIdent" : "$ident",
                 "sakstype" : "FTRL",
                 "sakstema" : "TRYGDEAVGIFT",
-                "periode": {
+                "medlemskapsperiode": {
                       "fom": [2021, 1, 1],
                       "tom": [2022, 1, 1]
                 }
@@ -93,9 +93,10 @@ class VedtakHendelseConsumerTest(
             kafkaTemplate.send(topic, vedtakHendelseMelding)
 
             await.timeout(5, TimeUnit.SECONDS)
-                .until {
-                    personRepository.findPersonByIdent(ident) != null
-
+                .untilAsserted {
+                    personRepository.findPersonByIdent(ident)
+                        .shouldNotBeNull()
+                        .perioder.shouldHaveSize(1)
                 }
         }.shouldBe(1)
     }
@@ -111,7 +112,7 @@ class VedtakHendelseConsumerTest(
                 "folkeregisterIdent" : "$ident",
                 "sakstype" : "FTRL",
                 "sakstema" : "TRYGDEAVGIFT",
-                "periode": {
+                "medlemskapsperiode": {
                       "fom": [2021, 1, 1],
                       "tom": [2022, 1, 1]
                 }
@@ -122,9 +123,12 @@ class VedtakHendelseConsumerTest(
         kafkaOffsetChecker.offsetIncreased {
             kafkaTemplate.send(topic, vedtakHendelseMelding)
 
-            await.timeout(5, TimeUnit.SECONDS).until {
-                personRepository.findPersonByIdent(ident)?.perioder?.size == 1
-            }
+            await.timeout(5, TimeUnit.SECONDS)
+                .untilAsserted {
+                    personRepository.findPersonByIdent(ident)
+                        .shouldNotBeNull()
+                        .perioder.shouldHaveSize(1)
+                }
 
         }.shouldBe(1)
     }
@@ -151,7 +155,7 @@ class VedtakHendelseConsumerTest(
                 "folkeregisterIdent" : "$ident",
                 "sakstype" : "FTRL",
                 "sakstema" : "TRYGDEAVGIFT",
-                "periode": {
+                "medlemskapsperiode": {
                       "fom": [2021, 1, 1],
                       "tom": [2022, 1, 1]
                 }
