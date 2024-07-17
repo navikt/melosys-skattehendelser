@@ -23,14 +23,14 @@ data class VedtakHendelseMelding(
     val folkeregisterIdent: String,
     val sakstype: Sakstyper,
     val sakstema: Sakstemaer,
-    val periode: Periode? = null
+    val medlemskapsperiode: Periode? = null
 ) : HendelseMelding() {
 
     fun toPerson(): Person {
         return Person(
             ident = folkeregisterIdent
         ).apply {
-            periode?.let {
+            medlemskapsperiode?.let {
                 perioder.add(it.toDbPeriode(this))
             }
         }

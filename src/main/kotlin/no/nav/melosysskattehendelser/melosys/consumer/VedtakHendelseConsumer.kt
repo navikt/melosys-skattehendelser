@@ -29,7 +29,7 @@ class VedtakHendelseConsumer(
         vedtakHendelseRepository.findPersonByIdent(vedtakHendelseMelding.folkeregisterIdent)?.let { person ->
             log.info("person med ident(${vedtakHendelseMelding.folkeregisterIdent}) finnes allerede")
 
-            vedtakHendelseMelding.periode?.let { periode ->
+            vedtakHendelseMelding.medlemskapsperiode?.let { periode ->
                 if (person.harPeriode(periode)) {
                     log.info("perioden $periode finnes allerede på person med id:${person.id}")
                     return
