@@ -1,41 +1,52 @@
 package no.nav.melosysskattehendelser
 
-import io.mockk.every
-import io.mockk.mockk
-import io.mockk.verify
+import io.kotest.matchers.collections.shouldBeEmpty
+import io.kotest.matchers.shouldBe
 import no.nav.melosysskattehendelser.domain.*
-import no.nav.melosysskattehendelser.melosys.producer.SkattehendelserProducer
+import no.nav.melosysskattehendelser.fakes.PersonRepositoryFake
+import no.nav.melosysskattehendelser.fakes.SkatteHendelserFetcherFake
+import no.nav.melosysskattehendelser.fakes.SkatteHendelserStatusRepositoryFake
+import no.nav.melosysskattehendelser.fakes.SkattehendelserProducerFake
+import no.nav.melosysskattehendelser.melosys.MelosysSkatteHendelse
 import no.nav.melosysskattehendelser.skatt.Hendelse
-import no.nav.melosysskattehendelser.skatt.SkatteHendelserFetcher
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.time.LocalDate
-import java.util.*
 
 class SkatteHendelsePubliseringTest {
 
-    private val skatteHendelserFetcher = mockk<SkatteHendelserFetcher>(relaxed = true)
-    private val personRepository = mockk<PersonRepository>().apply {
-        every { findPersonByIdent(any()) } returns Person(id = 0, ident = "123").apply {
-            perioder.add(
-                Periode(
-                    0,
-                    this,
-                    LocalDate.of(2022, 1, 1),
-                    LocalDate.of(2023, 1, 1)
-                )
-            )
-        }
-    }
-    private val skatteHendelserStatusRepository = mockk<SkatteHendelserStatusRepository>().apply {
-        every { findById(any()) } returns Optional.of(SkatteHendelserSekvens("", 1))
-        every { save(any()) } returns mockk()
-    }
-    private val skattehendelserProducer = mockk<SkattehendelserProducer>().apply {
-        every { publiserMelding(any()) } returns Unit
-    }
+    private val skatteHendelserFetcher = SkatteHendelserFetcherFake()
+    private val personRepository = PersonRepositoryFake()
+    private val skatteHendelserStatusRepository = SkatteHendelserStatusRepositoryFake()
+    private val skattehendelserProducer = SkattehendelserProducerFake()
 
     private val skatteHendelsePublisering =
         SkatteHendelsePublisering(skatteHendelserFetcher, personRepository, skatteHendelserStatusRepository, skattehendelserProducer)
+
+    @BeforeEach
+    fun setUp() {
+        personRepository
+            .reset()
+            .apply {
+                personer.add(Person(id = 0, ident = "123").apply {
+                    perioder.add(
+                        Periode(
+                            0,
+                            this,
+                            LocalDate.of(2022, 1, 1),
+                            LocalDate.of(2023, 1, 1)
+                        )
+                    )
+                })
+            }
+        skatteHendelserStatusRepository
+            .reset()
+            .apply {
+                skatteHendelserSekvenser.add(SkatteHendelserSekvens("test-consumer", 1))
+            }
+        skatteHendelserFetcher.reset()
+        skattehendelserProducer.reset()
+    }
 
     @Test
     fun `skal publisere melding når vi får hendelse med gjelderperide som finnes i personens perioder - 1`() {
@@ -45,7 +56,16 @@ class SkatteHendelsePubliseringTest {
         skatteHendelsePublisering.prosesserSkattHendelser()
 
 
-        verify { skattehendelserProducer.publiserMelding(any()) }
+        skattehendelserProducer.hendelser.single().shouldBe(
+            MelosysSkatteHendelse(
+                "2022",
+                "123",
+                "ny"
+            )
+        )
+        personRepository.saved.shouldBeEmpty()
+        skatteHendelserStatusRepository.saved.single()
+            .sekvensnummer shouldBe 2L
     }
 
     @Test
@@ -56,7 +76,16 @@ class SkatteHendelsePubliseringTest {
         skatteHendelsePublisering.prosesserSkattHendelser()
 
 
-        verify { skattehendelserProducer.publiserMelding(any()) }
+        skattehendelserProducer.hendelser.single().shouldBe(
+            MelosysSkatteHendelse(
+                "2023",
+                "123",
+                "ny"
+            )
+        )
+        personRepository.saved.shouldBeEmpty()
+        skatteHendelserStatusRepository.saved.single()
+            .sekvensnummer shouldBe 2L
     }
 
     @Test
@@ -67,7 +96,9 @@ class SkatteHendelsePubliseringTest {
         skatteHendelsePublisering.prosesserSkattHendelser()
 
 
-        verify(exactly = 0) { skattehendelserProducer.publiserMelding(any()) }
+        skattehendelserProducer.hendelser.shouldBeEmpty()
+        personRepository.saved.shouldBeEmpty()
+        skatteHendelserStatusRepository.saved.shouldBeEmpty()
     }
 
     @Test
@@ -78,12 +109,15 @@ class SkatteHendelsePubliseringTest {
         skatteHendelsePublisering.prosesserSkattHendelser()
 
 
-        verify(exactly = 0) { skattehendelserProducer.publiserMelding(any()) }
+        skattehendelserProducer.hendelser.shouldBeEmpty()
+        personRepository.saved.shouldBeEmpty()
+        skatteHendelserStatusRepository.saved.shouldBeEmpty()
     }
 
-    private fun lagSkatteHendelserFetcherHentHendelserMock(gjelderPeriode: String) {
-        every { skatteHendelserFetcher.hentHendelser(any(), any(), any()) } returns sequence {
-            yield(
+
+    private fun lagSkatteHendelserFetcherHentHendelserMock(gjelderPeriode: String): SkatteHendelserFetcherFake =
+        skatteHendelserFetcher.reset().apply {
+            hendelser.add(
                 Hendelse(
                     gjelderPeriode = gjelderPeriode,
                     identifikator = "123",
@@ -93,5 +127,4 @@ class SkatteHendelsePubliseringTest {
                 )
             )
         }
-    }
 }
