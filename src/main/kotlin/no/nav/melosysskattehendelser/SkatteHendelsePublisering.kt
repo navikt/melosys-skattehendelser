@@ -50,6 +50,8 @@ class SkatteHendelsePublisering(
                     personerFunnet++
                     log.info("Fant person ${person.ident} for sekvensnummer ${hendelse.sekvensnummer}")
                     skattehendelserProducer.publiserMelding(hendelse.toMelosysSkatteHendelse())
+                    person.sekvensnummer = hendelse.sekvensnummer
+                    personRepository.save(person)
                     oppdaterStatus(hendelse.sekvensnummer + 1)
                 }
             }
@@ -58,7 +60,7 @@ class SkatteHendelsePublisering(
 
     private fun finnPersonMedTreffIGjelderPeriode(hendelse: Hendelse): Person? =
         personRepository.findPersonByIdent(hendelse.identifikator)?.takeIf { person ->
-            person.perioder.any { it.harTreff(hendelse.gjelderPeriodeSomÅr()) }
+            person.sekvensnummer != hendelse.sekvensnummer && person.perioder.any { periode -> periode.harTreff(hendelse.gjelderPeriodeSomÅr()) }
         }
 
     fun stopProsesseringAvSkattHendelser() {

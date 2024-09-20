@@ -63,10 +63,26 @@ class SkatteHendelsePubliseringTest {
                 "ny"
             )
         )
-        personRepository.saved.shouldBeEmpty()
+        personRepository.saved.single()
+            .sekvensnummer shouldBe 1L
         skatteHendelserStatusRepository.saved.single()
             .sekvensnummer shouldBe 2L
     }
+
+    @Test
+    fun `skal ikke publisere melding når vi får hendelse som er kjørt før`() {
+        lagSkatteHendelserFetcherHentHendelserMock("2022")
+        personRepository.personer.single().sekvensnummer = 1
+
+
+        skatteHendelsePublisering.prosesserSkattHendelser()
+
+
+        skattehendelserProducer.hendelser.shouldBeEmpty()
+        personRepository.saved.shouldBeEmpty()
+        skatteHendelserStatusRepository.saved.shouldBeEmpty()
+    }
+
 
     @Test
     fun `skal publisere melding når vi får hendelse med gjelderperide som finnes i personens perioder - 2`() {
@@ -83,7 +99,8 @@ class SkatteHendelsePubliseringTest {
                 "ny"
             )
         )
-        personRepository.saved.shouldBeEmpty()
+        personRepository.saved.single()
+            .sekvensnummer shouldBe 1L
         skatteHendelserStatusRepository.saved.single()
             .sekvensnummer shouldBe 2L
     }
