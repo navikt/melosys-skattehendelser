@@ -4,7 +4,7 @@ import no.nav.melosysskattehendelser.melosys.MelosysSkatteHendelse
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.springframework.kafka.core.KafkaTemplate
 
-class KafkaSkattehendelserProducer(
+class SkattehendelserProducerKafka(
     private val kafkaTemplate: KafkaTemplate<String, MelosysSkatteHendelse>,
     private val topicName: String
 ) : SkattehendelserProducer {

@@ -3,7 +3,7 @@ package no.nav.melosysskattehendelser
 import no.nav.melosysskattehendelser.domain.PersonRepository
 import no.nav.melosysskattehendelser.melosys.MelosysSkatteHendelse
 import no.nav.melosysskattehendelser.melosys.consumer.VedtakHendelseConsumer
-import no.nav.melosysskattehendelser.melosys.producer.KafkaSkattehendelserProducer
+import no.nav.melosysskattehendelser.melosys.producer.SkattehendelserProducerKafka
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -17,7 +17,7 @@ class SkatteHendelserConfig(
 
     @Bean
     fun skatteHendelserProducer(kafkaTemplate: KafkaTemplate<String, MelosysSkatteHendelse>) =
-        KafkaSkattehendelserProducer(kafkaTemplate, topicName)
+        SkattehendelserProducerKafka(kafkaTemplate, topicName)
 
 
     @Bean

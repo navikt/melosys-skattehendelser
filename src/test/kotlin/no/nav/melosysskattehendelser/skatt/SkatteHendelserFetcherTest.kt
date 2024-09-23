@@ -10,7 +10,7 @@ class SkatteHendelserFetcherTest {
     @Test
     fun `batch-size 5 og startSeksvensnummer=1 og stopAt=14`() {
         val batchSize = 5
-        val skatteHendelserFetcher = APISkatteHendelserFetcher(
+        val skatteHendelserFetcher = SkatteHendelserFetcherAPI(
             skatteHendelserConsumer(batchSize, 14),
             batchSize,
             LocalDate.of(2023, 1, 1)
@@ -36,7 +36,7 @@ class SkatteHendelserFetcherTest {
     @Test
     fun `batch-size 10 og startSeksvensnummer=100 og stopAt=124`() {
         val batchSize = 10
-        val skatteHendelserFetcher = APISkatteHendelserFetcher(
+        val skatteHendelserFetcher = SkatteHendelserFetcherAPI(
             skatteHendelserConsumer(batchSize, 124),
             batchSize,
             LocalDate.of(2023, 1, 1)
@@ -62,7 +62,7 @@ class SkatteHendelserFetcherTest {
 
     @Test
     fun `kast feil om consumer retunere større liste en batch size`() {
-        val skatteHendelserFetcher = APISkatteHendelserFetcher(
+        val skatteHendelserFetcher = SkatteHendelserFetcherAPI(
             skatteHendelserConsumer(11, 20),
             10,
             LocalDate.of(2023, 1, 1)

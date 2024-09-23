@@ -9,7 +9,7 @@ import java.time.LocalDate
 private val log = KotlinLogging.logger { }
 
 @Component
-class APISkatteHendelserFetcher(
+class SkatteHendelserFetcherAPI(
     private val skatteHendelseConsumer: SkatteHendelseConsumer,
     @Value("\${skatt.fetcher.batch-size}") private val batchSize: Int,
     @Value("\${skatt.fetcher.start-dato}") private val startDato: LocalDate
