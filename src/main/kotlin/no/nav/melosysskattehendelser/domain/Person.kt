@@ -22,6 +22,6 @@ class Person(
 
 ) {
     override fun toString(): String {
-        return "Person(id=$id, ident='$ident', perioder=$perioder)"
+        return "Person(id=$id, ident='$ident', sekvensnummer=$sekvensnummer, perioder=$perioder)"
     }
 }

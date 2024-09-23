@@ -28,7 +28,7 @@ class SkatteHendelsePubliseringTest {
         personRepository
             .reset()
             .apply {
-                items.add(Person(id = 0, ident = "123").apply {
+                items[0] = Person(id = 0, ident = "123").apply {
                     perioder.add(
                         Periode(
                             0,
@@ -37,7 +37,7 @@ class SkatteHendelsePubliseringTest {
                             LocalDate.of(2023, 1, 1)
                         )
                     )
-                })
+                }
             }
         skatteHendelserStatusRepository.reset()
         skatteHendelserFetcher.reset()
@@ -62,19 +62,6 @@ class SkatteHendelsePubliseringTest {
     }
 
     @Test
-    fun `skal ikke publisere melding når vi får hendelse som er kjørt før`() {
-        lagSkatteHendelserFetcherHentHendelserMock("2022")
-        personRepository.items.single().sekvensnummer = 1
-
-
-        skatteHendelsePublisering.prosesserSkattHendelser()
-
-
-        skattehendelserProducer.hendelser.shouldBeEmpty()
-    }
-
-
-    @Test
     fun `skal publisere melding når vi får hendelse med gjelderperide som finnes i personens perioder - 2`() {
         lagSkatteHendelserFetcherHentHendelserMock("2023")
 
@@ -90,6 +77,46 @@ class SkatteHendelsePubliseringTest {
             )
         )
     }
+
+    @Test
+    fun `skal oppdatere sekvensnummer etter publisering`() {
+        lagSkatteHendelserFetcherHentHendelserMock("2022")
+
+
+        skatteHendelsePublisering.prosesserSkattHendelser()
+
+
+        skatteHendelserStatusRepository.itemes.values
+            .single()
+            .sekvensnummer shouldBe 2
+    }
+
+
+    @Test
+    fun `skal oppdatere brukers sekvensnummer ved publisering`() {
+        lagSkatteHendelserFetcherHentHendelserMock("2022")
+
+
+        skatteHendelsePublisering.prosesserSkattHendelser()
+
+
+        personRepository.items.values
+            .single()
+            .sekvensnummer shouldBe 1
+    }
+
+    @Test
+    fun `skal ikke publisere melding når vi får hendelse som er kjørt før`() {
+        lagSkatteHendelserFetcherHentHendelserMock("2022")
+        personRepository.items.values.single().sekvensnummer = 1
+
+
+        skatteHendelsePublisering.prosesserSkattHendelser()
+
+
+        skattehendelserProducer.hendelser.shouldBeEmpty()
+    }
+
 
     @Test
     fun `skal ikke publisere melding når vi får hendelse med gjelderperide som ikke finnes i personens perioder - 1`() {

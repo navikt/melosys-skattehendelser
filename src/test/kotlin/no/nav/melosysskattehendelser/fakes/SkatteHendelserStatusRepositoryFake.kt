@@ -5,14 +5,14 @@ import no.nav.melosysskattehendelser.domain.SkatteHendelserStatusRepository
 import java.util.*
 
 class SkatteHendelserStatusRepositoryFake : SkatteHendelserStatusRepository {
-    val itemes = mutableListOf<SkatteHendelserSekvens>()
+    val itemes = mutableMapOf<String,SkatteHendelserSekvens>()
 
     fun reset() = apply {
         itemes.clear()
     }
 
     override fun <S : SkatteHendelserSekvens?> save(entity: S & Any): S & Any {
-        itemes.add(entity)
+        itemes[entity.consumerId] = entity
         return entity
     }
 
@@ -21,7 +21,7 @@ class SkatteHendelserStatusRepositoryFake : SkatteHendelserStatusRepository {
     }
 
     override fun findById(id: String): Optional<SkatteHendelserSekvens> =
-        Optional.ofNullable(itemes.find { it.consumerId == id })
+        Optional.ofNullable(itemes[id])
 
     override fun existsById(id: String): Boolean {
         throw UnsupportedOperationException("Not yet implemented")

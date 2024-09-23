@@ -5,17 +5,17 @@ import no.nav.melosysskattehendelser.domain.PersonRepository
 import java.util.*
 
 class PersonRepositoryFake : PersonRepository {
-    val items = mutableListOf<Person>()
+    val items = mutableMapOf<Long,Person>()
 
     fun reset() = apply {
         items.clear()
     }
 
     override fun findPersonByIdent(ident: String): Person? =
-        items.find { it.ident == ident }
+        items.values.find { it.ident == ident }
 
     override fun <S : Person?> save(entity: S & Any): S & Any {
-        items.add(entity)
+        items[entity.id] = entity
         return entity
     }
 
