@@ -1,7 +1,4 @@
-package no.nav.melosysskattehendelser.fakes
-
-import no.nav.melosysskattehendelser.skatt.Hendelse
-import no.nav.melosysskattehendelser.skatt.SkatteHendelserFetcher
+package no.nav.melosysskattehendelser.skatt
 
 class SkatteHendelserFetcherFake : SkatteHendelserFetcher {
     val hendelser = mutableListOf<Hendelse>()

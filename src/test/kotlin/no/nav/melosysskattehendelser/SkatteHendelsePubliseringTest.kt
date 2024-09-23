@@ -3,10 +3,10 @@ package no.nav.melosysskattehendelser
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.shouldBe
 import no.nav.melosysskattehendelser.domain.*
-import no.nav.melosysskattehendelser.fakes.PersonRepositoryFake
-import no.nav.melosysskattehendelser.fakes.SkatteHendelserFetcherFake
-import no.nav.melosysskattehendelser.fakes.SkatteHendelserStatusRepositoryFake
-import no.nav.melosysskattehendelser.fakes.SkattehendelserProducerFake
+import no.nav.melosysskattehendelser.domain.PersonRepositoryFake
+import no.nav.melosysskattehendelser.skatt.SkatteHendelserFetcherFake
+import no.nav.melosysskattehendelser.domain.SkatteHendelserStatusRepositoryFake
+import no.nav.melosysskattehendelser.melosys.producer.SkattehendelserProducerFake
 import no.nav.melosysskattehendelser.melosys.MelosysSkatteHendelse
 import no.nav.melosysskattehendelser.skatt.Hendelse
 import org.junit.jupiter.api.BeforeEach
@@ -46,7 +46,7 @@ class SkatteHendelsePubliseringTest {
 
     @Test
     fun `skal publisere melding når vi får hendelse med gjelderperide som finnes i personens perioder - 1`() {
-        lagSkatteHendelserFetcherHentHendelserMock("2022")
+        skatteHendelserFetcher.leggTilHendelseMedGjelderPeriode("2022")
 
 
         skatteHendelsePublisering.prosesserSkattHendelser()
@@ -63,7 +63,7 @@ class SkatteHendelsePubliseringTest {
 
     @Test
     fun `skal publisere melding når vi får hendelse med gjelderperide som finnes i personens perioder - 2`() {
-        lagSkatteHendelserFetcherHentHendelserMock("2023")
+        skatteHendelserFetcher.leggTilHendelseMedGjelderPeriode("2023")
 
 
         skatteHendelsePublisering.prosesserSkattHendelser()
@@ -80,7 +80,7 @@ class SkatteHendelsePubliseringTest {
 
     @Test
     fun `skal oppdatere sekvensnummer etter publisering`() {
-        lagSkatteHendelserFetcherHentHendelserMock("2022")
+        skatteHendelserFetcher.leggTilHendelseMedGjelderPeriode("2022")
 
 
         skatteHendelsePublisering.prosesserSkattHendelser()
@@ -94,7 +94,7 @@ class SkatteHendelsePubliseringTest {
 
     @Test
     fun `skal oppdatere brukers sekvensnummer ved publisering`() {
-        lagSkatteHendelserFetcherHentHendelserMock("2022")
+        skatteHendelserFetcher.leggTilHendelseMedGjelderPeriode("2022")
 
 
         skatteHendelsePublisering.prosesserSkattHendelser()
@@ -107,7 +107,7 @@ class SkatteHendelsePubliseringTest {
 
     @Test
     fun `skal ikke publisere melding når vi får hendelse som er kjørt før`() {
-        lagSkatteHendelserFetcherHentHendelserMock("2022")
+        skatteHendelserFetcher.leggTilHendelseMedGjelderPeriode("2022")
         personRepository.items.values.single().sekvensnummer = 1
 
 
@@ -120,7 +120,7 @@ class SkatteHendelsePubliseringTest {
 
     @Test
     fun `skal ikke publisere melding når vi får hendelse med gjelderperide som ikke finnes i personens perioder - 1`() {
-        lagSkatteHendelserFetcherHentHendelserMock("2021")
+        skatteHendelserFetcher.leggTilHendelseMedGjelderPeriode("2021")
 
 
         skatteHendelsePublisering.prosesserSkattHendelser()
@@ -131,7 +131,7 @@ class SkatteHendelsePubliseringTest {
 
     @Test
     fun `skal ikke publisere melding når vi får hendelse med gjelderperide som ikke finnes i personens perioder - 2 `() {
-        lagSkatteHendelserFetcherHentHendelserMock("2024")
+        skatteHendelserFetcher.leggTilHendelseMedGjelderPeriode("2024")
 
 
         skatteHendelsePublisering.prosesserSkattHendelser()
@@ -140,17 +140,15 @@ class SkatteHendelsePubliseringTest {
         skattehendelserProducer.hendelser.shouldBeEmpty()
     }
 
-
-    private fun lagSkatteHendelserFetcherHentHendelserMock(gjelderPeriode: String): SkatteHendelserFetcherFake =
-        skatteHendelserFetcher.reset().apply {
-            hendelser.add(
-                Hendelse(
-                    gjelderPeriode = gjelderPeriode,
-                    identifikator = "123",
-                    sekvensnummer = 1,
-                    somAktoerid = false,
-                    hendelsetype = "ny"
-                )
+    private fun SkatteHendelserFetcherFake.leggTilHendelseMedGjelderPeriode(gjelderPeriode: String) {
+        hendelser.add(
+            Hendelse(
+                gjelderPeriode = gjelderPeriode,
+                identifikator = "123",
+                sekvensnummer = 1,
+                somAktoerid = false,
+                hendelsetype = "ny"
             )
-        }
+        )
+    }
 }

@@ -1,11 +1,9 @@
-package no.nav.melosysskattehendelser.fakes
+package no.nav.melosysskattehendelser.domain
 
-import no.nav.melosysskattehendelser.domain.SkatteHendelserSekvens
-import no.nav.melosysskattehendelser.domain.SkatteHendelserStatusRepository
 import java.util.*
 
 class SkatteHendelserStatusRepositoryFake : SkatteHendelserStatusRepository {
-    val itemes = mutableMapOf<String,SkatteHendelserSekvens>()
+    val itemes = mutableMapOf<String, SkatteHendelserSekvens>()
 
     fun reset() = apply {
         itemes.clear()

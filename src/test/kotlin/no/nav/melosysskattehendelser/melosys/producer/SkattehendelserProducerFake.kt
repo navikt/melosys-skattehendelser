@@ -1,7 +1,6 @@
-package no.nav.melosysskattehendelser.fakes
+package no.nav.melosysskattehendelser.melosys.producer
 
 import no.nav.melosysskattehendelser.melosys.MelosysSkatteHendelse
-import no.nav.melosysskattehendelser.melosys.producer.SkattehendelserProducer
 
 class SkattehendelserProducerFake : SkattehendelserProducer {
     val hendelser = mutableListOf<MelosysSkatteHendelse>()

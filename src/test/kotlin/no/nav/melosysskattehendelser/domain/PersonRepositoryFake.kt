@@ -1,11 +1,9 @@
-package no.nav.melosysskattehendelser.fakes
+package no.nav.melosysskattehendelser.domain
 
-import no.nav.melosysskattehendelser.domain.Person
-import no.nav.melosysskattehendelser.domain.PersonRepository
 import java.util.*
 
 class PersonRepositoryFake : PersonRepository {
-    val items = mutableMapOf<Long,Person>()
+    val items = mutableMapOf<Long, Person>()
 
     fun reset() = apply {
         items.clear()
