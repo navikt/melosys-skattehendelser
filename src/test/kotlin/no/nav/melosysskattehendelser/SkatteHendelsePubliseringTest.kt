@@ -39,11 +39,7 @@ class SkatteHendelsePubliseringTest {
                     )
                 })
             }
-        skatteHendelserStatusRepository
-            .reset()
-            .apply {
-                skatteHendelserSekvenser.add(SkatteHendelserSekvens("test-consumer", 1))
-            }
+        skatteHendelserStatusRepository.reset()
         skatteHendelserFetcher.reset()
         skattehendelserProducer.reset()
     }
