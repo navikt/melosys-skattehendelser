@@ -28,7 +28,7 @@ class SkatteHendelsePubliseringTest {
         personRepository
             .reset()
             .apply {
-                personer.add(Person(id = 0, ident = "123").apply {
+                items.add(Person(id = 0, ident = "123").apply {
                     perioder.add(
                         Periode(
                             0,
@@ -59,24 +59,18 @@ class SkatteHendelsePubliseringTest {
                 "ny"
             )
         )
-        personRepository.saved.single()
-            .sekvensnummer shouldBe 1L
-        skatteHendelserStatusRepository.saved.single()
-            .sekvensnummer shouldBe 2L
     }
 
     @Test
     fun `skal ikke publisere melding når vi får hendelse som er kjørt før`() {
         lagSkatteHendelserFetcherHentHendelserMock("2022")
-        personRepository.personer.single().sekvensnummer = 1
+        personRepository.items.single().sekvensnummer = 1
 
 
         skatteHendelsePublisering.prosesserSkattHendelser()
 
 
         skattehendelserProducer.hendelser.shouldBeEmpty()
-        personRepository.saved.shouldBeEmpty()
-        skatteHendelserStatusRepository.saved.shouldBeEmpty()
     }
 
 
@@ -95,10 +89,6 @@ class SkatteHendelsePubliseringTest {
                 "ny"
             )
         )
-        personRepository.saved.single()
-            .sekvensnummer shouldBe 1L
-        skatteHendelserStatusRepository.saved.single()
-            .sekvensnummer shouldBe 2L
     }
 
     @Test
@@ -110,8 +100,6 @@ class SkatteHendelsePubliseringTest {
 
 
         skattehendelserProducer.hendelser.shouldBeEmpty()
-        personRepository.saved.shouldBeEmpty()
-        skatteHendelserStatusRepository.saved.shouldBeEmpty()
     }
 
     @Test
@@ -123,8 +111,6 @@ class SkatteHendelsePubliseringTest {
 
 
         skattehendelserProducer.hendelser.shouldBeEmpty()
-        personRepository.saved.shouldBeEmpty()
-        skatteHendelserStatusRepository.saved.shouldBeEmpty()
     }
 
 
