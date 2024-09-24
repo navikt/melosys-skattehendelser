@@ -108,6 +108,22 @@ class SkatteHendelsePubliseringTest {
     @Test
     fun `skal ikke publisere melding når vi får hendelse som er kjørt før`() {
         skatteHendelserFetcher.leggTilHendelseMedGjelderPeriode("2022")
+        personRepository.items.values.single().let { person ->
+            person.sekvensHistorikk.add(
+                SekvensHistorikk(sekvensnummer = 1, antall = 0, person = person)
+            )
+        }
+
+
+        skatteHendelsePublisering.prosesserSkattHendelser()
+
+
+        skattehendelserProducer.hendelser.shouldBeEmpty()
+    }
+
+    @Test
+    fun `skal øke antall når hendelse med samme sekvensnummer er kjørt før`() {
+        skatteHendelserFetcher.leggTilHendelseMedGjelderPeriode("2022")
         val sekvensHistorie = personRepository.items.values.single().let { person ->
             SekvensHistorikk(sekvensnummer = 1, antall = 0, person = person).also { sekvensHistorie ->
                 person.sekvensHistorikk.add(sekvensHistorie)
@@ -118,10 +134,8 @@ class SkatteHendelsePubliseringTest {
         skatteHendelsePublisering.prosesserSkattHendelser()
 
 
-        skattehendelserProducer.hendelser.shouldBeEmpty()
         sekvensHistorie.antall shouldBe 1
     }
-
 
     @Test
     fun `skal ikke publisere melding når vi får hendelse med gjelderperide som ikke finnes i personens perioder - 1`() {
