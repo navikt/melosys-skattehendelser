@@ -14,14 +14,31 @@ class Person(
     @Column(name = "ident", nullable = false)
     val ident: String,
 
-    @Column(name = "sekvensnummer", nullable = true)
-    var sekvensnummer: Long? = null,
+    @OneToMany(mappedBy = "person", cascade = [CascadeType.ALL], orphanRemoval = true, fetch = FetchType.LAZY)
+    val perioder: MutableList<Periode> = mutableListOf(),
 
     @OneToMany(mappedBy = "person", cascade = [CascadeType.ALL], orphanRemoval = true, fetch = FetchType.EAGER)
-    val perioder: MutableList<Periode> = mutableListOf()
-
+    val sekvensHistorikk: MutableList<SekvensHistorikk> = mutableListOf()
 ) {
     override fun toString(): String {
-        return "Person(id=$id, ident='$ident', sekvensnummer=$sekvensnummer, perioder=$perioder)"
+        return "Person(id=$id, ident='$ident', sekvensnummer=$sekvensHistorikk, perioder=$perioder)"
     }
+
+    fun hendelse(sekvensnummer: Long, consumerId: String): SekvensHistorikk {
+        sekvensHistorikk.find { it.sekvensnummer == sekvensnummer }?.let { sekvensHistorie ->
+            sekvensHistorie.antall++
+            sekvensHistorie.sisteHendelseTid = java.sql.Timestamp(System.currentTimeMillis())
+            return sekvensHistorie
+        }
+
+        return SekvensHistorikk(
+            sekvensnummer = sekvensnummer,
+            person = this
+        ).also {
+            sekvensHistorikk.add(it)
+        }
+    }
+
+    fun harTreffIPeriode(year: Int): Boolean =
+        perioder.any { it.harTreff(year) }
 }
