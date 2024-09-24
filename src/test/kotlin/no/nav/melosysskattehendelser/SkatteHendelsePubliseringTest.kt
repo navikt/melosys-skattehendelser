@@ -1,6 +1,7 @@
 package no.nav.melosysskattehendelser
 
 import io.kotest.matchers.collections.shouldBeEmpty
+import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import no.nav.melosysskattehendelser.domain.*
 import no.nav.melosysskattehendelser.domain.PersonRepositoryFake
@@ -135,6 +136,19 @@ class SkatteHendelsePubliseringTest {
 
 
         sekvensHistorie.antall shouldBe 1
+    }
+
+    @Test
+    fun `skal få flere treff i sekvensHistorikk ved samme identifikator`() {
+        skatteHendelserFetcher.hendelser.addAll(
+            (1..2).map { Hendelse(gjelderPeriode = "2022", identifikator = "123", sekvensnummer = it.toLong(), somAktoerid = false) }
+        )
+
+
+        skatteHendelsePublisering.prosesserSkattHendelser()
+
+
+        personRepository.items.values.single().sekvensHistorikk.shouldHaveSize(2)
     }
 
     @Test
