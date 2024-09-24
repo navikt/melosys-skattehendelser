@@ -14,11 +14,14 @@ class Person(
     @Column(name = "ident", nullable = false)
     val ident: String,
 
+    @Column(name = "sekvensnummer", nullable = true)
+    var sekvensnummer: Long? = null,
+
     @OneToMany(mappedBy = "person", cascade = [CascadeType.ALL], orphanRemoval = true, fetch = FetchType.EAGER)
     val perioder: MutableList<Periode> = mutableListOf()
 
 ) {
     override fun toString(): String {
-        return "Person(id=$id, ident='$ident', perioder=$perioder)"
+        return "Person(id=$id, ident='$ident', sekvensnummer=$sekvensnummer, perioder=$perioder)"
     }
 }

@@ -3,9 +3,9 @@ package no.nav.melosysskattehendelser
 import mu.KotlinLogging
 import no.nav.melosysskattehendelser.domain.*
 import no.nav.melosysskattehendelser.melosys.producer.SkattehendelserProducer
-import no.nav.melosysskattehendelser.skatt.SkatteHendelserFetcher
 import no.nav.melosysskattehendelser.melosys.toMelosysSkatteHendelse
 import no.nav.melosysskattehendelser.skatt.Hendelse
+import no.nav.melosysskattehendelser.skatt.SkatteHendelserFetcher
 import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Component
 import java.time.LocalDateTime
@@ -50,6 +50,8 @@ class SkatteHendelsePublisering(
                     personerFunnet++
                     log.info("Fant person ${person.ident} for sekvensnummer ${hendelse.sekvensnummer}")
                     skattehendelserProducer.publiserMelding(hendelse.toMelosysSkatteHendelse())
+                    person.sekvensnummer = hendelse.sekvensnummer
+                    personRepository.save(person)
                     oppdaterStatus(hendelse.sekvensnummer + 1)
                 }
             }
@@ -58,7 +60,7 @@ class SkatteHendelsePublisering(
 
     private fun finnPersonMedTreffIGjelderPeriode(hendelse: Hendelse): Person? =
         personRepository.findPersonByIdent(hendelse.identifikator)?.takeIf { person ->
-            person.perioder.any { it.harTreff(hendelse.gjelderPeriodeSomÅr()) }
+            person.sekvensnummer != hendelse.sekvensnummer && person.perioder.any { periode -> periode.harTreff(hendelse.gjelderPeriodeSomÅr()) }
         }
 
     fun stopProsesseringAvSkattHendelser() {
