@@ -3,7 +3,7 @@ package no.nav.melosysskattehendelser.domain
 import java.util.*
 
 class PersonRepositoryFake : PersonRepository {
-    val items = mutableMapOf<Long, Person>()
+    private val items = mutableMapOf<Long, Person>()
 
     fun reset() = apply {
         items.clear()
@@ -21,9 +21,7 @@ class PersonRepositoryFake : PersonRepository {
         throw UnsupportedOperationException("Not yet implemented")
     }
 
-    override fun findAll(): MutableIterable<Person> {
-        throw UnsupportedOperationException("Not yet implemented")
-    }
+    override fun findAll(): MutableIterable<Person> = items.values
 
     override fun findAllById(ids: MutableIterable<Long>): MutableIterable<Person> {
         throw UnsupportedOperationException("Not yet implemented")
