@@ -49,8 +49,13 @@ class SkatteHendelsePublisering(
                 finnPersonMedTreffIGjelderPeriode(hendelse)?.let { person ->
                     personerFunnet++
                     log.info("Fant person ${person.ident} for sekvensnummer ${hendelse.sekvensnummer}")
-                    skattehendelserProducer.publiserMelding(hendelse.toMelosysSkatteHendelse())
-                    person.sekvensnummer = hendelse.sekvensnummer
+                    val sekvensHistorikk = person.hendelse(consumerId = skatteHendelserFetcher.consumerId, sekvensnummer = hendelse.sekvensnummer)
+                    if (sekvensHistorikk.antall == 0) {
+                        skattehendelserProducer.publiserMelding(hendelse.toMelosysSkatteHendelse())
+                    } else {
+                        log.warn("Hendelse med ${hendelse.sekvensnummer} er allerede kjørt ${sekvensHistorikk.antall} ganger for person ${person.ident}")
+                    }
+
                     personRepository.save(person)
                     oppdaterStatus(hendelse.sekvensnummer + 1)
                 }
@@ -60,7 +65,7 @@ class SkatteHendelsePublisering(
 
     private fun finnPersonMedTreffIGjelderPeriode(hendelse: Hendelse): Person? =
         personRepository.findPersonByIdent(hendelse.identifikator)?.takeIf { person ->
-            person.sekvensnummer != hendelse.sekvensnummer && person.perioder.any { periode -> periode.harTreff(hendelse.gjelderPeriodeSomÅr()) }
+            person.harTreffIPeriode(hendelse.gjelderPeriodeSomÅr())
         }
 
     fun stopProsesseringAvSkattHendelser() {

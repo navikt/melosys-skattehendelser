@@ -100,21 +100,26 @@ class SkatteHendelsePubliseringTest {
         skatteHendelsePublisering.prosesserSkattHendelser()
 
 
-        personRepository.items.values
-            .single()
+        personRepository.items.values.single()
+            .sekvensHistorikk.single()
             .sekvensnummer shouldBe 1
     }
 
     @Test
     fun `skal ikke publisere melding når vi får hendelse som er kjørt før`() {
         skatteHendelserFetcher.leggTilHendelseMedGjelderPeriode("2022")
-        personRepository.items.values.single().sekvensnummer = 1
+        val sekvensHistorie = personRepository.items.values.single().let { person ->
+            SekvensHistorikk(sekvensnummer = 1, antall = 0, person = person).also { sekvensHistorie ->
+                person.sekvensHistorikk.add(sekvensHistorie)
+            }
+        }
 
 
         skatteHendelsePublisering.prosesserSkattHendelser()
 
 
         skattehendelserProducer.hendelser.shouldBeEmpty()
+        sekvensHistorie.antall shouldBe 1
     }
 
 
