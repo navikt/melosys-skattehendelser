@@ -49,7 +49,7 @@ class SkatteHendelsePublisering(
                 finnPersonMedTreffIGjelderPeriode(hendelse)?.let { person ->
                     personerFunnet++
                     log.info("Fant person ${person.ident} for sekvensnummer ${hendelse.sekvensnummer}")
-                    val sekvensHistorikk = person.hendelse(consumerId = skatteHendelserFetcher.consumerId, sekvensnummer = hendelse.sekvensnummer)
+                    val sekvensHistorikk = person.hendelse(hendelse.sekvensnummer)
                     if (sekvensHistorikk.antall == 0) {
                         skattehendelserProducer.publiserMelding(hendelse.toMelosysSkatteHendelse())
                     } else {
