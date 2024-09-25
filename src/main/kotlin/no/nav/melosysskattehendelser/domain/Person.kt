@@ -1,6 +1,7 @@
 package no.nav.melosysskattehendelser.domain
 
 import jakarta.persistence.*
+import java.time.LocalDateTime
 
 
 @Entity
@@ -24,10 +25,10 @@ class Person(
         return "Person(id=$id, ident='$ident', sekvensnummer=$sekvensHistorikk, perioder=$perioder)"
     }
 
-    fun hendelse(sekvensnummer: Long): SekvensHistorikk {
+    fun hentEllerLagSekvensHistorikk(sekvensnummer: Long): SekvensHistorikk {
         sekvensHistorikk.find { it.sekvensnummer == sekvensnummer }?.let { sekvensHistorie ->
             sekvensHistorie.antall++
-            sekvensHistorie.sisteHendelseTid = java.sql.Timestamp(System.currentTimeMillis())
+            sekvensHistorie.sisteHendelseTid = LocalDateTime.now()
             return sekvensHistorie
         }
 

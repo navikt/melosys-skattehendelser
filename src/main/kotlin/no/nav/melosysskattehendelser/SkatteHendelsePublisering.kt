@@ -49,8 +49,8 @@ class SkatteHendelsePublisering(
                 finnPersonMedTreffIGjelderPeriode(hendelse)?.let { person ->
                     personerFunnet++
                     log.info("Fant person ${person.ident} for sekvensnummer ${hendelse.sekvensnummer}")
-                    val sekvensHistorikk = person.hendelse(hendelse.sekvensnummer)
-                    if (sekvensHistorikk.antall == 0) {
+                    val sekvensHistorikk = person.hentEllerLagSekvensHistorikk(hendelse.sekvensnummer)
+                    if (sekvensHistorikk.erNyHendelse()) {
                         skattehendelserProducer.publiserMelding(hendelse.toMelosysSkatteHendelse())
                     } else {
                         log.warn("Hendelse med ${hendelse.sekvensnummer} er allerede kjørt ${sekvensHistorikk.antall} ganger for person ${person.ident}")
