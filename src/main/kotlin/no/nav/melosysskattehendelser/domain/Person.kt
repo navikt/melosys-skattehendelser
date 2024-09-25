@@ -24,7 +24,7 @@ class Person(
         return "Person(id=$id, ident='$ident', sekvensnummer=$sekvensHistorikk, perioder=$perioder)"
     }
 
-    fun hendelse(sekvensnummer: Long, consumerId: String): SekvensHistorikk {
+    fun hendelse(sekvensnummer: Long): SekvensHistorikk {
         sekvensHistorikk.find { it.sekvensnummer == sekvensnummer }?.let { sekvensHistorie ->
             sekvensHistorie.antall++
             sekvensHistorie.sisteHendelseTid = java.sql.Timestamp(System.currentTimeMillis())
