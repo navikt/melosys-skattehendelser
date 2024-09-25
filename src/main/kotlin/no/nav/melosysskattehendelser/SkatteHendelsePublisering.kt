@@ -28,7 +28,7 @@ class SkatteHendelsePublisering(
 
     fun prosesserSkattHendelser() {
         if (status.isRunning) {
-            log.warn("Prosessering av skatt hendelser er allerede i gang!")
+            log.warn("Prosessering av skattehendelser er allerede i gang!")
         }
         status.run {
             val start = skatteHendelserStatusRepository.findById(skatteHendelserFetcher.consumerId)
@@ -69,7 +69,7 @@ class SkatteHendelsePublisering(
         }
 
     fun stopProsesseringAvSkattHendelser() {
-        log.info("Stopper prosessering av skatt hendelser!")
+        log.info("Stopper prosessering av skattehendelser!")
         status.stop = true
     }
 
