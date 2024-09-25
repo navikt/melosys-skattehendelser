@@ -14,7 +14,7 @@ class Person(
     @Column(name = "ident", nullable = false)
     val ident: String,
 
-    @OneToMany(mappedBy = "person", cascade = [CascadeType.ALL], orphanRemoval = true, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "person", cascade = [CascadeType.ALL], orphanRemoval = true, fetch = FetchType.EAGER)
     val perioder: MutableList<Periode> = mutableListOf(),
 
     @OneToMany(mappedBy = "person", cascade = [CascadeType.ALL], orphanRemoval = true, fetch = FetchType.EAGER)
