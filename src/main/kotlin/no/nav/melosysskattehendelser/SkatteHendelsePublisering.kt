@@ -28,7 +28,7 @@ class SkatteHendelsePublisering(
 
     fun prosesserSkattHendelser() {
         if (status.isRunning) {
-            log.warn("Prosessering av skatt hendelser er allerede i gang!")
+            log.warn("Prosessering av skattehendelser er allerede i gang!")
         }
         status.run {
             val start = skatteHendelserStatusRepository.findById(skatteHendelserFetcher.consumerId)
@@ -49,8 +49,13 @@ class SkatteHendelsePublisering(
                 finnPersonMedTreffIGjelderPeriode(hendelse)?.let { person ->
                     personerFunnet++
                     log.info("Fant person ${person.ident} for sekvensnummer ${hendelse.sekvensnummer}")
-                    skattehendelserProducer.publiserMelding(hendelse.toMelosysSkatteHendelse())
-                    person.sekvensnummer = hendelse.sekvensnummer
+                    val sekvensHistorikk = person.hentEllerLagSekvensHistorikk(hendelse.sekvensnummer)
+                    if (sekvensHistorikk.erNyHendelse()) {
+                        skattehendelserProducer.publiserMelding(hendelse.toMelosysSkatteHendelse())
+                    } else {
+                        log.warn("Hendelse med ${hendelse.sekvensnummer} er allerede kjørt ${sekvensHistorikk.antall} ganger for person ${person.ident}")
+                    }
+
                     personRepository.save(person)
                     oppdaterStatus(hendelse.sekvensnummer + 1)
                 }
@@ -60,11 +65,11 @@ class SkatteHendelsePublisering(
 
     private fun finnPersonMedTreffIGjelderPeriode(hendelse: Hendelse): Person? =
         personRepository.findPersonByIdent(hendelse.identifikator)?.takeIf { person ->
-            person.sekvensnummer != hendelse.sekvensnummer && person.perioder.any { periode -> periode.harTreff(hendelse.gjelderPeriodeSomÅr()) }
+            person.harTreffIPeriode(hendelse.gjelderPeriodeSomÅr())
         }
 
     fun stopProsesseringAvSkattHendelser() {
-        log.info("Stopper prosessering av skatt hendelser!")
+        log.info("Stopper prosessering av skattehendelser!")
         status.stop = true
     }
 
