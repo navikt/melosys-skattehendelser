@@ -44,7 +44,7 @@ class PersonRepositoryFake : PersonRepository {
     }
 
     override fun deleteAll() {
-        throw UnsupportedOperationException("Not yet implemented")
+        items.clear()
     }
 
     override fun deleteById(id: Long) {

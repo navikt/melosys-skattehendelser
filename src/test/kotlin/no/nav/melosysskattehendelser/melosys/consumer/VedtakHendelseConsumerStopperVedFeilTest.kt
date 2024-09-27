@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit
 @SpringBootTest
 @DirtiesContext
 @EmbeddedKafka(count = 1, controlledShutdown = true, partitions = 1)
-@Import(KafkaTestProducer::class)
+@Import(KafkaTestProducer::class, KafkaOffsetChecker::class)
 class VedtakHendelseConsumerStopperVedFeilTest(
     @Autowired private val kafkaTemplate: KafkaTemplate<String, String>,
     @Value("\${melosys.kafka.consumer.topic}") private val topic: String,

@@ -52,6 +52,6 @@ class SkatteHendelserStatusRepositoryFake : SkatteHendelserStatusRepository {
     }
 
     override fun deleteAll() {
-        throw UnsupportedOperationException("Not yet implemented")
+        items.clear()
     }
 }
