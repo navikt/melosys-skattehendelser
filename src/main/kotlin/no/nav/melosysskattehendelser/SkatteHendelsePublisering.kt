@@ -5,7 +5,7 @@ import no.nav.melosysskattehendelser.domain.*
 import no.nav.melosysskattehendelser.melosys.producer.SkattehendelserProducer
 import no.nav.melosysskattehendelser.melosys.toMelosysSkatteHendelse
 import no.nav.melosysskattehendelser.skatt.Hendelse
-import no.nav.melosysskattehendelser.skatt.SkatteHendelserFetcher
+import no.nav.melosysskattehendelser.skatt.SkatteHendelserFetcherAPI
 import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Component
 import java.time.LocalDateTime
@@ -13,7 +13,7 @@ import kotlin.jvm.optionals.getOrNull
 
 @Component
 class SkatteHendelsePublisering(
-    private val skatteHendelserFetcher: SkatteHendelserFetcher,
+    private val skatteHendelserFetcherAPI: SkatteHendelserFetcherAPI,
     private val personRepository: PersonRepository,
     private val skatteHendelserStatusRepository: SkatteHendelserStatusRepository,
     private val skattehendelserProducer: SkattehendelserProducer
@@ -31,10 +31,10 @@ class SkatteHendelsePublisering(
             log.warn("Prosessering av skattehendelser er allerede i gang!")
         }
         status.run {
-            val start = skatteHendelserStatusRepository.findById(skatteHendelserFetcher.consumerId)
-                .getOrNull()?.sekvensnummer ?: skatteHendelserFetcher.startSekvensnummer
+            val start = skatteHendelserStatusRepository.findById(skatteHendelserFetcherAPI.consumerId)
+                .getOrNull()?.sekvensnummer ?: skatteHendelserFetcherAPI.startSekvensnummer
 
-            skatteHendelserFetcher.hentHendelser(
+            skatteHendelserFetcherAPI.hentHendelser(
                 startSeksvensnummer = start,
                 batchDone = { sekvensnummer ->
                     oppdaterStatus(sekvensnummer)
@@ -77,7 +77,12 @@ class SkatteHendelsePublisering(
 
     private fun oppdaterStatus(sekvensnummer: Long) {
         status.sisteSekvensnummer = sekvensnummer
-        skatteHendelserStatusRepository.save(SkatteHendelserSekvens(skatteHendelserFetcher.consumerId, sekvensnummer))
+        skatteHendelserStatusRepository.save(
+            SkatteHendelserSekvens(
+                skatteHendelserFetcherAPI.consumerId,
+                sekvensnummer
+            )
+        )
     }
 
     class Status(

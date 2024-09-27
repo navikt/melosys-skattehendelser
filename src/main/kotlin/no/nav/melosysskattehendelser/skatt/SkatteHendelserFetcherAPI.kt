@@ -1,7 +1,6 @@
 package no.nav.melosysskattehendelser.skatt
 
 import mu.KotlinLogging
-import no.nav.melosysskattehendelser.skatt.SkatteHendelserFetcher.*
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import java.time.LocalDate
@@ -13,16 +12,15 @@ class SkatteHendelserFetcherAPI(
     private val skatteHendelseConsumer: SkatteHendelseConsumer,
     @Value("\${skatt.fetcher.batch-size}") private val batchSize: Int,
     @Value("\${skatt.fetcher.start-dato}") private val startDato: LocalDate
-) : SkatteHendelserFetcher {
+) {
     init {
         log.info("batchSize er satt til $batchSize")
     }
 
-
-    override fun hentHendelser(
+    fun hentHendelser(
         startSeksvensnummer: Long,
         batchDone: (seksvensnummer: Long) -> Unit,
-        reportStats: (stats: Stats) -> Unit
+        reportStats: (stats: Stats) -> Unit = {}
     ): Sequence<Hendelse> = sequence<Hendelse> {
         var seksvensnummerFra = startSeksvensnummer
         var hendelseListe: List<Hendelse>
@@ -56,10 +54,10 @@ class SkatteHendelserFetcherAPI(
         )
     )
 
-    override val consumerId
+    val consumerId
         get() = skatteHendelseConsumer.getConsumerId()
 
-    override val startSekvensnummer
+    val startSekvensnummer
         get() = skatteHendelseConsumer.getStartSekvensnummer(
             startDato
                 .apply {

@@ -73,7 +73,7 @@ class SkatteHendelserFetcherTest {
         shouldThrow<IllegalStateException> {
             skatteHendelserFetcher.hentHendelser(
                 startSeksvensnummer = 1,
-                batchDone = { batchDoneCallbacks.add(it) }
+                batchDone = { batchDoneCallbacks.add(it) },
             ).toList()
         }.message.shouldBe("hendelseListe.size 11 > batchSize 10")
     }

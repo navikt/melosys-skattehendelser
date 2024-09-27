@@ -5,7 +5,7 @@ import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import no.nav.melosysskattehendelser.domain.*
 import no.nav.melosysskattehendelser.domain.PersonRepositoryFake
-import no.nav.melosysskattehendelser.skatt.SkatteHendelserFetcherFake
+import no.nav.melosysskattehendelser.skatt.FakeSkatteHendelserFetcherAPI
 import no.nav.melosysskattehendelser.domain.SkatteHendelserStatusRepositoryFake
 import no.nav.melosysskattehendelser.melosys.producer.SkattehendelserProducerFake
 import no.nav.melosysskattehendelser.melosys.MelosysSkatteHendelse
@@ -16,13 +16,18 @@ import java.time.LocalDate
 
 class SkatteHendelsePubliseringTest {
 
-    private val skatteHendelserFetcher = SkatteHendelserFetcherFake()
+    private val skatteHendelserFetcher = FakeSkatteHendelserFetcherAPI()
     private val personRepository = PersonRepositoryFake()
     private val skatteHendelserStatusRepository = SkatteHendelserStatusRepositoryFake()
     private val skattehendelserProducer = SkattehendelserProducerFake()
 
     private val skatteHendelsePublisering =
-        SkatteHendelsePublisering(skatteHendelserFetcher, personRepository, skatteHendelserStatusRepository, skattehendelserProducer)
+        SkatteHendelsePublisering(
+            skatteHendelserFetcher,
+            personRepository,
+            skatteHendelserStatusRepository,
+            skattehendelserProducer
+        )
 
     @BeforeEach
     fun setUp() {
@@ -142,7 +147,14 @@ class SkatteHendelsePubliseringTest {
     @Test
     fun `skal få flere treff i sekvensHistorikk ved samme identifikator`() {
         skatteHendelserFetcher.hendelser.addAll(
-            (1..2).map { Hendelse(gjelderPeriode = "2022", identifikator = "123", sekvensnummer = it.toLong(), somAktoerid = false) }
+            (1..2).map {
+                Hendelse(
+                    gjelderPeriode = "2022",
+                    identifikator = "123",
+                    sekvensnummer = it.toLong(),
+                    somAktoerid = false
+                )
+            }
         )
 
 
@@ -174,7 +186,7 @@ class SkatteHendelsePubliseringTest {
         skattehendelserProducer.hendelser.shouldBeEmpty()
     }
 
-    private fun SkatteHendelserFetcherFake.leggTilHendelseMedGjelderPeriode(gjelderPeriode: String) {
+    private fun FakeSkatteHendelserFetcherAPI.leggTilHendelseMedGjelderPeriode(gjelderPeriode: String) {
         hendelser.add(
             Hendelse(
                 gjelderPeriode = gjelderPeriode,
