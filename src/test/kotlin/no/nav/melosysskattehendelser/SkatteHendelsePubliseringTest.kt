@@ -8,6 +8,7 @@ import no.nav.melosysskattehendelser.melosys.MelosysSkatteHendelse
 import no.nav.melosysskattehendelser.melosys.producer.SkattehendelserProducerFake
 import no.nav.melosysskattehendelser.skatt.Hendelse
 import no.nav.melosysskattehendelser.skatt.SkatteHendelserFetcherFake
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.time.LocalDate
@@ -15,8 +16,8 @@ import java.time.LocalDate
 open class SkatteHendelsePubliseringTest {
     protected open var personRepository: PersonRepository = PersonRepositoryFake()
     protected open var skatteHendelserStatusRepository: SkatteHendelserStatusRepository = SkatteHendelserStatusRepositoryFake()
-    private var skattehendelserProducer: SkattehendelserProducerFake = SkattehendelserProducerFake()
-    private var skatteHendelserFetcher: SkatteHendelserFetcherFake = SkatteHendelserFetcherFake()
+    private val skattehendelserProducer: SkattehendelserProducerFake = SkattehendelserProducerFake()
+    private val skatteHendelserFetcher: SkatteHendelserFetcherFake = SkatteHendelserFetcherFake()
 
     private val skatteHendelsePublisering by lazy {
         SkatteHendelsePublisering(skatteHendelserFetcher, personRepository, skatteHendelserStatusRepository, skattehendelserProducer)
@@ -24,7 +25,6 @@ open class SkatteHendelsePubliseringTest {
 
     @BeforeEach
     fun setUp() {
-        personRepository.deleteAll()
         personRepository
             .apply {
                 save(
@@ -39,6 +39,11 @@ open class SkatteHendelsePubliseringTest {
                         )
                     })
             }
+    }
+
+    @AfterEach
+    fun tearDown() {
+        personRepository.deleteAll()
         skatteHendelserStatusRepository.deleteAll()
         skatteHendelserFetcher.reset()
         skattehendelserProducer.reset()
