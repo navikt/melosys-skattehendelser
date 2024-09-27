@@ -4,30 +4,28 @@ import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import no.nav.melosysskattehendelser.domain.*
-import no.nav.melosysskattehendelser.domain.PersonRepositoryFake
-import no.nav.melosysskattehendelser.skatt.SkatteHendelserFetcherFake
-import no.nav.melosysskattehendelser.domain.SkatteHendelserStatusRepositoryFake
-import no.nav.melosysskattehendelser.melosys.producer.SkattehendelserProducerFake
 import no.nav.melosysskattehendelser.melosys.MelosysSkatteHendelse
+import no.nav.melosysskattehendelser.melosys.producer.SkattehendelserProducerFake
 import no.nav.melosysskattehendelser.skatt.Hendelse
+import no.nav.melosysskattehendelser.skatt.SkatteHendelserFetcherFake
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.time.LocalDate
 
-class SkatteHendelsePubliseringTest {
+open class SkatteHendelsePubliseringTest {
+    protected open var personRepository: PersonRepository = PersonRepositoryFake()
+    protected open var skatteHendelserStatusRepository: SkatteHendelserStatusRepository = SkatteHendelserStatusRepositoryFake()
+    private var skattehendelserProducer: SkattehendelserProducerFake = SkattehendelserProducerFake()
+    private var skatteHendelserFetcher: SkatteHendelserFetcherFake = SkatteHendelserFetcherFake()
 
-    private val skatteHendelserFetcher = SkatteHendelserFetcherFake()
-    private val personRepository = PersonRepositoryFake()
-    private val skatteHendelserStatusRepository = SkatteHendelserStatusRepositoryFake()
-    private val skattehendelserProducer = SkattehendelserProducerFake()
-
-    private val skatteHendelsePublisering =
+    private val skatteHendelsePublisering by lazy {
         SkatteHendelsePublisering(skatteHendelserFetcher, personRepository, skatteHendelserStatusRepository, skattehendelserProducer)
+    }
 
     @BeforeEach
     fun setUp() {
+        personRepository.deleteAll()
         personRepository
-            .reset()
             .apply {
                 save(
                     Person(id = 0, ident = "123").apply {
@@ -41,7 +39,7 @@ class SkatteHendelsePubliseringTest {
                         )
                     })
             }
-        skatteHendelserStatusRepository.reset()
+        skatteHendelserStatusRepository.deleteAll()
         skatteHendelserFetcher.reset()
         skattehendelserProducer.reset()
     }
@@ -114,6 +112,7 @@ class SkatteHendelsePubliseringTest {
             person.sekvensHistorikk.add(
                 SekvensHistorikk(sekvensnummer = 1, antall = 0, person = person)
             )
+            personRepository.save(person)
         }
 
 
@@ -126,17 +125,17 @@ class SkatteHendelsePubliseringTest {
     @Test
     fun `skal øke antall når hendelse med samme sekvensnummer er kjørt før`() {
         skatteHendelserFetcher.leggTilHendelseMedGjelderPeriode("2022")
-        val sekvensHistorie = personRepository.findAll().single().let { person ->
-            SekvensHistorikk(sekvensnummer = 1, antall = 0, person = person).also { sekvensHistorie ->
-                person.sekvensHistorikk.add(sekvensHistorie)
-            }
-        }
+        val person = personRepository.findAll().single()
+        person.sekvensHistorikk.add(
+            SekvensHistorikk(sekvensnummer = 1, antall = 0, person = person)
+        )
+        personRepository.save(person)
 
 
         skatteHendelsePublisering.prosesserSkattHendelser()
 
 
-        sekvensHistorie.antall shouldBe 1
+        personRepository.findAll().single().sekvensHistorikk.single().antall shouldBe 1
     }
 
     @Test
