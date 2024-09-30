@@ -1,5 +1,6 @@
 package no.nav.melosysskattehendelser.melosys.consumer
 
+import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
@@ -181,7 +182,6 @@ class VedtakHendelseConsumerTest(
         }.shouldBe(1)
     }
 
-
     @Test
     fun `skal ignorere ukjent melding uten å feile`() {
         val vedtakHendelseMelding = """
@@ -203,6 +203,67 @@ class VedtakHendelseConsumerTest(
                             .shouldNotBeNull()
                     }
             }
+        }.shouldBe(1)
+    }
+
+    @Test
+    fun `Ignorer medlemskapsperiode med null for fom eller tom`() {
+
+        val vedtakHendelseMelding = """
+            {
+              "melding" : {
+                "type" : "VedtakHendelseMelding",
+                "folkeregisterIdent" : "$ident",
+                "sakstype" : "FTRL",
+                "sakstema" : "TRYGDEAVGIFT",
+                "medlemskapsperiode": {
+                      "fom": null,
+                      "tom": null
+                }
+              }
+            }
+        """
+
+        kafkaOffsetChecker.offsetIncreased {
+            kafkaTemplate.send(topic, vedtakHendelseMelding)
+
+            await.timeout(5, TimeUnit.SECONDS)
+                .untilAsserted {
+                    personRepository.findPersonByIdent(ident)
+                        .shouldNotBeNull()
+                        .perioder.shouldBeEmpty()
+                }
+        }.shouldBe(1)
+    }
+
+    @Test
+    fun `Ignorer medlemskapsperiode med null for fom eller tom når vi alt har bruker i db`() {
+        personTestService.savePerson(Person(ident = ident))
+
+        val vedtakHendelseMelding = """
+            {
+              "melding" : {
+                "type" : "VedtakHendelseMelding",
+                "folkeregisterIdent" : "$ident",
+                "sakstype" : "FTRL",
+                "sakstema" : "TRYGDEAVGIFT",
+                "medlemskapsperiode": {
+                      "fom": null,
+                      "tom": null
+                }
+              }
+            }
+        """
+
+        kafkaOffsetChecker.offsetIncreased {
+            kafkaTemplate.send(topic, vedtakHendelseMelding)
+
+            await.timeout(5, TimeUnit.SECONDS)
+                .untilAsserted {
+                    personRepository.findPersonByIdent(ident)
+                        .shouldNotBeNull()
+                        .perioder.shouldBeEmpty()
+                }
         }.shouldBe(1)
     }
 }

@@ -35,9 +35,13 @@ class VedtakHendelseConsumer(
                     return
                 }
 
-                log.info("legger til periode $periode på person")
-                person.perioder.add(periode.toDbPeriode(person))
-                vedtakHendelseRepository.save(person)
+                if (periode.erGyldig()) {
+                    log.info("legger til periode $periode på person med id: ${person.id}")
+                    person.leggTilPeriode(periode)
+                    vedtakHendelseRepository.save(person)
+                } else {
+                    log.warn { "Forsøkte å legge til periode med fom:${periode.fom} tom:${periode.tom} for person med id: ${person.id}" }
+                }
             }
             return
         }
@@ -47,5 +51,13 @@ class VedtakHendelseConsumer(
 
     private fun Person.harPeriode(periode: Periode) = perioder.any {
         it.fom == periode.fom && it.tom == periode.tom
+    }
+
+    private fun Person.leggTilPeriode(periode: Periode) {
+        perioder.add(periode.toDbPeriode(this))
+    }
+
+    private fun Periode.erGyldig(): Boolean {
+        return fom != null && tom != null
     }
 }
