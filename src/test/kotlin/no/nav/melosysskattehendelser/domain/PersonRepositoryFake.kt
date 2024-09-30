@@ -5,12 +5,11 @@ import java.util.*
 class PersonRepositoryFake : PersonRepository {
     private val items = mutableMapOf<Long, Person>()
 
-    fun reset() = apply {
-        items.clear()
-    }
-
     override fun findPersonByIdent(ident: String): Person? =
         items.values.find { it.ident == ident }
+
+    override fun findPersonById(id: Long): Person? =
+        items.values.find { it.id == id }
 
     override fun <S : Person?> save(entity: S & Any): S & Any {
         items[entity.id] = entity
