@@ -175,5 +175,40 @@ class MelosysHendelseTest {
             .properties.shouldBe(mapOf("pnr" to "12345"))
     }
 
+    @Test
+    fun `deserialize VedtakHendelseMelding med periode hvor fom eller-og tom er null`() {
+        val json = """
+            {
+                "melding": {
+                    "type": "VedtakHendelseMelding",
+                    "folkeregisterIdent": "12345",
+                    "sakstype": "TRYGDEAVTALE",
+                    "sakstema": "TRYGDEAVGIFT",
+                    "medlemskapsperiode": {
+                          "fom": null,
+                          "tom": null
+                    }
+                    
+                }
+            }"""
+
+
+        val result = objectMapper.readValue<MelosysHendelse>(json)
+
+
+        result.melding.shouldBe(
+            VedtakHendelseMelding(
+                folkeregisterIdent = "12345",
+                sakstype = Sakstyper.TRYGDEAVTALE,
+                sakstema = Sakstemaer.TRYGDEAVGIFT,
+                medlemskapsperiode = Periode(
+                    null,
+                    null
+                )
+            )
+        )
+    }
+
+
     private fun Any.toJson(): String = objectMapper.valueToTree<JsonNode?>(this).toPrettyString()
 }
