@@ -49,7 +49,7 @@ class VedtakHendelseConsumerTest(
     }
 
     @Test
-    fun `skal lagre ned aktuelle personer`() {
+    fun `skal lagre ikke lagre ned persone om vi ikke har periode`() {
         val vedtakHendelseMelding = """
             {
               "melding" : {
@@ -63,15 +63,20 @@ class VedtakHendelseConsumerTest(
         """
 
         kafkaOffsetChecker.offsetIncreased {
-            kafkaTemplate.send(topic, vedtakHendelseMelding)
+            LoggingTestUtils.withLogCapture { logItems ->
 
-            await.timeout(5, TimeUnit.SECONDS)
-                .untilAsserted {
-                    personRepository.findPersonByIdent(ident)
-                        .shouldNotBeNull()
-                }
+                kafkaTemplate.send(topic, vedtakHendelseMelding)
+
+                await.timeout(5, TimeUnit.SECONDS)
+                    .untilAsserted {
+                        logItems.firstOrNull {
+                            it.formattedMessage.contains("Ingen medlemskapsperioder i melding, så lager ikke bruker i databasen")
+                        }.shouldNotBeNull()
+                    }
+            }
         }.shouldBe(1)
 
+        personRepository.findPersonByIdent(ident) shouldBe null
     }
 
     @Test
