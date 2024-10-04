@@ -35,9 +35,12 @@ class MelosysHendelseTest {
                 folkeregisterIdent = "12345",
                 sakstype = Sakstyper.TRYGDEAVTALE,
                 sakstema = Sakstemaer.TRYGDEAVGIFT,
-                medlemskapsperiode = Periode(
-                    LocalDate.of(2021, 1, 1),
-                    LocalDate.of(2022, 1, 1),
+                medlemskapsperioder = listOf(
+                    Periode(
+                        LocalDate.of(2021, 1, 1),
+                        LocalDate.of(2022, 1, 1),
+                        InnvilgelsesResultat.INNVILGET
+                    )
                 )
             )
         )
@@ -50,10 +53,11 @@ class MelosysHendelseTest {
                     "folkeregisterIdent": "12345",
                     "sakstype": "TRYGDEAVTALE",
                     "sakstema": "TRYGDEAVGIFT",
-                    "medlemskapsperiode": {
+                    "medlemskapsperioder": [{
                       "fom": [2021, 1, 1],
-                      "tom": [2022, 1, 1]
-                    }                    
+                      "tom": [2022, 1, 1],
+                      "innvilgelsesResultat": "INNVILGET"
+                    }]                    
                 }
             }"""
     }
@@ -83,7 +87,8 @@ class MelosysHendelseTest {
                     "type": "VedtakHendelseMelding",
                     "folkeregisterIdent": "12345",
                     "sakstype": "TRYGDEAVTALE",
-                    "sakstema": "TRYGDEAVGIFT"
+                    "sakstema": "TRYGDEAVGIFT",
+                    "medlemskapsperioder": []
                 }
             }"""
 
@@ -95,7 +100,8 @@ class MelosysHendelseTest {
             VedtakHendelseMelding(
                 folkeregisterIdent = "12345",
                 sakstype = Sakstyper.TRYGDEAVTALE,
-                sakstema = Sakstemaer.TRYGDEAVGIFT
+                sakstema = Sakstemaer.TRYGDEAVGIFT,
+                medlemskapsperioder = listOf()
             )
         )
     }
@@ -109,10 +115,11 @@ class MelosysHendelseTest {
                     "folkeregisterIdent": "12345",
                     "sakstype": "TRYGDEAVTALE",
                     "sakstema": "TRYGDEAVGIFT",
-                    "medlemskapsperiode": {
+                    "medlemskapsperioder": [{
                           "fom": [2021, 1, 1],
-                          "tom": [2022, 1, 1]
-                    }
+                          "tom": [2022, 1, 1],
+                          "innvilgelsesResultat": "INNVILGET"
+                    }]
                     
                 }
             }"""
@@ -126,9 +133,12 @@ class MelosysHendelseTest {
                 folkeregisterIdent = "12345",
                 sakstype = Sakstyper.TRYGDEAVTALE,
                 sakstema = Sakstemaer.TRYGDEAVGIFT,
-                medlemskapsperiode = Periode(
-                    LocalDate.of(2021, 1, 1),
-                    LocalDate.of(2022, 1, 1)
+                medlemskapsperioder = listOf(
+                    Periode(
+                        LocalDate.of(2021, 1, 1),
+                        LocalDate.of(2022, 1, 1),
+                        InnvilgelsesResultat.INNVILGET
+                    )
                 )
             )
         )
@@ -143,6 +153,7 @@ class MelosysHendelseTest {
                     "folkeregisterIdent": "12345",
                     "sakstype": "TRYGDEAVTALE",
                     "sakstema": "TRYGDEAVGIFT",
+                    "medlemskapsperioder": [],
                     "ekstarfelt": "DUMMY"
                 }
             }"""
@@ -155,7 +166,8 @@ class MelosysHendelseTest {
             VedtakHendelseMelding(
                 folkeregisterIdent = "12345",
                 sakstype = Sakstyper.TRYGDEAVTALE,
-                sakstema = Sakstemaer.TRYGDEAVGIFT
+                sakstema = Sakstemaer.TRYGDEAVGIFT,
+                medlemskapsperioder = listOf()
             )
         )
     }
@@ -184,10 +196,11 @@ class MelosysHendelseTest {
                     "folkeregisterIdent": "12345",
                     "sakstype": "TRYGDEAVTALE",
                     "sakstema": "TRYGDEAVGIFT",
-                    "medlemskapsperiode": {
+                    "medlemskapsperioder": [{
                           "fom": null,
-                          "tom": null
-                    }
+                          "tom": null,
+                          "innvilgelsesResultat": "INNVILGET"
+                    }]
                     
                 }
             }"""
@@ -201,9 +214,12 @@ class MelosysHendelseTest {
                 folkeregisterIdent = "12345",
                 sakstype = Sakstyper.TRYGDEAVTALE,
                 sakstema = Sakstemaer.TRYGDEAVGIFT,
-                medlemskapsperiode = Periode(
-                    null,
-                    null
+                medlemskapsperioder = listOf(
+                    Periode(
+                        null,
+                        null,
+                        InnvilgelsesResultat.INNVILGET
+                    )
                 )
             )
         )

@@ -56,7 +56,8 @@ class VedtakHendelseConsumerTest(
                 "type" : "VedtakHendelseMelding",
                 "folkeregisterIdent" : "$ident",
                 "sakstype" : "FTRL",
-                "sakstema" : "TRYGDEAVGIFT"
+                "sakstema" : "TRYGDEAVGIFT",
+                "medlemskapsperioder": []
               }
             }
         """
@@ -82,10 +83,11 @@ class VedtakHendelseConsumerTest(
                 "folkeregisterIdent" : "$ident",
                 "sakstype" : "FTRL",
                 "sakstema" : "TRYGDEAVGIFT",
-                "medlemskapsperiode": {
+                "medlemskapsperioder": [{
                       "fom": [2021, 1, 1],
-                      "tom": [2022, 1, 1]
-                }
+                      "tom": [2022, 1, 1],
+                      "innvilgelsesResultat": "INNVILGET"
+                }]
               }
             }
         """
@@ -113,10 +115,11 @@ class VedtakHendelseConsumerTest(
                 "folkeregisterIdent" : "$ident",
                 "sakstype" : "FTRL",
                 "sakstema" : "TRYGDEAVGIFT",
-                "medlemskapsperiode": {
+                "medlemskapsperioder": [{
                       "fom": [2021, 1, 1],
-                      "tom": [2022, 1, 1]
-                }
+                      "tom": [2022, 1, 1],
+                      "innvilgelsesResultat": "INNVILGET"
+                }]
               }
             }
         """
@@ -156,10 +159,11 @@ class VedtakHendelseConsumerTest(
                 "folkeregisterIdent" : "$ident",
                 "sakstype" : "FTRL",
                 "sakstema" : "TRYGDEAVGIFT",
-                "medlemskapsperiode": {
+                "medlemskapsperioder": [{
                       "fom": [2021, 1, 1],
-                      "tom": [2022, 1, 1]
-                }
+                      "tom": [2022, 1, 1],
+                      "innvilgelsesResultat": "INNVILGET"
+                }]
               }
             }
         """
@@ -216,10 +220,11 @@ class VedtakHendelseConsumerTest(
                 "folkeregisterIdent" : "$ident",
                 "sakstype" : "FTRL",
                 "sakstema" : "TRYGDEAVGIFT",
-                "medlemskapsperiode": {
+                "medlemskapsperioder": [{
                       "fom": null,
-                      "tom": null
-                }
+                      "tom": null,
+                      "innvilgelsesResultat": "INNVILGET"
+                }]
               }
             }
         """
@@ -247,10 +252,11 @@ class VedtakHendelseConsumerTest(
                 "folkeregisterIdent" : "$ident",
                 "sakstype" : "FTRL",
                 "sakstema" : "TRYGDEAVGIFT",
-                "medlemskapsperiode": {
+                "medlemskapsperioder": [{
                       "fom": null,
-                      "tom": null
-                }
+                      "tom": null,
+                      "innvilgelsesResultat": "INNVILGET"
+                }]
               }
             }
         """
