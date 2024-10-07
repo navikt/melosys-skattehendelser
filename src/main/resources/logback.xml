@@ -2,6 +2,14 @@
     <springProfile name="default">
         <appender name="stdout_json" class="ch.qos.logback.core.ConsoleAppender">
             <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+<!--                TODO - dette på legges på før man går i prod, venter siden det er nyttig å ha i testing i q2 -->
+<!--                TODO https://jira.adeo.no/browse/MELOSYS-6887 -->
+<!--                <jsonGeneratorDecorator class="net.logstash.logback.mask.MaskingJsonGeneratorDecorator">-->
+<!--                    <valueMask>-->
+<!--                        <value>(^|\W)\d{11}(?=$|\W)</value>-->
+<!--                        <mask>$1***********</mask>-->
+<!--                    </valueMask>-->
+<!--                </jsonGeneratorDecorator>-->
                 <fieldNames>
                     <version>[ignore]</version>
                 </fieldNames>
