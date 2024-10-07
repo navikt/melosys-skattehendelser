@@ -33,7 +33,7 @@ class MelosysHendelseTest {
         val melosysHendelse = MelosysHendelse(
             VedtakHendelseMelding(
                 folkeregisterIdent = "12345",
-                sakstype = Sakstyper.TRYGDEAVTALE,
+                sakstype = Sakstyper.FTRL,
                 sakstema = Sakstemaer.TRYGDEAVGIFT,
                 medlemskapsperioder = listOf(
                     Periode(
@@ -51,7 +51,7 @@ class MelosysHendelseTest {
                 "melding": {
                     "type": "VedtakHendelseMelding",
                     "folkeregisterIdent": "12345",
-                    "sakstype": "TRYGDEAVTALE",
+                    "sakstype": "FTRL",
                     "sakstema": "TRYGDEAVGIFT",
                     "medlemskapsperioder": [{
                       "fom": [2021, 1, 1],
@@ -86,7 +86,7 @@ class MelosysHendelseTest {
                 "melding": {
                     "type": "VedtakHendelseMelding",
                     "folkeregisterIdent": "12345",
-                    "sakstype": "TRYGDEAVTALE",
+                    "sakstype": "FTRL",
                     "sakstema": "TRYGDEAVGIFT",
                     "medlemskapsperioder": []
                 }
@@ -99,7 +99,7 @@ class MelosysHendelseTest {
         result.melding.shouldBe(
             VedtakHendelseMelding(
                 folkeregisterIdent = "12345",
-                sakstype = Sakstyper.TRYGDEAVTALE,
+                sakstype = Sakstyper.FTRL,
                 sakstema = Sakstemaer.TRYGDEAVGIFT,
                 medlemskapsperioder = listOf()
             )
@@ -113,7 +113,7 @@ class MelosysHendelseTest {
                 "melding": {
                     "type": "VedtakHendelseMelding",
                     "folkeregisterIdent": "12345",
-                    "sakstype": "TRYGDEAVTALE",
+                    "sakstype": "FTRL",
                     "sakstema": "TRYGDEAVGIFT",
                     "medlemskapsperioder": [{
                           "fom": [2021, 1, 1],
@@ -131,7 +131,7 @@ class MelosysHendelseTest {
         result.melding.shouldBe(
             VedtakHendelseMelding(
                 folkeregisterIdent = "12345",
-                sakstype = Sakstyper.TRYGDEAVTALE,
+                sakstype = Sakstyper.FTRL,
                 sakstema = Sakstemaer.TRYGDEAVGIFT,
                 medlemskapsperioder = listOf(
                     Periode(
@@ -151,7 +151,7 @@ class MelosysHendelseTest {
                 "melding": {
                     "type": "VedtakHendelseMelding",
                     "folkeregisterIdent": "12345",
-                    "sakstype": "TRYGDEAVTALE",
+                    "sakstype": "FTRL",
                     "sakstema": "TRYGDEAVGIFT",
                     "medlemskapsperioder": [],
                     "ekstarfelt": "DUMMY"
@@ -165,7 +165,7 @@ class MelosysHendelseTest {
         result.melding.shouldBe(
             VedtakHendelseMelding(
                 folkeregisterIdent = "12345",
-                sakstype = Sakstyper.TRYGDEAVTALE,
+                sakstype = Sakstyper.FTRL,
                 sakstema = Sakstemaer.TRYGDEAVGIFT,
                 medlemskapsperioder = listOf()
             )
@@ -194,7 +194,7 @@ class MelosysHendelseTest {
                 "melding": {
                     "type": "VedtakHendelseMelding",
                     "folkeregisterIdent": "12345",
-                    "sakstype": "TRYGDEAVTALE",
+                    "sakstype": "FTRL",
                     "sakstema": "TRYGDEAVGIFT",
                     "medlemskapsperioder": [{
                           "fom": null,
@@ -212,7 +212,7 @@ class MelosysHendelseTest {
         result.melding.shouldBe(
             VedtakHendelseMelding(
                 folkeregisterIdent = "12345",
-                sakstype = Sakstyper.TRYGDEAVTALE,
+                sakstype = Sakstyper.FTRL,
                 sakstema = Sakstemaer.TRYGDEAVGIFT,
                 medlemskapsperioder = listOf(
                     Periode(
