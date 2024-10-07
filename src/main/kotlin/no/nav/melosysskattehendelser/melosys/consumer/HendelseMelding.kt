@@ -4,11 +4,8 @@ import com.fasterxml.jackson.annotation.JsonAnySetter
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonSubTypes
 import com.fasterxml.jackson.annotation.JsonTypeInfo
-import mu.KotlinLogging
 import no.nav.melosysskattehendelser.domain.Person
 import java.time.LocalDate
-
-private val log = KotlinLogging.logger { }
 
 data class MelosysHendelse(
     val melding: HendelseMelding
@@ -26,23 +23,25 @@ data class VedtakHendelseMelding(
     val folkeregisterIdent: String,
     val sakstype: Sakstyper,
     val sakstema: Sakstemaer,
-    val medlemskapsperiode: Periode? = null
-) : HendelseMelding() {
+    val medlemskapsperioder: List<Periode>,
 
-    fun toPerson() = Person(ident = folkeregisterIdent).apply {
-        medlemskapsperiode?.let {
-            if (it.fom != null && it.tom != null) {
-                perioder.add(it.toDbPeriode(this))
-            } else {
-                log.warn { "Forsøkte å legge til periode med fom:${it.fom} tom:${it.tom} for $ident" }
-            }
-        }
+) : HendelseMelding() {
+    fun toPerson() = Person(
+        ident = folkeregisterIdent,
+    ).also { person ->
+        person.perioder.addAll(
+            medlemskapsperioder
+                .filter { it.innvilgelsesResultat == InnvilgelsesResultat.INNVILGET }
+                .filterNot { it.fom == null && it.tom == null }
+                .map { periode -> periode.toDbPeriode(person) }
+        )
     }
 }
 
 data class Periode(
     val fom: LocalDate?,
-    val tom: LocalDate?
+    val tom: LocalDate?,
+    val innvilgelsesResultat: InnvilgelsesResultat
 ) {
     fun toDbPeriode(person: Person) = no.nav.melosysskattehendelser.domain.Periode(
         fom = fom ?: throw IllegalArgumentException("fom kan ikke være null"),
@@ -50,7 +49,6 @@ data class Periode(
         person = person
     )
 }
-
 
 data class UkjentMelding(
     val properties: MutableMap<String, Any> = mutableMapOf()
@@ -72,4 +70,11 @@ enum class Sakstemaer {
     MEDLEMSKAP_LOVVALG,
     UNNTAK,
     TRYGDEAVGIFT
+}
+
+enum class InnvilgelsesResultat() {
+    INNVILGET,
+    DELVIS_INNVILGET,
+    AVSLAATT,
+    OPPHØRT
 }

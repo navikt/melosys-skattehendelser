@@ -24,15 +24,21 @@ class VedtakHendelseConsumer(
         val vedtakHendelseMelding = melding as? VedtakHendelseMelding
             ?: return log.debug { "Ignorerer melding av type ${melding.javaClass.simpleName} " }
 
-        log.info("Mottatt vedtakshendelse sakstype: ${vedtakHendelseMelding.sakstype} sakstema: ${vedtakHendelseMelding.sakstema}")
+        if (vedtakHendelseMelding.sakstype != Sakstyper.FTRL) {
+            return log.debug { "Ignorerer melding med sakstype ${vedtakHendelseMelding.sakstype} " }
+        }
 
+        log.info("Mottatt vedtakshendelse sakstype: ${vedtakHendelseMelding.sakstype} sakstema: ${vedtakHendelseMelding.sakstema}")
+        if (vedtakHendelseMelding.medlemskapsperioder.isEmpty()) {
+            return log.info { "Ingen medlemskapsperioder i melding, så lager ikke bruker i databasen" }
+        }
         vedtakHendelseRepository.findPersonByIdent(vedtakHendelseMelding.folkeregisterIdent)?.let { person ->
             log.info("person med ident(${vedtakHendelseMelding.folkeregisterIdent}) finnes allerede")
 
-            vedtakHendelseMelding.medlemskapsperiode?.let { periode ->
+            for (periode in vedtakHendelseMelding.medlemskapsperioder) {
                 if (person.harPeriode(periode)) {
                     log.info("perioden $periode finnes allerede på person med id:${person.id}")
-                    return
+                    continue
                 }
 
                 if (periode.erGyldig()) {
