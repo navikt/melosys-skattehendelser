@@ -31,6 +31,9 @@ melosys:
       topic: ${KAFKA_VEDTAK_TOPIC:teammelosys.melosys-hendelser.v1-q2}
       groupId: teammelosys-vedtakMelding-consumer
 
+
+environment: local
+
 sigrun:
   rest:
     url: ${SIGRUN_REST_URL}

@@ -28,7 +28,7 @@ allOpen {
 
 object dependencyVersions {
     const val kotestVersion = "5.5.4"
-    const val logstashLogbackEncoder = "7.2"
+    const val logstashLogbackEncoder = "8.0"
     const val kotlinLogging = "3.0.5"
     const val wiremock = "3.0.1"
     const val awaitility = "4.2.0"
@@ -36,6 +36,7 @@ object dependencyVersions {
     const val tokenSupport = "3.2.0"
     const val shedlockVersion = "4.4.0"
     const val shedlockProvicerJdbcVersion = "4.43.0"
+    const val janino = "3.1.12"
 }
 
 val osName = System.getProperty("os.name").lowercase()
@@ -64,6 +65,7 @@ dependencies {
     implementation("no.nav.security:token-client-spring:${dependencyVersions.tokenSupport}")
     implementation("net.javacrumbs.shedlock:shedlock-spring:${dependencyVersions.shedlockVersion}")
     implementation("net.javacrumbs.shedlock:shedlock-provider-jdbc-template:${dependencyVersions.shedlockProvicerJdbcVersion}")
+    implementation("org.codehaus.janino:janino:${dependencyVersions.janino}")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.boot:spring-boot-testcontainers")

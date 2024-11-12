@@ -1,38 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <configuration>
-    <springProfile name="default">
-        <appender name="stdout_json" class="ch.qos.logback.core.ConsoleAppender">
-            <encoder class="net.logstash.logback.encoder.LogstashEncoder">
-                <fieldNames>
-                    <version>[ignore]</version>
-                </fieldNames>
-                <throwableConverter class="net.logstash.logback.stacktrace.ShortenedThrowableConverter">
-                    <maxDepthPerThrowable>30</maxDepthPerThrowable>
-                    <exclude>java\.util\.concurrent\..*</exclude>
-                    <exclude>org\.apache\.tomcat\..*</exclude>
-                </throwableConverter>
-            </encoder>
-        </appender>
+    <if condition='isDefined("NAIS_CLUSTER_NAME")'>
+        <then>
+            <!-- NAIS environments (both dev and prod) -->
+            <if condition='p("NAIS_CLUSTER_NAME").contains("prod")'>
+                <then>
+                    <!-- Production: JSON logging med fnr-masking -->
+                    <appender name="stdout_json" class="ch.qos.logback.core.ConsoleAppender">
+                        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+                            <jsonGeneratorDecorator class="net.logstash.logback.mask.MaskingJsonGeneratorDecorator">
+                                <valueMask>
+                                    <value>(^|\W)\d{11}(?=$|\W)</value>
+                                    <mask>$1***********</mask>
+                                </valueMask>
+                            </jsonGeneratorDecorator>
+                            <fieldNames>
+                                <version>[ignore]</version>
+                            </fieldNames>
+                            <throwableConverter class="net.logstash.logback.stacktrace.ShortenedThrowableConverter">
+                                <maxDepthPerThrowable>30</maxDepthPerThrowable>
+                                <exclude>java\.util\.concurrent\..*</exclude>
+                                <exclude>org\.apache\.tomcat\..*</exclude>
+                            </throwableConverter>
+                        </encoder>
+                    </appender>
+                </then>
+                <else>
+                    <!-- Dev: JSON logging uten fnr-masking -->
+                    <appender name="stdout_json" class="ch.qos.logback.core.ConsoleAppender">
+                        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+                            <fieldNames>
+                                <version>[ignore]</version>
+                            </fieldNames>
+                            <throwableConverter class="net.logstash.logback.stacktrace.ShortenedThrowableConverter">
+                                <maxDepthPerThrowable>30</maxDepthPerThrowable>
+                                <exclude>java\.util\.concurrent\..*</exclude>
+                                <exclude>org\.apache\.tomcat\..*</exclude>
+                            </throwableConverter>
+                        </encoder>
+                    </appender>
+                </else>
+            </if>
+            <root level="INFO">
+                <appender-ref ref="stdout_json"/>
+            </root>
+        </then>
+        <else>
+            <!-- Local: Pretty console logging -->
+            <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
+                <encoder>
+                    <pattern>%d{HH:mm:ss.SSS} %highlight(%-5level) %logger{10} - %msg%n</pattern>
+                </encoder>
+            </appender>
 
-        <root level="INFO">
-            <appender-ref ref="stdout_json"/>
-        </root>
+            <logger name="org.apache.kafka" level="INFO"/>
+            <logger name="org.apache.kafka.clients.consumer.internals" level="WARN"/>
+            <logger name="org.springframework.kafka" level="INFO"/>
+            <logger name="com.zaxxer.hikari" level="INFO"/>
 
-    </springProfile>
-
-    <springProfile name="!default">
-        <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
-            <encoder>
-                <pattern>%d{HH:mm:ss.SSS} %highlight(%-5level) %logger{10} - %msg%n</pattern>
-            </encoder>
-        </appender>
-
-        <logger name="org.apache.kafka" level="INFO"/>
-        <logger name="org.apache.kafka.clients.consumer.internals" level="WARN"/>
-        <logger name="org.springframework.kafka" level="INFO"/>
-        <logger name="com.zaxxer.hikari" level="INFO"/>
-
-        <root level="INFO">
-            <appender-ref ref="console"/>
-        </root>
-    </springProfile>
+            <root level="INFO">
+                <appender-ref ref="console"/>
+            </root>
+        </else>
+    </if>
 </configuration>
