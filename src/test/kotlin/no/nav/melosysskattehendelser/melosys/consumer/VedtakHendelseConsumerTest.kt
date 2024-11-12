@@ -1,5 +1,6 @@
 package no.nav.melosysskattehendelser.melosys.consumer
 
+import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
@@ -48,28 +49,34 @@ class VedtakHendelseConsumerTest(
     }
 
     @Test
-    fun `skal lagre ned aktuelle personer`() {
+    fun `skal lagre ikke lagre ned persone om vi ikke har periode`() {
         val vedtakHendelseMelding = """
             {
               "melding" : {
                 "type" : "VedtakHendelseMelding",
                 "folkeregisterIdent" : "$ident",
                 "sakstype" : "FTRL",
-                "sakstema" : "TRYGDEAVGIFT"
+                "sakstema" : "TRYGDEAVGIFT",
+                "medlemskapsperioder": []
               }
             }
         """
 
         kafkaOffsetChecker.offsetIncreased {
-            kafkaTemplate.send(topic, vedtakHendelseMelding)
+            LoggingTestUtils.withLogCapture { logItems ->
 
-            await.timeout(5, TimeUnit.SECONDS)
-                .untilAsserted {
-                    personRepository.findPersonByIdent(ident)
-                        .shouldNotBeNull()
-                }
+                kafkaTemplate.send(topic, vedtakHendelseMelding)
+
+                await.timeout(5, TimeUnit.SECONDS)
+                    .untilAsserted {
+                        logItems.firstOrNull {
+                            it.formattedMessage.contains("Ingen medlemskapsperioder i melding, så lager ikke bruker i databasen")
+                        }.shouldNotBeNull()
+                    }
+            }
         }.shouldBe(1)
 
+        personRepository.findPersonByIdent(ident) shouldBe null
     }
 
     @Test
@@ -81,10 +88,11 @@ class VedtakHendelseConsumerTest(
                 "folkeregisterIdent" : "$ident",
                 "sakstype" : "FTRL",
                 "sakstema" : "TRYGDEAVGIFT",
-                "medlemskapsperiode": {
+                "medlemskapsperioder": [{
                       "fom": [2021, 1, 1],
-                      "tom": [2022, 1, 1]
-                }
+                      "tom": [2022, 1, 1],
+                      "innvilgelsesResultat": "INNVILGET"
+                }]
               }
             }
         """
@@ -112,10 +120,11 @@ class VedtakHendelseConsumerTest(
                 "folkeregisterIdent" : "$ident",
                 "sakstype" : "FTRL",
                 "sakstema" : "TRYGDEAVGIFT",
-                "medlemskapsperiode": {
+                "medlemskapsperioder": [{
                       "fom": [2021, 1, 1],
-                      "tom": [2022, 1, 1]
-                }
+                      "tom": [2022, 1, 1],
+                      "innvilgelsesResultat": "INNVILGET"
+                }]
               }
             }
         """
@@ -155,10 +164,11 @@ class VedtakHendelseConsumerTest(
                 "folkeregisterIdent" : "$ident",
                 "sakstype" : "FTRL",
                 "sakstema" : "TRYGDEAVGIFT",
-                "medlemskapsperiode": {
+                "medlemskapsperioder": [{
                       "fom": [2021, 1, 1],
-                      "tom": [2022, 1, 1]
-                }
+                      "tom": [2022, 1, 1],
+                      "innvilgelsesResultat": "INNVILGET"
+                }]
               }
             }
         """
@@ -181,7 +191,6 @@ class VedtakHendelseConsumerTest(
         }.shouldBe(1)
     }
 
-
     @Test
     fun `skal ignorere ukjent melding uten å feile`() {
         val vedtakHendelseMelding = """
@@ -203,6 +212,69 @@ class VedtakHendelseConsumerTest(
                             .shouldNotBeNull()
                     }
             }
+        }.shouldBe(1)
+    }
+
+    @Test
+    fun `Ignorer medlemskapsperiode med null for fom eller tom`() {
+
+        val vedtakHendelseMelding = """
+            {
+              "melding" : {
+                "type" : "VedtakHendelseMelding",
+                "folkeregisterIdent" : "$ident",
+                "sakstype" : "FTRL",
+                "sakstema" : "TRYGDEAVGIFT",
+                "medlemskapsperioder": [{
+                      "fom": null,
+                      "tom": null,
+                      "innvilgelsesResultat": "INNVILGET"
+                }]
+              }
+            }
+        """
+
+        kafkaOffsetChecker.offsetIncreased {
+            kafkaTemplate.send(topic, vedtakHendelseMelding)
+
+            await.timeout(5, TimeUnit.SECONDS)
+                .untilAsserted {
+                    personRepository.findPersonByIdent(ident)
+                        .shouldNotBeNull()
+                        .perioder.shouldBeEmpty()
+                }
+        }.shouldBe(1)
+    }
+
+    @Test
+    fun `Ignorer medlemskapsperiode med null for fom eller tom når vi alt har bruker i db`() {
+        personTestService.savePerson(Person(ident = ident))
+
+        val vedtakHendelseMelding = """
+            {
+              "melding" : {
+                "type" : "VedtakHendelseMelding",
+                "folkeregisterIdent" : "$ident",
+                "sakstype" : "FTRL",
+                "sakstema" : "TRYGDEAVGIFT",
+                "medlemskapsperioder": [{
+                      "fom": null,
+                      "tom": null,
+                      "innvilgelsesResultat": "INNVILGET"
+                }]
+              }
+            }
+        """
+
+        kafkaOffsetChecker.offsetIncreased {
+            kafkaTemplate.send(topic, vedtakHendelseMelding)
+
+            await.timeout(5, TimeUnit.SECONDS)
+                .untilAsserted {
+                    personRepository.findPersonByIdent(ident)
+                        .shouldNotBeNull()
+                        .perioder.shouldBeEmpty()
+                }
         }.shouldBe(1)
     }
 }

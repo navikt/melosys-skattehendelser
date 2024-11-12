@@ -5,9 +5,8 @@ import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.common.TopicPartition
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties
-import org.springframework.stereotype.Component
 
-@Component
+
 class KafkaOffsetChecker(
     kafkaProperties: KafkaProperties,
     @Value("\${melosys.kafka.consumer.topic}") private val topic: String,
@@ -20,7 +19,7 @@ class KafkaOffsetChecker(
         )
     ).apply { assign(listOf(topicPartition)) }
 
-    fun getCommittedOffset(): Long {
+    private fun getCommittedOffset(): Long {
         val offsetAndMetadata = consumer.committed(setOf(topicPartition))[topicPartition]
         return offsetAndMetadata?.offset() ?: 0
     }

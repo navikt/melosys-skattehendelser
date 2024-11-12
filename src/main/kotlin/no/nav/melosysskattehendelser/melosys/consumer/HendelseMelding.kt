@@ -23,31 +23,32 @@ data class VedtakHendelseMelding(
     val folkeregisterIdent: String,
     val sakstype: Sakstyper,
     val sakstema: Sakstemaer,
-    val medlemskapsperiode: Periode? = null
-) : HendelseMelding() {
+    val medlemskapsperioder: List<Periode>,
 
-    fun toPerson(): Person {
-        return Person(
-            ident = folkeregisterIdent
-        ).apply {
-            medlemskapsperiode?.let {
-                perioder.add(it.toDbPeriode(this))
-            }
-        }
+) : HendelseMelding() {
+    fun toPerson() = Person(
+        ident = folkeregisterIdent,
+    ).also { person ->
+        person.perioder.addAll(
+            medlemskapsperioder
+                .filter { it.innvilgelsesResultat == InnvilgelsesResultat.INNVILGET }
+                .filterNot { it.fom == null && it.tom == null }
+                .map { periode -> periode.toDbPeriode(person) }
+        )
     }
 }
 
 data class Periode(
-    val fom: LocalDate,
-    val tom: LocalDate
+    val fom: LocalDate?,
+    val tom: LocalDate?,
+    val innvilgelsesResultat: InnvilgelsesResultat
 ) {
     fun toDbPeriode(person: Person) = no.nav.melosysskattehendelser.domain.Periode(
-        fom = fom,
-        tom = tom,
+        fom = fom ?: throw IllegalArgumentException("fom kan ikke være null"),
+        tom = tom ?: throw IllegalArgumentException("tom kan ikke være null"),
         person = person
     )
 }
-
 
 data class UkjentMelding(
     val properties: MutableMap<String, Any> = mutableMapOf()
@@ -69,4 +70,11 @@ enum class Sakstemaer {
     MEDLEMSKAP_LOVVALG,
     UNNTAK,
     TRYGDEAVGIFT
+}
+
+enum class InnvilgelsesResultat() {
+    INNVILGET,
+    DELVIS_INNVILGET,
+    AVSLAATT,
+    OPPHØRT
 }

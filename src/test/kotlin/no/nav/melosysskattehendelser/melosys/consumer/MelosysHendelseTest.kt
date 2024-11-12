@@ -33,11 +33,14 @@ class MelosysHendelseTest {
         val melosysHendelse = MelosysHendelse(
             VedtakHendelseMelding(
                 folkeregisterIdent = "12345",
-                sakstype = Sakstyper.TRYGDEAVTALE,
+                sakstype = Sakstyper.FTRL,
                 sakstema = Sakstemaer.TRYGDEAVGIFT,
-                medlemskapsperiode = Periode(
-                    LocalDate.of(2021, 1, 1),
-                    LocalDate.of(2022, 1, 1),
+                medlemskapsperioder = listOf(
+                    Periode(
+                        LocalDate.of(2021, 1, 1),
+                        LocalDate.of(2022, 1, 1),
+                        InnvilgelsesResultat.INNVILGET
+                    )
                 )
             )
         )
@@ -48,12 +51,13 @@ class MelosysHendelseTest {
                 "melding": {
                     "type": "VedtakHendelseMelding",
                     "folkeregisterIdent": "12345",
-                    "sakstype": "TRYGDEAVTALE",
+                    "sakstype": "FTRL",
                     "sakstema": "TRYGDEAVGIFT",
-                    "medlemskapsperiode": {
+                    "medlemskapsperioder": [{
                       "fom": [2021, 1, 1],
-                      "tom": [2022, 1, 1]
-                    }                    
+                      "tom": [2022, 1, 1],
+                      "innvilgelsesResultat": "INNVILGET"
+                    }]                    
                 }
             }"""
     }
@@ -82,8 +86,9 @@ class MelosysHendelseTest {
                 "melding": {
                     "type": "VedtakHendelseMelding",
                     "folkeregisterIdent": "12345",
-                    "sakstype": "TRYGDEAVTALE",
-                    "sakstema": "TRYGDEAVGIFT"
+                    "sakstype": "FTRL",
+                    "sakstema": "TRYGDEAVGIFT",
+                    "medlemskapsperioder": []
                 }
             }"""
 
@@ -94,8 +99,9 @@ class MelosysHendelseTest {
         result.melding.shouldBe(
             VedtakHendelseMelding(
                 folkeregisterIdent = "12345",
-                sakstype = Sakstyper.TRYGDEAVTALE,
-                sakstema = Sakstemaer.TRYGDEAVGIFT
+                sakstype = Sakstyper.FTRL,
+                sakstema = Sakstemaer.TRYGDEAVGIFT,
+                medlemskapsperioder = listOf()
             )
         )
     }
@@ -107,12 +113,13 @@ class MelosysHendelseTest {
                 "melding": {
                     "type": "VedtakHendelseMelding",
                     "folkeregisterIdent": "12345",
-                    "sakstype": "TRYGDEAVTALE",
+                    "sakstype": "FTRL",
                     "sakstema": "TRYGDEAVGIFT",
-                    "medlemskapsperiode": {
+                    "medlemskapsperioder": [{
                           "fom": [2021, 1, 1],
-                          "tom": [2022, 1, 1]
-                    }
+                          "tom": [2022, 1, 1],
+                          "innvilgelsesResultat": "INNVILGET"
+                    }]
                     
                 }
             }"""
@@ -124,11 +131,14 @@ class MelosysHendelseTest {
         result.melding.shouldBe(
             VedtakHendelseMelding(
                 folkeregisterIdent = "12345",
-                sakstype = Sakstyper.TRYGDEAVTALE,
+                sakstype = Sakstyper.FTRL,
                 sakstema = Sakstemaer.TRYGDEAVGIFT,
-                medlemskapsperiode = Periode(
-                    LocalDate.of(2021, 1, 1),
-                    LocalDate.of(2022, 1, 1)
+                medlemskapsperioder = listOf(
+                    Periode(
+                        LocalDate.of(2021, 1, 1),
+                        LocalDate.of(2022, 1, 1),
+                        InnvilgelsesResultat.INNVILGET
+                    )
                 )
             )
         )
@@ -141,8 +151,9 @@ class MelosysHendelseTest {
                 "melding": {
                     "type": "VedtakHendelseMelding",
                     "folkeregisterIdent": "12345",
-                    "sakstype": "TRYGDEAVTALE",
+                    "sakstype": "FTRL",
                     "sakstema": "TRYGDEAVGIFT",
+                    "medlemskapsperioder": [],
                     "ekstarfelt": "DUMMY"
                 }
             }"""
@@ -154,8 +165,9 @@ class MelosysHendelseTest {
         result.melding.shouldBe(
             VedtakHendelseMelding(
                 folkeregisterIdent = "12345",
-                sakstype = Sakstyper.TRYGDEAVTALE,
-                sakstema = Sakstemaer.TRYGDEAVGIFT
+                sakstype = Sakstyper.FTRL,
+                sakstema = Sakstemaer.TRYGDEAVGIFT,
+                medlemskapsperioder = listOf()
             )
         )
     }
@@ -174,6 +186,45 @@ class MelosysHendelseTest {
         result.shouldBeInstanceOf<UkjentMelding>()
             .properties.shouldBe(mapOf("pnr" to "12345"))
     }
+
+    @Test
+    fun `deserialize VedtakHendelseMelding med periode hvor fom eller-og tom er null`() {
+        val json = """
+            {
+                "melding": {
+                    "type": "VedtakHendelseMelding",
+                    "folkeregisterIdent": "12345",
+                    "sakstype": "FTRL",
+                    "sakstema": "TRYGDEAVGIFT",
+                    "medlemskapsperioder": [{
+                          "fom": null,
+                          "tom": null,
+                          "innvilgelsesResultat": "INNVILGET"
+                    }]
+                    
+                }
+            }"""
+
+
+        val result = objectMapper.readValue<MelosysHendelse>(json)
+
+
+        result.melding.shouldBe(
+            VedtakHendelseMelding(
+                folkeregisterIdent = "12345",
+                sakstype = Sakstyper.FTRL,
+                sakstema = Sakstemaer.TRYGDEAVGIFT,
+                medlemskapsperioder = listOf(
+                    Periode(
+                        null,
+                        null,
+                        InnvilgelsesResultat.INNVILGET
+                    )
+                )
+            )
+        )
+    }
+
 
     private fun Any.toJson(): String = objectMapper.valueToTree<JsonNode?>(this).toPrettyString()
 }

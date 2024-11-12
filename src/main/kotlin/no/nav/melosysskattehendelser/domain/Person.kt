@@ -1,6 +1,7 @@
 package no.nav.melosysskattehendelser.domain
 
 import jakarta.persistence.*
+import java.time.LocalDateTime
 
 
 @Entity
@@ -15,10 +16,30 @@ class Person(
     val ident: String,
 
     @OneToMany(mappedBy = "person", cascade = [CascadeType.ALL], orphanRemoval = true, fetch = FetchType.EAGER)
-    val perioder: MutableList<Periode> = mutableListOf()
+    val perioder: MutableList<Periode> = mutableListOf(),
 
+    @OneToMany(mappedBy = "person", cascade = [CascadeType.ALL], orphanRemoval = true, fetch = FetchType.EAGER)
+    val sekvensHistorikk: MutableList<SekvensHistorikk> = mutableListOf()
 ) {
     override fun toString(): String {
-        return "Person(id=$id, ident='$ident', perioder=$perioder)"
+        return "Person(id=$id, ident='$ident', sekvensnummer=$sekvensHistorikk, perioder=$perioder)"
     }
+
+    fun hentEllerLagSekvensHistorikk(sekvensnummer: Long): SekvensHistorikk {
+        sekvensHistorikk.find { it.sekvensnummer == sekvensnummer }?.let { sekvensHistorie ->
+            sekvensHistorie.antall++
+            sekvensHistorie.sisteHendelseTid = LocalDateTime.now()
+            return sekvensHistorie
+        }
+
+        return SekvensHistorikk(
+            sekvensnummer = sekvensnummer,
+            person = this
+        ).also {
+            sekvensHistorikk.add(it)
+        }
+    }
+
+    fun harTreffIPeriode(year: Int): Boolean =
+        perioder.any { it.harTreff(year) }
 }
