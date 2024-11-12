@@ -2,10 +2,10 @@
 <configuration>
     <if condition='isDefined("NAIS_CLUSTER_NAME")'>
         <then>
-            <!-- NAIS environments (both dev and prod) -->
+            <!-- NAIS -->
             <if condition='p("NAIS_CLUSTER_NAME").contains("prod")'>
                 <then>
-                    <!-- Production: JSON logging med fnr-masking -->
+                    <!-- Prod: JSON logging med fnr-masking -->
                     <appender name="stdout_json" class="ch.qos.logback.core.ConsoleAppender">
                         <encoder class="net.logstash.logback.encoder.LogstashEncoder">
                             <jsonGeneratorDecorator class="net.logstash.logback.mask.MaskingJsonGeneratorDecorator">
