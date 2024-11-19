@@ -1,7 +1,7 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    id("org.springframework.boot") version "3.2.4"
+    id("org.springframework.boot") version "3.3.5"
     id("io.spring.dependency-management") version "1.1.4"
     kotlin("jvm") version "1.9.23"
     kotlin("plugin.spring") version "1.9.23"
@@ -44,6 +44,7 @@ val osArch = System.getProperty("os.arch").lowercase()
 
 dependencies {
     runtimeOnly("org.postgresql:postgresql")
+    runtimeOnly("org.flywaydb:flyway-database-postgresql")
     if (osName.contains("mac") && osArch.contains("aarch64")) {
         implementation("io.netty:netty-resolver-dns-native-macos:4.1.109.Final:osx-aarch_64")
     }
@@ -72,6 +73,7 @@ dependencies {
     testImplementation("org.springframework.kafka:spring-kafka-test")
     testImplementation("org.testcontainers:junit-jupiter")
     testImplementation("org.testcontainers:kafka")
+    testImplementation("org.postgresql:postgresql")
     testImplementation("org.testcontainers:postgresql")
     testImplementation("io.kotest:kotest-assertions-json-jvm:${dependencyVersions.kotestVersion}")
     testImplementation("io.kotest:kotest-assertions-core-jvm:${dependencyVersions.kotestVersion}")
