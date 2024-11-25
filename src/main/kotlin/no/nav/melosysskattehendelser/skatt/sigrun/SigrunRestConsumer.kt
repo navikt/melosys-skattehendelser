@@ -1,6 +1,5 @@
 package no.nav.melosysskattehendelser.skatt.sigrun
 
-import mu.KotlinLogging
 import no.nav.melosysskattehendelser.skatt.Hendelse
 import no.nav.melosysskattehendelser.skatt.HendelseRequest
 import no.nav.melosysskattehendelser.skatt.SkatteHendelseConsumer
@@ -8,28 +7,31 @@ import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.bodyToMono
 import java.time.LocalDate
 
-class SigrunRestConsumer(private val webClient: WebClient) : SkatteHendelseConsumer {
-    private val log = KotlinLogging.logger { }
+class SigrunRestConsumer(
+    private val webClient: WebClient,
+) : SkatteHendelseConsumer {
 
     override fun hentHendelseListe(request: HendelseRequest): List<Hendelse> =
-        webClient.get().uri("/api/skatteoppgjoer/hendelser")
-            .header("x-sekvensnummer-fra", request.seksvensnummerFra.toString())
-            .header("x-antall", request.antall.toString())
-            .header("x-bruk-aktoerid", request.brukAktoerId.toString())
+        webClient.get()
+            .uri { uriBuilder ->
+                uriBuilder.path("/api/v1/pensjonsgivendeinntektforfolketrygden/hendelser")
+                    .queryParam("fraSekvensnummer", request.seksvensnummerFra)
+                    .queryParam("antall", request.antall)
+                    .build()
+            }
+            .header("bruk-aktoerid", request.brukAktoerId.toString())
             .retrieve()
-            .bodyToMono<List<Hendelse>>()
-            .block() ?: emptyList()
+            .bodyToMono<Map<String, List<Hendelse>>>()
+            .block()?.get("hendelser") ?: emptyList()
 
     override fun getConsumerId(): String = "sigrun-skatteoppgjoer-hendelser"
 
-    override fun getStartSekvensnummer(start: LocalDate): Long {
-        return hentStartSekvensnummer(start).sekvensnummer
-    }
+    override fun getStartSekvensnummer(start: LocalDate): Long = hentStartSekvensnummer(start).sekvensnummer
 
     private fun hentStartSekvensnummer(start: LocalDate): StartSekvensnummer =
         webClient.get()
             .uri { uriBuilder ->
-                uriBuilder.path("/api/skatteoppgjoer/hendelser/start")
+                uriBuilder.path("/api/v1/pensjonsgivendeinntektforfolketrygden/hendelser/start")
                     .queryParam("dato", start.toString())
                     .build()
             }
