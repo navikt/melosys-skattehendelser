@@ -29,7 +29,7 @@ class SkatteHendelserFetcherAPI(
         var totaltAntallHendelser = 0
         var antallBatcher = 0
         while (true) {
-            hendelseListe = hentSkatteHendelseser(seksvensnummerFra)
+            hendelseListe = hentSkatteHendelser(seksvensnummerFra)
             if (hendelseListe.size > batchSize) error("hendelseListe.size ${hendelseListe.size} > batchSize $batchSize")
             val last = hendelseListe.lastOrNull() ?: break
             log.info(
@@ -48,7 +48,7 @@ class SkatteHendelserFetcherAPI(
         log.info("totalt antall hendelser prossessert: $totaltAntallHendelser seksvensnummerFra er nå: $seksvensnummerFra")
     }
 
-    private fun hentSkatteHendelseser(seksvensnummerFra: Long) = skatteHendelseConsumer.hentHendelseListe(
+    private fun hentSkatteHendelser(seksvensnummerFra: Long) = skatteHendelseConsumer.hentHendelseListe(
         HendelseRequest(
             seksvensnummerFra = seksvensnummerFra,
             antall = batchSize,
