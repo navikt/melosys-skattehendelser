@@ -13,7 +13,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.annotation.Import
-import org.springframework.kafka.KafkaException
 import org.springframework.kafka.core.KafkaTemplate
 import org.springframework.kafka.test.context.EmbeddedKafka
 import org.springframework.test.annotation.DirtiesContext
@@ -50,10 +49,7 @@ class VedtakHendelseConsumerStopperVedFeilTest(
                     .untilNotNull {
                         logItems.firstOrNull() { it.level == Level.ERROR }
                     }
-                errorLogItem.throwableProxy.apply {
-                    className shouldBe KafkaException::class.qualifiedName
-                    message.shouldBe("Stopped container")
-                }
+                errorLogItem.message shouldBe "Failed to deserialize message on topic teammelosys.melosys-hendelser-test: $meldingMedFeil"
             }
         }.shouldBe(0)
     }
