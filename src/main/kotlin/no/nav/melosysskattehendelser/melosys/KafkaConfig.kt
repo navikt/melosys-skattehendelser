@@ -40,7 +40,7 @@ class KafkaConfig(
 ) {
 
     @Bean
-    fun kafkaTemplate(objectMapper: ObjectMapper?): KafkaTemplate<String, MelosysSkatteHendelse> {
+    fun melosysSkatteHendelseKafkaTemplate(objectMapper: ObjectMapper?): KafkaTemplate<String, MelosysSkatteHendelse> {
         val config: Map<String, Any> = producerConfig()
         val producerFactory: ProducerFactory<String, MelosysSkatteHendelse> =
             DefaultKafkaProducerFactory(config, StringSerializer(), JsonSerializer(objectMapper))
