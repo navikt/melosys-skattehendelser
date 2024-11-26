@@ -1,9 +1,12 @@
 package no.nav.melosysskattehendelser.skatt.sigrun
 
 import com.github.tomakehurst.wiremock.WireMockServer
+import com.github.tomakehurst.wiremock.client.MappingBuilder
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.collections.shouldContainExactly
+import io.kotest.matchers.shouldBe
 import no.nav.melosysskattehendelser.skatt.Hendelse
 import no.nav.melosysskattehendelser.skatt.HendelseRequest
 import org.junit.jupiter.api.AfterAll
@@ -33,10 +36,7 @@ class SigrunRestConsumerTest {
     @Test
     fun `skal hente liste med hendelser`() {
         wireMockServer.stubFor(
-            WireMock.get(WireMock.urlPathEqualTo("/api/v1/pensjonsgivendeinntektforfolketrygden/hendelser"))
-                .withQueryParam("fraSekvensnummer", WireMock.equalTo("0"))
-                .withQueryParam("antall", WireMock.equalTo("1000"))
-                .withHeader("bruk-aktoerid", WireMock.equalTo("false"))
+            createGetRequest()
                 .willReturn(
                     WireMock.aResponse()
                         .withStatus(200)
@@ -80,4 +80,55 @@ class SigrunRestConsumerTest {
                 Hendelse("2023", "456789", 1, true, hendelsetype = "ny")
             )
     }
+
+    @Test
+    fun `hente liste med hendelser - kaster exception ved manglende felt`() {
+        wireMockServer.stubFor(
+            createGetRequest()
+                .willReturn(
+                    WireMock.aResponse()
+                        .withStatus(200)
+                        .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                        .withBody("""{ "foo": [] }""")
+                )
+        )
+
+        shouldThrow<IllegalStateException> {
+            sigrunRestConsumer.hentHendelseListe(
+                HendelseRequest(
+                    0,
+                    1000,
+                    false
+                )
+            )
+        }.message shouldBe "Response body inneholder ikke 'hendelser', var: {foo=[]}"
+    }
+
+    @Test
+    fun `hente liste med hendelser - kaster exception ved manglende body`() {
+        wireMockServer.stubFor(
+            createGetRequest()
+                .willReturn(
+                    WireMock.aResponse()
+                        .withStatus(200)
+                        .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                )
+        )
+
+        shouldThrow<IllegalStateException> {
+            sigrunRestConsumer.hentHendelseListe(
+                HendelseRequest(
+                    0,
+                    1000,
+                    false
+                )
+            )
+        }.message shouldBe "Ingen body - kunne ikke hente hendelser"
+    }
+
+    private fun createGetRequest(): MappingBuilder =
+        WireMock.get(WireMock.urlPathEqualTo("/api/v1/pensjonsgivendeinntektforfolketrygden/hendelser"))
+            .withQueryParam("fraSekvensnummer", WireMock.equalTo("0"))
+            .withQueryParam("antall", WireMock.equalTo("1000"))
+            .withHeader("bruk-aktoerid", WireMock.equalTo("false"))
 }

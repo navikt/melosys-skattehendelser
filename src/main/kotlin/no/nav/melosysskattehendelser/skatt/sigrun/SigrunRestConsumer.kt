@@ -22,7 +22,8 @@ class SigrunRestConsumer(
             .header("bruk-aktoerid", request.brukAktoerId.toString())
             .retrieve()
             .bodyToMono<Map<String, List<Hendelse>>>()
-            .block()?.get("hendelser") ?: emptyList()
+            .block()?.let { it["hendelser"] ?: throw IllegalStateException("Response body inneholder ikke 'hendelser', var: $it") }
+            ?: throw IllegalStateException("Ingen body - kunne ikke hente hendelser")
 
     override fun getConsumerId(): String = "sigrun-skatteoppgjoer-hendelser"
 
