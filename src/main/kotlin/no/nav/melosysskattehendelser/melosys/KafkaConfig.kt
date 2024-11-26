@@ -1,11 +1,14 @@
 package no.nav.melosysskattehendelser.melosys
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
+import mu.KotlinLogging
 import no.nav.melosysskattehendelser.melosys.consumer.MelosysHendelse
 import org.apache.kafka.clients.CommonClientConfigs
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.common.config.SslConfigs
+import org.apache.kafka.common.serialization.Deserializer
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.apache.kafka.common.serialization.StringSerializer
 import org.springframework.beans.factory.annotation.Autowired
@@ -14,6 +17,7 @@ import org.springframework.boot.autoconfigure.kafka.KafkaProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.core.env.Environment
+import org.springframework.kafka.KafkaException
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory
 import org.springframework.kafka.core.DefaultKafkaProducerFactory
@@ -21,9 +25,10 @@ import org.springframework.kafka.core.KafkaTemplate
 import org.springframework.kafka.core.ProducerFactory
 import org.springframework.kafka.listener.CommonContainerStoppingErrorHandler
 import org.springframework.kafka.listener.ContainerProperties
-import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
 import org.springframework.kafka.support.serializer.JsonDeserializer
 import org.springframework.kafka.support.serializer.JsonSerializer
+
+private val log = KotlinLogging.logger { }
 
 @Configuration
 class KafkaConfig(
@@ -35,7 +40,7 @@ class KafkaConfig(
 ) {
 
     @Bean
-    fun kafkaTemplate(objectMapper: ObjectMapper?): KafkaTemplate<String, MelosysSkatteHendelse> {
+    fun melosysSkatteHendelseKafkaTemplate(objectMapper: ObjectMapper?): KafkaTemplate<String, MelosysSkatteHendelse> {
         val config: Map<String, Any> = producerConfig()
         val producerFactory: ProducerFactory<String, MelosysSkatteHendelse> =
             DefaultKafkaProducerFactory(config, StringSerializer(), JsonSerializer(objectMapper))
@@ -44,6 +49,7 @@ class KafkaConfig(
 
     @Bean
     fun melosysVedtakListenerContainerFactory(
+        objectMapper: ObjectMapper,
         kafkaProperties: KafkaProperties,
         @Value("\${melosys.kafka.consumer.groupId}") groupId: String
     ) =
@@ -53,15 +59,20 @@ class KafkaConfig(
             consumerFactory = DefaultKafkaConsumerFactory(
                 kafkaProperties.buildConsumerProperties(null) + consumerConfig(groupId),
                 StringDeserializer(),
-                valueDeserializer<MelosysHendelse>()
+                errorLoggingDeserializer(objectMapper)
             )
             containerProperties.ackMode = ContainerProperties.AckMode.RECORD
         }
 
-    private inline fun <reified T> valueDeserializer(): ErrorHandlingDeserializer<T> =
-        ErrorHandlingDeserializer(
-            JsonDeserializer(T::class.java, false)
-        )
+    private fun errorLoggingDeserializer(objectMapper: ObjectMapper): Deserializer<MelosysHendelse> =
+        Deserializer { topic, data ->
+            try {
+                objectMapper.readValue<MelosysHendelse>(data ?: throw KafkaException("No data to deserialize, JSON is null"))
+            } catch (e: Exception) {
+                log.error("Failed to deserialize message on topic $topic: ${data?.let { String(it) } ?: "null data"}", e)
+                throw e
+            }
+        }
 
     private fun producerConfig() = mapOf<String, Any>(
         CommonClientConfigs.CLIENT_ID_CONFIG to "skattehendelser-producer",
@@ -100,6 +111,4 @@ class KafkaConfig(
                     it.equals("q2", ignoreCase = true) ||
                     it.equals("test", ignoreCase = true)
         }
-
-
 }
