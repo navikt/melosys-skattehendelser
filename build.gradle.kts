@@ -37,6 +37,8 @@ object dependencyVersions {
     const val shedlockVersion = "4.4.0"
     const val shedlockProvicerJdbcVersion = "4.43.0"
     const val janino = "3.1.12"
+    const val micrometerVersion = "1.10.5"
+    const val micrometerJvmExtrasVersion = "0.2.2"
 }
 
 val osName = System.getProperty("os.name").lowercase()
@@ -57,6 +59,8 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
+    implementation("io.micrometer:micrometer-registry-prometheus:${dependencyVersions.micrometerVersion}")
+    implementation("io.github.mweirauch:micrometer-jvm-extras:${dependencyVersions.micrometerJvmExtrasVersion}")
     implementation("org.flywaydb:flyway-core")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.springframework.kafka:spring-kafka")
