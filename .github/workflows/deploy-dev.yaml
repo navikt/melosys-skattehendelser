@@ -13,8 +13,7 @@ permissions:
   packages: write
   id-token: write
 env:
-  image: ghcr.io/${{ github.repository }}/melosys-skattehendelser:${{ github.sha }}
-  latest_image: ghcr.io/${{ github.repository }}/melosys-skattehendelser:latest
+  image: ghcr.io/${{ github.repository }}/melosys-skattehendelser
 jobs:
   build:
     name: Build
@@ -61,9 +60,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          docker build --tag ${image} --tag "$latest_image" .
+          versioned_image="${image}:${{ github.sha }}"
+          latest_image="${image}:latest"          
+          docker build --tag ${versioned_image} --tag "$latest_image" .
           docker login ghcr.io -u ${GITHUB_REPOSITORY} -p ${GITHUB_TOKEN}
-          docker push ${image}
+          docker push "$versioned_image"
+          docker push "$latest_image"
 
   deploy:
     runs-on: ubuntu-latest
