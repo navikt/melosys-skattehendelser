@@ -62,7 +62,7 @@ jobs:
         run: |
           versioned_image="${image}:${{ github.sha }}"
           latest_image="${image}:latest"          
-          docker build --tag ${versioned_image} --tag "$latest_image" .
+          docker build --tag "$versioned_image" --tag "$latest_image" .
           docker login ghcr.io -u ${GITHUB_REPOSITORY} -p ${GITHUB_TOKEN}
           docker push "$versioned_image"
           docker push "$latest_image"
