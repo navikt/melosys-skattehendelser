@@ -14,6 +14,7 @@ permissions:
   id-token: write
 env:
   image: ghcr.io/${{ github.repository }}/melosys-skattehendelser:${{ github.sha }}
+  latest_image: ghcr.io/${{ github.repository }}/melosys-skattehendelser:latest
 jobs:
   build:
     name: Build
@@ -60,7 +61,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          docker build --tag ${image} .
+          docker build --tag ${image} --tag "$latest_image" .
           docker login ghcr.io -u ${GITHUB_REPOSITORY} -p ${GITHUB_TOKEN}
           docker push ${image}
 
