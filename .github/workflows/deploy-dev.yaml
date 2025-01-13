@@ -84,7 +84,7 @@ jobs:
         env:
           CLUSTER: dev-gcp
           RESOURCE: nais/nais.yml
-          VAR: image=${{env.image}}
+          VAR: image=${{env.image}}:${{ github.sha }}
           VARS: nais/vars-q2.json
 #      - name: Deploy til dev (Q1)
 #        uses: nais/deploy/actions/deploy@v2
