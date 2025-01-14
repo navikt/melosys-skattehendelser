@@ -13,7 +13,7 @@ permissions:
   packages: write
   id-token: write
 env:
-  image: ghcr.io/${{ github.repository }}/melosys-skattehendelser:${{ github.sha }}
+  image: ghcr.io/${{ github.repository }}/melosys-skattehendelser
 jobs:
   build:
     name: Build
@@ -60,9 +60,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          docker build --tag ${image} .
+          versioned_image="${image}:${{ github.sha }}"
+          latest_image="${image}:latest"          
+          docker build --tag "$versioned_image" --tag "$latest_image" .
           docker login ghcr.io -u ${GITHUB_REPOSITORY} -p ${GITHUB_TOKEN}
-          docker push ${image}
+          docker push "$versioned_image"
+          docker push "$latest_image"
 
   deploy:
     runs-on: ubuntu-latest
@@ -81,7 +84,7 @@ jobs:
         env:
           CLUSTER: dev-gcp
           RESOURCE: nais/nais.yml
-          VAR: image=${{env.image}}
+          VAR: image=${{env.image}}:${{ github.sha }}
           VARS: nais/vars-q2.json
 #      - name: Deploy til dev (Q1)
 #        uses: nais/deploy/actions/deploy@v2
@@ -98,7 +101,7 @@ jobs:
           SLACK_COLOR: "${{ job.status == 'success' && 'good' || 'danger' }}"
           SLACK_USERNAME: Github Actions
           SLACK_ICON: https://github.com/github.png?size=48
-          SLACK_TITLE: "melosys-skattehendelser ${{ job.status == 'success' && 'ble deployet' || 'kunne ikke deployes' }} til dev-gcp (Q1, Q2)"
+          SLACK_TITLE: "melosys-skattehendelser ${{ job.status == 'success' && 'ble deployet' || 'kunne ikke deployes' }} til dev-gcp Q2"
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
           SLACK_MESSAGE: ${{ env.COMMIT_MSG }}
       - name: post-deploy
