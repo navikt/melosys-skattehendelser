@@ -8,6 +8,7 @@ on:
       - "CODEOWNERS"
     branches:
       - master
+      - MELOSYS-6983_tag-image-med-latest
 permissions:
   contents: write
   packages: write
