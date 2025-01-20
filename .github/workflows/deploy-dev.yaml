@@ -8,7 +8,6 @@ on:
       - "CODEOWNERS"
     branches:
       - master
-      - MELOSYS-7054_docker-image-support-arm64
 permissions:
   contents: write
   packages: write
