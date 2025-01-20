@@ -82,7 +82,9 @@ jobs:
           docker manifest create "$latest_image" \
             "${latest_image}-amd64" \
             "${latest_image}-arm64"
-          docker manifest push "$latest_image"
+            docker manifest annotate "$latest_image" "${latest_image}-amd64" --os linux --arch amd64
+            docker manifest annotate "$latest_image" "${latest_image}-arm64" --os linux --arch arm64
+            docker manifest push "$latest_image"
 
   deploy:
     runs-on: ubuntu-latest
