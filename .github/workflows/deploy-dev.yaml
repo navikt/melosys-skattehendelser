@@ -61,11 +61,27 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           versioned_image="${image}:${{ github.sha }}"
-          latest_image="${image}:latest"          
-          docker build --tag "$versioned_image" --tag "$latest_image" .
+          latest_image="${image}:latest"
+
           docker login ghcr.io -u ${GITHUB_REPOSITORY} -p ${GITHUB_TOKEN}
+
+          # Build and push only amd64 for versioned_image
+          docker build --platform linux/amd64 -t "$versioned_image" .
           docker push "$versioned_image"
-          docker push "$latest_image"
+
+          # Build the images for both architectures for latest_image
+          docker build --platform linux/amd64 -t "${latest_image}-amd64" .
+          docker build --platform linux/arm64 -t "${latest_image}-arm64" .
+
+          # Push each architecture-specific image for latest_image
+          docker push "${latest_image}-amd64"
+          docker push "${latest_image}-arm64"
+
+          # Create and push a multi-arch manifest for latest_image
+          docker manifest create "$latest_image" \
+            "${latest_image}-amd64" \
+            "${latest_image}-arm64"
+          docker manifest push "$latest_image"
 
   deploy:
     runs-on: ubuntu-latest
