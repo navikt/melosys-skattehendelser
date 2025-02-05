@@ -64,8 +64,8 @@ management:
   endpoints:
     web:
       exposure:
-        include: health
-      base-path: /internal,prometheus
+        include: health,prometheus
+      base-path: /internal
   health:
     diskspace:
       enabled: false
