@@ -9,7 +9,6 @@ plugins {
 }
 
 group = "no.nav.melosys"
-version = "0.0.1-SNAPSHOT"
 
 java {
     sourceCompatibility = JavaVersion.VERSION_17
@@ -18,7 +17,6 @@ java {
 repositories {
     mavenCentral()
 }
-
 
 allOpen {
     annotation("jakarta.persistence.Entity")
@@ -96,4 +94,14 @@ tasks.withType<KotlinCompile> {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+}
+
+tasks.named<org.springframework.boot.gradle.tasks.bundling.BootJar>("bootJar") {
+    archiveBaseName.set("melosys-skattehendelser")
+    archiveVersion.set("")
+}
+
+// Do not need plain.jar
+tasks.named<Jar>("jar") {
+    enabled = false
 }

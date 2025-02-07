@@ -66,3 +66,6 @@ management:
       exposure:
         include: health,prometheus
       base-path: /internal
+  health:
+    diskspace:
+      enabled: false

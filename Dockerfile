@@ -1,7 +1,5 @@
-FROM ghcr.io/navikt/baseimages/temurin:17
+FROM gcr.io/distroless/java17-debian12:nonroot
 LABEL maintainer="Team Melosys"
-
-ENV JAVA_OPTS="${JAVA_OPTS} -Xms512m -Xmx1536m"
-
-COPY docker-init-scripts/*.sh /init-scripts/
-COPY build/libs/*.jar app.jar
+COPY /build/libs/melosys-skattehendelser.jar /app/app.jar
+ENV LANG='nb_NO.UTF-8' LANGUAGE='nb_NO:nb' LC_ALL='nb:NO.UTF-8' TZ='Europe/Oslo'
+CMD ["/app/app.jar"]
