@@ -12,6 +12,7 @@ on:
 permissions:
   contents: write
   packages: write
+  id-token: write
 env:
   image: ghcr.io/${{ github.repository }}/melosys-dokgen
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -36,7 +37,9 @@ jobs:
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/.*gradle*') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
-      - name: Build and test
+      - name: Run tests
+        run: ./gradlew test
+      - name: Build
         run: ./gradlew clean build -x test
 
       - name: Setup Docker Buildx
