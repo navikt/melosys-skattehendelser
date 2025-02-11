@@ -8,31 +8,21 @@ on:
       - "CODEOWNERS"
     branches:
       - master
+      - MELOSYS-6952_use-docker-buildx
 permissions:
   contents: write
   packages: write
-  id-token: write
 env:
-  image: ghcr.io/${{ github.repository }}/melosys-skattehendelser
+  image: ghcr.io/${{ github.repository }}/melosys-dokgen
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 jobs:
   build:
-    name: Build
+    name: Build code and push image
     runs-on: ubuntu-latest
-    env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      PASSWORD: ${{ secrets.READER_TOKEN }}
-      REGISTRY: ghcr.io
-
     steps:
-      - name: Checkout
+      - name: Checkout latest code
         uses: actions/checkout@v4
-#      - name: deploy new Unleash Apikey to ${{github.event.inputs.environment}}
-#        uses: nais/deploy/actions/deploy@v2
-#        env:
-#          CLUSTER: dev-gcp
-#          RESOURCE: nais/unleash-apitoken.yml
-#          VARS: nais/vars-q2.json
-      - name: Set up JDK 17
+      - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
@@ -46,42 +36,26 @@ jobs:
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/.*gradle*') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
-      - name: Log in to the Container registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.READER_TOKEN }}
-      - name: Run tests
-        run: ./gradlew test
-      - name: Build
+      - name: Build and test
         run: ./gradlew clean build -x test
-      - name: Build and publish Docker image
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u $GITHUB_ACTOR --password-stdin
+
+      - name: Build and push multi-arch Docker image
         run: |
           versioned_image="${image}:${{ github.sha }}"
           latest_image="${image}:latest"
 
-          docker login ghcr.io -u ${GITHUB_REPOSITORY} -p ${GITHUB_TOKEN}
-
-          # Build and push only amd64 for versioned_image
-          docker build --platform linux/amd64 -t "$versioned_image" .
-          docker push "$versioned_image"
-
-          # Build the images for both architectures for latest_image
-          docker build --platform linux/amd64 -t "${latest_image}-amd64" .
-          docker build --platform linux/arm64 -t "${latest_image}-arm64" .
-
-          # Push each architecture-specific image for latest_image
-          docker push "${latest_image}-amd64"
-          docker push "${latest_image}-arm64"
-
-          # Create and push a multi-arch manifest for latest_image
-          docker manifest create "$latest_image" \
-            "${latest_image}-amd64" \
-            "${latest_image}-arm64"
-          docker manifest push "$latest_image"
+          # Build and push multi-architecture image
+          docker buildx build --platform linux/amd64,linux/arm64 \
+            --push \
+            --tag "$versioned_image" \
+            --tag "$latest_image" \
+            .
 
   deploy:
     runs-on: ubuntu-latest
