@@ -18,7 +18,6 @@ COPY --from=locale-builder /etc/locale.alias /etc/locale.alias
 
 # Copy application files
 COPY /build/libs/melosys-skattehendelser.jar app.jar
-COPY target/classes/content content
 
 # Set Norwegian locale (now supported)
 ENV LANG='nb_NO.UTF-8' \
