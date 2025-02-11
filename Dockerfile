@@ -17,7 +17,7 @@ COPY --from=locale-builder /etc/default/locale /etc/default/locale
 COPY --from=locale-builder /etc/locale.alias /etc/locale.alias
 
 # Copy application files
-COPY target/melosys-dokgen.jar app.jar
+COPY /build/libs/melosys-skattehendelser.jar app.jar
 COPY target/classes/content content
 
 # Set Norwegian locale (now supported)
