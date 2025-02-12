@@ -13,7 +13,7 @@ permissions:
   packages: write
   id-token: write
 env:
-  image: ghcr.io/${{ github.repository }}/melosys-dokgen
+  image: ghcr.io/${{ github.repository }}/melosys-skattehendelser
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 jobs:
   build:
