@@ -23,7 +23,11 @@ class SkatteHendelsePublisering(
 
     @Async
     fun asynkronProsesseringAvSkattHendelser() {
-        prosesserSkattHendelser()
+        try {
+            prosesserSkattHendelser()
+        } catch (e: Exception) {
+            log.error("Feil ved asynkron prosessering av skattehendelser", e)
+        }
     }
 
     fun prosesserSkattHendelser() {
