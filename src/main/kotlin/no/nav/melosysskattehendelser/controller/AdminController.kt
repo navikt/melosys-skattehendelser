@@ -6,6 +6,8 @@ import no.nav.melosysskattehendelser.domain.Periode
 import no.nav.melosysskattehendelser.domain.Person
 import no.nav.melosysskattehendelser.domain.PersonRepository
 import no.nav.melosysskattehendelser.domain.SekvensHistorikk
+import no.nav.melosysskattehendelser.melosys.MelosysSkatteHendelse
+import no.nav.melosysskattehendelser.melosys.producer.SkattehendelserProducer
 import no.nav.security.token.support.core.api.Unprotected
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -18,7 +20,8 @@ private val log = KotlinLogging.logger { }
 @RequestMapping("/admin")
 class AdminController(
     private val skatteHendelsePublisering: SkatteHendelsePublisering,
-    private val personRepository: PersonRepository
+    private val personRepository: PersonRepository,
+    private val skattehendelserProducer: SkattehendelserProducer
 ) {
     @PostMapping("/hendelseprosessering/start")
     fun startHendelseProsessering(): ResponseEntity<String> {
@@ -40,7 +43,7 @@ class AdminController(
     }
 
     @GetMapping("/person/{id}")
-    fun getPerson(@PathVariable id: Long): ResponseEntity<Map<String,Any?>> {
+    fun getPerson(@PathVariable id: Long): ResponseEntity<Map<String, Any?>> {
         val person = personRepository.findPersonById(id) ?: return ResponseEntity(HttpStatus.NOT_FOUND)
         return ResponseEntity(person.toMap(), HttpStatus.OK)
     }
@@ -52,6 +55,13 @@ class AdminController(
             .take(max)
             .map { it.toMap() }
         return ResponseEntity(list, HttpStatus.OK)
+    }
+
+    @PostMapping("/kafka")
+    fun lagKafkaMelding(@RequestBody melosysSkatteHendelse: MelosysSkatteHendelse): ResponseEntity<String> {
+        log.info { "publiserer melding til kafka: $melosysSkatteHendelse" }
+        skattehendelserProducer.publiserMelding(melosysSkatteHendelse)
+        return ResponseEntity.ok("Melding publisert")
     }
 
     fun Person.toMap(): Map<String, Any?> = linkedMapOf(
