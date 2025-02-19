@@ -14,6 +14,7 @@ class Metrikker {
         Metrics.counter(HENDELSE_PUBLISERT)
         Metrics.counter(DUPLIKAT_HENDELSE)
         Metrics.counter(PUBLISERING_FEILET)
+        Metrics.counter(VEDTAK_MOTTATT_OG_PERSON_LAGT_TIL)
     }
 
     fun hendelseHentet() = Metrics.counter(HENDELSE_HENTET).increment()
@@ -26,6 +27,10 @@ class Metrikker {
 
     fun publiseringFeilet() = Metrics.counter(PUBLISERING_FEILET).increment()
 
+    fun vedtakMottattOgPersonLagtTil() = Metrics.counter(VEDTAK_MOTTATT_OG_PERSON_LAGT_TIL).increment()
+
+    fun vedtakMottattOgPeriodeLagtTil() = Metrics.counter(VEDTAK_MOTTATT_OG_PERIODE_LAGT_TIL).increment()
+
     companion object {
         private const val METRIKKER_NAMESPACE = "skattehendelser"
 
@@ -34,5 +39,7 @@ class Metrikker {
         private const val HENDELSE_PUBLISERT = "$METRIKKER_NAMESPACE.hendelse.publisert"
         private const val DUPLIKAT_HENDELSE = "$METRIKKER_NAMESPACE.duplikat.hendelse"
         private const val PUBLISERING_FEILET = "$METRIKKER_NAMESPACE.publisering.feilet"
+        private const val VEDTAK_MOTTATT_OG_PERSON_LAGT_TIL = "$METRIKKER_NAMESPACE.vedtak.mottatt.og.person.lagt.til"
+        private const val VEDTAK_MOTTATT_OG_PERIODE_LAGT_TIL = "$METRIKKER_NAMESPACE.vedtak.mottatt.og.periode.lagt.til"
     }
 }
