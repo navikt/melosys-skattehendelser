@@ -1,11 +1,10 @@
 package no.nav.melosysskattehendelser
 
-import io.micrometer.core.instrument.Metrics
 import mu.KotlinLogging
 import no.nav.melosysskattehendelser.domain.*
 import no.nav.melosysskattehendelser.melosys.producer.SkattehendelserProducer
 import no.nav.melosysskattehendelser.melosys.toMelosysSkatteHendelse
-import no.nav.melosysskattehendelser.metrics.MetrikkNavn
+import no.nav.melosysskattehendelser.metrics.Metrikker
 import no.nav.melosysskattehendelser.skatt.Hendelse
 import no.nav.melosysskattehendelser.skatt.SkatteHendelserFetcher
 import org.springframework.scheduling.annotation.Async
@@ -18,7 +17,8 @@ class SkatteHendelsePublisering(
     private val skatteHendelserFetcher: SkatteHendelserFetcher,
     private val personRepository: PersonRepository,
     private val skatteHendelserStatusRepository: SkatteHendelserStatusRepository,
-    private val skattehendelserProducer: SkattehendelserProducer
+    private val skattehendelserProducer: SkattehendelserProducer,
+    private val metrikker: Metrikker
 ) {
     private val log = KotlinLogging.logger { }
     private val status: Status = Status()
@@ -47,17 +47,17 @@ class SkatteHendelsePublisering(
                 }
             ).forEach { hendelse ->
                 if (stop) return@run
-                Metrics.counter(MetrikkNavn.HENDELSE_HENTET).increment()
+                metrikker.hendelseHentet()
                 totaltAntallHendelser++
                 finnPersonMedTreffIGjelderPeriode(hendelse)?.let { person ->
-                    Metrics.counter(MetrikkNavn.PERSON_FUNNET).increment()
+                    metrikker.personFunnet()
                     personerFunnet++
                     log.info("Fant person ${person.ident} for sekvensnummer ${hendelse.sekvensnummer}")
                     val sekvensHistorikk = person.hentEllerLagSekvensHistorikk(hendelse.sekvensnummer)
                     if (sekvensHistorikk.erNyHendelse()) {
                         publiserMelding(hendelse)
                     } else {
-                        Metrics.counter(MetrikkNavn.DUPLIKAT_HENDELSE).increment()
+                        metrikker.duplikatHendelse()
                         log.warn("Hendelse med ${hendelse.sekvensnummer} er allerede kjørt ${sekvensHistorikk.antall} ganger for person ${person.ident}")
                     }
 
@@ -70,11 +70,12 @@ class SkatteHendelsePublisering(
 
     private fun publiserMelding(hendelse: Hendelse) {
         try {
-            Metrics.counter(MetrikkNavn.HENDELSE_PUBLISERT).increment()
+            metrikker.hendelsePublisert()
             skattehendelserProducer.publiserMelding(hendelse.toMelosysSkatteHendelse())
         } catch (e: Exception) {
-            Metrics.counter(MetrikkNavn.PUBLISERING_FEILET).increment()
+            metrikker.publiseringFeilet()
             log.error(e) { "Feil ved publisering av melding for hendelse ${hendelse.sekvensnummer}" }
+            throw e
         }
     }
 
