@@ -1,9 +1,11 @@
 package no.nav.melosysskattehendelser
 
+import io.micrometer.core.instrument.Metrics
 import mu.KotlinLogging
 import no.nav.melosysskattehendelser.domain.*
 import no.nav.melosysskattehendelser.melosys.producer.SkattehendelserProducer
 import no.nav.melosysskattehendelser.melosys.toMelosysSkatteHendelse
+import no.nav.melosysskattehendelser.metrics.MetrikkNavn
 import no.nav.melosysskattehendelser.skatt.Hendelse
 import no.nav.melosysskattehendelser.skatt.SkatteHendelserFetcher
 import org.springframework.scheduling.annotation.Async
@@ -45,14 +47,17 @@ class SkatteHendelsePublisering(
                 }
             ).forEach { hendelse ->
                 if (stop) return@run
+                Metrics.counter(MetrikkNavn.HENDELSE_HENTET).increment()
                 totaltAntallHendelser++
                 finnPersonMedTreffIGjelderPeriode(hendelse)?.let { person ->
+                    Metrics.counter(MetrikkNavn.PERSON_FUNNET).increment()
                     personerFunnet++
                     log.info("Fant person ${person.ident} for sekvensnummer ${hendelse.sekvensnummer}")
                     val sekvensHistorikk = person.hentEllerLagSekvensHistorikk(hendelse.sekvensnummer)
                     if (sekvensHistorikk.erNyHendelse()) {
-                        skattehendelserProducer.publiserMelding(hendelse.toMelosysSkatteHendelse())
+                        publiserMelding(hendelse)
                     } else {
+                        Metrics.counter(MetrikkNavn.DUPLIKAT_HENDELSE).increment()
                         log.warn("Hendelse med ${hendelse.sekvensnummer} er allerede kjørt ${sekvensHistorikk.antall} ganger for person ${person.ident}")
                     }
 
@@ -60,6 +65,16 @@ class SkatteHendelsePublisering(
                     oppdaterStatus(hendelse.sekvensnummer + 1)
                 }
             }
+        }
+    }
+
+    private fun publiserMelding(hendelse: Hendelse) {
+        try {
+            Metrics.counter(MetrikkNavn.HENDELSE_PUBLISERT).increment()
+            skattehendelserProducer.publiserMelding(hendelse.toMelosysSkatteHendelse())
+        } catch (e: Exception) {
+            Metrics.counter(MetrikkNavn.PUBLISERING_FEILET).increment()
+            log.error(e) { "Feil ved publisering av melding for hendelse ${hendelse.sekvensnummer}" }
         }
     }
 
