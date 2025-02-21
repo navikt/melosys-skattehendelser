@@ -15,6 +15,7 @@ class Metrikker {
         Metrics.counter(DUPLIKAT_HENDELSE)
         Metrics.counter(PUBLISERING_FEILET)
         Metrics.counter(VEDTAK_MOTTATT_OG_PERSON_LAGT_TIL)
+        Metrics.counter(VEDTAK_MOTTATT_OG_PERIODE_LAGT_TIL)
     }
 
     fun hendelseHentet() = Metrics.counter(HENDELSE_HENTET).increment()
