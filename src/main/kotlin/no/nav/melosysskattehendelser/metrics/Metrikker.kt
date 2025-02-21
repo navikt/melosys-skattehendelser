@@ -42,5 +42,7 @@ class Metrikker {
         private const val PUBLISERING_FEILET = "$METRIKKER_NAMESPACE.publisering.feilet"
         private const val VEDTAK_MOTTATT_OG_PERSON_LAGT_TIL = "$METRIKKER_NAMESPACE.vedtak.mottatt.og.person.lagt.til"
         private const val VEDTAK_MOTTATT_OG_PERIODE_LAGT_TIL = "$METRIKKER_NAMESPACE.vedtak.mottatt.og.periode.lagt.til"
+
+        const val PERSONER_REGISTRERT = "$METRIKKER_NAMESPACE.personer.registrert"
     }
 }
