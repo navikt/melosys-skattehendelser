@@ -31,9 +31,6 @@ melosys:
       topic: ${KAFKA_VEDTAK_TOPIC}
       groupId: teammelosys-skattehendelser-consumer
 
-
-environment: local
-
 sigrun:
   rest:
     url: ${SIGRUN_REST_URL}
