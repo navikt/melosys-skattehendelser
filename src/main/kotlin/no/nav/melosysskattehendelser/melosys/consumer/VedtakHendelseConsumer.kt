@@ -3,13 +3,15 @@ package no.nav.melosysskattehendelser.melosys.consumer
 import mu.KotlinLogging
 import no.nav.melosysskattehendelser.domain.Person
 import no.nav.melosysskattehendelser.domain.PersonRepository
+import no.nav.melosysskattehendelser.metrics.Metrikker
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.springframework.kafka.annotation.KafkaListener
 
 private val log = KotlinLogging.logger { }
 
 class VedtakHendelseConsumer(
-    private val vedtakHendelseRepository: PersonRepository
+    private val vedtakHendelseRepository: PersonRepository,
+    private val metrikker: Metrikker
 ) {
     @KafkaListener(
         id = "melosysVedtakMottatt",
@@ -43,6 +45,7 @@ class VedtakHendelseConsumer(
 
                 if (periode.erGyldig()) {
                     log.info("legger til periode $periode på person med id: ${person.id}")
+                    metrikker.vedtakMottattOgPeriodeLagtTil()
                     person.leggTilPeriode(periode)
                     vedtakHendelseRepository.save(person)
                 } else {
@@ -52,6 +55,8 @@ class VedtakHendelseConsumer(
             return
         }
 
+        metrikker.vedtakMottattOgPersonLagtTil()
+        log.info("person med ident(${vedtakHendelseMelding.folkeregisterIdent}) er lagt til")
         vedtakHendelseRepository.save(vedtakHendelseMelding.toPerson())
     }
 

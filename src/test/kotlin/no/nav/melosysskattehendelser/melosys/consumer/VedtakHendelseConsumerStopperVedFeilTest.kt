@@ -8,6 +8,7 @@ import no.nav.melosysskattehendelser.domain.PersonRepository
 import no.nav.melosysskattehendelser.melosys.KafkaConfig
 import no.nav.melosysskattehendelser.melosys.KafkaOffsetChecker
 import no.nav.melosysskattehendelser.melosys.KafkaTestProducer
+import no.nav.melosysskattehendelser.metrics.Metrikker
 import org.awaitility.kotlin.await
 import org.awaitility.kotlin.untilNotNull
 import org.junit.jupiter.api.Test
@@ -35,7 +36,8 @@ import java.util.concurrent.TimeUnit
         KafkaTestProducer::class,
         KafkaOffsetChecker::class,
         VedtakHendelseConsumer::class,
-        VedtakHendelseConsumerStopperVedFeilTest.TestConfig::class
+        VedtakHendelseConsumerStopperVedFeilTest.TestConfig::class,
+        Metrikker::class
     ]
 )
 

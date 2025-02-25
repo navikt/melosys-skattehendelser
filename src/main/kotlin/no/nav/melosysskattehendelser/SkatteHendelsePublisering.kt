@@ -4,6 +4,7 @@ import mu.KotlinLogging
 import no.nav.melosysskattehendelser.domain.*
 import no.nav.melosysskattehendelser.melosys.producer.SkattehendelserProducer
 import no.nav.melosysskattehendelser.melosys.toMelosysSkatteHendelse
+import no.nav.melosysskattehendelser.metrics.Metrikker
 import no.nav.melosysskattehendelser.skatt.Hendelse
 import no.nav.melosysskattehendelser.skatt.SkatteHendelserFetcher
 import org.springframework.scheduling.annotation.Async
@@ -16,7 +17,8 @@ class SkatteHendelsePublisering(
     private val skatteHendelserFetcher: SkatteHendelserFetcher,
     private val personRepository: PersonRepository,
     private val skatteHendelserStatusRepository: SkatteHendelserStatusRepository,
-    private val skattehendelserProducer: SkattehendelserProducer
+    private val skattehendelserProducer: SkattehendelserProducer,
+    private val metrikker: Metrikker
 ) {
     private val log = KotlinLogging.logger { }
     private val status: Status = Status()
@@ -45,14 +47,17 @@ class SkatteHendelsePublisering(
                 }
             ).forEach { hendelse ->
                 if (stop) return@run
+                metrikker.hendelseHentet()
                 totaltAntallHendelser++
                 finnPersonMedTreffIGjelderPeriode(hendelse)?.let { person ->
+                    metrikker.personFunnet()
                     personerFunnet++
                     log.info("Fant person ${person.ident} for sekvensnummer ${hendelse.sekvensnummer}")
                     val sekvensHistorikk = person.hentEllerLagSekvensHistorikk(hendelse.sekvensnummer)
                     if (sekvensHistorikk.erNyHendelse()) {
-                        skattehendelserProducer.publiserMelding(hendelse.toMelosysSkatteHendelse())
+                        publiserMelding(hendelse, person)
                     } else {
+                        metrikker.duplikatHendelse()
                         log.warn("Hendelse med ${hendelse.sekvensnummer} er allerede kjørt ${sekvensHistorikk.antall} ganger for person ${person.ident}")
                     }
 
@@ -60,6 +65,20 @@ class SkatteHendelsePublisering(
                     oppdaterStatus(hendelse.sekvensnummer + 1)
                 }
             }
+        }
+    }
+
+    private fun publiserMelding(hendelse: Hendelse, person: Person) {
+        try {
+            skattehendelserProducer.publiserMelding(hendelse.toMelosysSkatteHendelse())
+            metrikker.hendelsePublisert()
+        } catch (e: Exception) {
+            metrikker.publiseringFeilet()
+            log.error(e) {
+                "Feil ved publisering av melding for hendelse ${hendelse.sekvensnummer}" +
+                        " gjelderPeriode:${hendelse.gjelderPeriode} personID: ${person.id}"
+            }
+            throw e
         }
     }
 
