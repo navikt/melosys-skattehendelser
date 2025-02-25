@@ -70,8 +70,8 @@ class SkatteHendelsePublisering(
 
     private fun publiserMelding(hendelse: Hendelse, person: Person) {
         try {
-            metrikker.hendelsePublisert()
             skattehendelserProducer.publiserMelding(hendelse.toMelosysSkatteHendelse())
+            metrikker.hendelsePublisert()
         } catch (e: Exception) {
             metrikker.publiseringFeilet()
             log.error(e) {
