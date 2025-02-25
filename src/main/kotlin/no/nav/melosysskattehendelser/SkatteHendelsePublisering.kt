@@ -55,7 +55,7 @@ class SkatteHendelsePublisering(
                     log.info("Fant person ${person.ident} for sekvensnummer ${hendelse.sekvensnummer}")
                     val sekvensHistorikk = person.hentEllerLagSekvensHistorikk(hendelse.sekvensnummer)
                     if (sekvensHistorikk.erNyHendelse()) {
-                        publiserMelding(hendelse)
+                        publiserMelding(hendelse, person)
                     } else {
                         metrikker.duplikatHendelse()
                         log.warn("Hendelse med ${hendelse.sekvensnummer} er allerede kjørt ${sekvensHistorikk.antall} ganger for person ${person.ident}")
@@ -68,13 +68,16 @@ class SkatteHendelsePublisering(
         }
     }
 
-    private fun publiserMelding(hendelse: Hendelse) {
+    private fun publiserMelding(hendelse: Hendelse, person: Person) {
         try {
             metrikker.hendelsePublisert()
             skattehendelserProducer.publiserMelding(hendelse.toMelosysSkatteHendelse())
         } catch (e: Exception) {
             metrikker.publiseringFeilet()
-            log.error(e) { "Feil ved publisering av melding for hendelse ${hendelse.sekvensnummer}" }
+            log.error(e) {
+                "Feil ved publisering av melding for hendelse ${hendelse.sekvensnummer}" +
+                        " gjelderPeriode:${hendelse.gjelderPeriode} personID: ${person.id}"
+            }
             throw e
         }
     }
