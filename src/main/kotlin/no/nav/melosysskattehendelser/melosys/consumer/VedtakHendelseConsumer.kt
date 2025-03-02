@@ -20,7 +20,6 @@ class VedtakHendelseConsumer(
         containerFactory = "melosysVedtakListenerContainerFactory",
         groupId = "\${melosys.kafka.consumer.groupId}"
     )
-
     fun vedtakHendelseConsumer(consumerRecord: ConsumerRecord<String, MelosysHendelse>) {
         val melding = consumerRecord.value().melding
         val vedtakHendelseMelding = melding as? VedtakHendelseMelding
@@ -34,6 +33,16 @@ class VedtakHendelseConsumer(
         if (vedtakHendelseMelding.medlemskapsperioder.isEmpty()) {
             return log.info { "Ingen medlemskapsperioder i melding, så lager ikke bruker i databasen" }
         }
+
+        try {
+            leggTilPersonOgEllerPeriode(vedtakHendelseMelding)
+        } catch (e: Exception) {
+            log.error(e) { "Feil ved konsumering av vedtaksmelding: $consumerRecord" }
+            throw e
+        }
+    }
+
+    private fun leggTilPersonOgEllerPeriode(vedtakHendelseMelding: VedtakHendelseMelding) {
         vedtakHendelseRepository.findPersonByIdent(vedtakHendelseMelding.folkeregisterIdent)?.let { person ->
             log.info("person med ident(${vedtakHendelseMelding.folkeregisterIdent}) finnes allerede")
 
