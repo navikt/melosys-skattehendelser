@@ -221,21 +221,15 @@ class VedtakHendelseConsumerTest(
     @Test
     fun `Ignorer medlemskapsperiode med null for fom eller tom`() {
 
-        val vedtakHendelseMelding = """
-            {
-              "melding" : {
-                "type" : "VedtakHendelseMelding",
-                "folkeregisterIdent" : "$ident",
-                "sakstype" : "FTRL",
-                "sakstema" : "TRYGDEAVGIFT",
-                "medlemskapsperioder": [{
-                      "fom": null,
-                      "tom": null,
-                      "innvilgelsesResultat": "INNVILGET"
-                }]
-              }
-            }
-        """
+        val vedtakHendelseMelding = vedtakHendelseMelding(
+            listOf(
+                Periode(
+                    fom = null,
+                    tom = null,
+                    innvilgelsesResultat = InnvilgelsesResultat.INNVILGET
+                )
+            )
+        )
 
         kafkaOffsetChecker.offsetIncreased {
             kafkaTemplate.send(topic, vedtakHendelseMelding)
@@ -253,21 +247,15 @@ class VedtakHendelseConsumerTest(
     fun `Ignorer medlemskapsperiode med null for fom eller tom når vi alt har bruker i db`() {
         personTestService.savePerson(Person(ident = ident))
 
-        val vedtakHendelseMelding = """
-            {
-              "melding" : {
-                "type" : "VedtakHendelseMelding",
-                "folkeregisterIdent" : "$ident",
-                "sakstype" : "FTRL",
-                "sakstema" : "TRYGDEAVGIFT",
-                "medlemskapsperioder": [{
-                      "fom": null,
-                      "tom": null,
-                      "innvilgelsesResultat": "INNVILGET"
-                }]
-              }
-            }
-        """
+        val vedtakHendelseMelding = vedtakHendelseMelding(
+            listOf(
+                Periode(
+                    fom = null,
+                    tom = null,
+                    innvilgelsesResultat = InnvilgelsesResultat.INNVILGET
+                )
+            )
+        )
 
         kafkaOffsetChecker.offsetIncreased {
             kafkaTemplate.send(topic, vedtakHendelseMelding)
@@ -282,25 +270,33 @@ class VedtakHendelseConsumerTest(
     }
 
     @Test
-    fun `det må fungere å hente opp person med medlemskap perioder og så legge på flere`() {
-        val fnr = "05419636896"
+    fun `Ignorer medlemskapsperiode som ikke er INNVILGET`() {
 
-        fun vedtakHendelseMelding(
-            perioder: List<no.nav.melosysskattehendelser.melosys.consumer.Periode>,
-        ) = """
-    {
-        "melding": {
-            "type": "VedtakHendelseMelding",
-            "folkeregisterIdent": "$fnr",
-            "sakstype": "FTRL",
-            "sakstema": "MEDLEMSKAP_LOVVALG",
-            "behandligsresultatType": "MEDLEM_I_FOLKETRYGDEN",
-            "vedtakstype": "FØRSTEGANGSVEDTAK",
-            "medlemskapsperioder": ${perioder.toJson()},
-            "lovvalgsperioder": []
-        }
+        val vedtakHendelseMelding = vedtakHendelseMelding(
+            InnvilgelsesResultat.entries.mapIndexed { index, melding ->
+                Periode(
+                    fom = LocalDate.of(2021, 1, 1),
+                    tom = LocalDate.of(2023, 1, index + 1),
+                    innvilgelsesResultat = melding
+                )
+            }
+        )
+
+        kafkaOffsetChecker.offsetIncreased {
+            kafkaTemplate.send(topic, vedtakHendelseMelding)
+
+            await.timeout(5, TimeUnit.SECONDS)
+                .untilAsserted {
+                    personRepository.findPersonByIdent(ident)
+                        .shouldNotBeNull()
+                        .perioder.shouldHaveSize(1)
+                        .single().tom shouldBe LocalDate.of(2023, 1, 1)
+                }
+        }.shouldBe(1)
     }
-        """
+
+    @Test
+    fun `det må fungere å hente opp person med medlemskap perioder og så legge på flere`() {
 
         kafkaOffsetChecker.offsetIncreased {
             kafkaTemplate.send(
@@ -334,12 +330,29 @@ class VedtakHendelseConsumerTest(
 
             await.timeout(5, TimeUnit.SECONDS)
                 .untilAsserted {
-                    personRepository.findPersonByIdent(fnr).shouldNotBeNull()
+                    personRepository.findPersonByIdent(ident).shouldNotBeNull()
                         .perioder
                         .shouldHaveSize(3)
                 }
         }.shouldBe(2)
     }
+
+    private fun vedtakHendelseMelding(
+        perioder: List<no.nav.melosysskattehendelser.melosys.consumer.Periode>
+    ) = """
+    {
+        "melding": {
+            "type": "VedtakHendelseMelding",
+            "folkeregisterIdent": "$ident",
+            "sakstype": "FTRL",
+            "sakstema": "MEDLEMSKAP_LOVVALG",
+            "behandligsresultatType": "MEDLEM_I_FOLKETRYGDEN",
+            "vedtakstype": "FØRSTEGANGSVEDTAK",
+            "medlemskapsperioder": ${perioder.toJson()},
+            "lovvalgsperioder": []
+        }
+    }
+        """
 
     private fun Any.toJson(): String = objectMapper.valueToTree<JsonNode>(this).toPrettyString()
 }
