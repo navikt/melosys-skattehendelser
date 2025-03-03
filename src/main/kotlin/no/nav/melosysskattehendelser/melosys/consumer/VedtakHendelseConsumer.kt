@@ -55,7 +55,7 @@ open class VedtakHendelseConsumer(
                 }
 
                 if (periode.erGyldig()) {
-                    log.info("legger til periode $periode på person med id: ${person.id}")
+                    log.info("legger til $periode på person med id: ${person.id}")
                     metrikker.vedtakMottattOgPeriodeLagtTil()
                     person.leggTilPeriode(periode)
                     vedtakHendelseRepository.save(person)
@@ -67,7 +67,7 @@ open class VedtakHendelseConsumer(
         }
 
         metrikker.vedtakMottattOgPersonLagtTil()
-        log.info("person med ident(${vedtakHendelseMelding.folkeregisterIdent}) er lagt til")
+        log.info("person med ident(${vedtakHendelseMelding.folkeregisterIdent}) og perioder:${vedtakHendelseMelding.medlemskapsperioder} er lagt til")
         vedtakHendelseRepository.save(vedtakHendelseMelding.toPerson())
     }
 
@@ -77,9 +77,5 @@ open class VedtakHendelseConsumer(
 
     private fun Person.leggTilPeriode(periode: Periode) {
         perioder.add(periode.toDbPeriode(this))
-    }
-
-    private fun Periode.erGyldig(): Boolean {
-        return fom != null && tom != null
     }
 }
