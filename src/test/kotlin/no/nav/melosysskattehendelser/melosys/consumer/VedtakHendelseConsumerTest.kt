@@ -282,7 +282,7 @@ class VedtakHendelseConsumerTest(
     }
 
     @Test
-    fun test() {
+    fun `det må fungere å hente opp person med medlemskap perioder og så legge på flere`() {
         val fnr = "05419636896"
 
         fun vedtakHendelseMelding(
@@ -307,7 +307,7 @@ class VedtakHendelseConsumerTest(
                 topic, vedtakHendelseMelding(
                     listOf(
                         Periode(
-                            fom = LocalDate.of(2020, 5, 1), // Samme hva dette er
+                            fom = LocalDate.of(2020, 5, 1),
                             tom = LocalDate.of(2020, 6, 1),
                             innvilgelsesResultat = InnvilgelsesResultat.INNVILGET
                         )
