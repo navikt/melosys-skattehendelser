@@ -48,20 +48,16 @@ open class VedtakHendelseConsumer(
         vedtakHendelseRepository.findPersonByIdent(vedtakHendelseMelding.folkeregisterIdent)?.let { person ->
             log.info("person med ident(${vedtakHendelseMelding.folkeregisterIdent}) finnes allerede")
 
-            for (periode in vedtakHendelseMelding.medlemskapsperioder) {
+            for (periode in vedtakHendelseMelding.gyldigePerioder()) {
                 if (person.harPeriode(periode)) {
                     log.info("perioden $periode finnes allerede på person med id:${person.id}")
                     continue
                 }
 
-                if (periode.erGyldig()) {
-                    log.info("legger til $periode på person med id: ${person.id}")
-                    metrikker.vedtakMottattOgPeriodeLagtTil()
-                    person.leggTilPeriode(periode)
-                    vedtakHendelseRepository.save(person)
-                } else {
-                    log.warn { "Forsøkte å legge til periode med fom:${periode.fom} tom:${periode.tom} for person med id: ${person.id}" }
-                }
+                log.info("legger til $periode på person med id: ${person.id}")
+                person.leggTilPeriode(periode)
+                vedtakHendelseRepository.save(person)
+                metrikker.vedtakMottattOgPeriodeLagtTil()
             }
             return
         }

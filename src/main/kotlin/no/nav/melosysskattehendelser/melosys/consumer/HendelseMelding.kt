@@ -26,6 +26,7 @@ data class VedtakHendelseMelding(
     val medlemskapsperioder: List<Periode>,
 
     ) : HendelseMelding() {
+
     fun toPerson() = Person(
         ident = folkeregisterIdent,
     ).also { person ->
@@ -34,7 +35,7 @@ data class VedtakHendelseMelding(
         )
     }
 
-    private fun gyldigePerioder() = medlemskapsperioder.filter { it.erGyldig() }
+    fun gyldigePerioder() = medlemskapsperioder.filter { it.erGyldig() }
 }
 
 data class Periode(
