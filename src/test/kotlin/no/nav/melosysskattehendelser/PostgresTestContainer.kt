@@ -14,7 +14,7 @@ object PostgresTestContainer {
     }
 
     private fun useTestContainer(): Boolean = 
-        System.getenv("USE_LOCAL_DB")?.lowercase() != "true" && USE_CONTAINER
+        System.getenv("SKATTEHENDELSER_USE_LOCAL_DB")?.lowercase() != "true" && USE_CONTAINER
 
     fun registerPostgresProperties(registry: DynamicPropertyRegistry) {
         if (useTestContainer()) {

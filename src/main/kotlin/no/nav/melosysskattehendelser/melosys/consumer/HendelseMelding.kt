@@ -25,17 +25,17 @@ data class VedtakHendelseMelding(
     val sakstema: Sakstemaer,
     val medlemskapsperioder: List<Periode>,
 
-) : HendelseMelding() {
+    ) : HendelseMelding() {
+
     fun toPerson() = Person(
         ident = folkeregisterIdent,
     ).also { person ->
         person.perioder.addAll(
-            medlemskapsperioder
-                .filter { it.innvilgelsesResultat == InnvilgelsesResultat.INNVILGET }
-                .filterNot { it.fom == null && it.tom == null }
-                .map { periode -> periode.toDbPeriode(person) }
+            gyldigePerioder().map { periode -> periode.toDbPeriode(person) }
         )
     }
+
+    fun gyldigePerioder() = medlemskapsperioder.filter { it.erGyldig() }
 }
 
 data class Periode(
@@ -48,6 +48,10 @@ data class Periode(
         tom = tom ?: throw IllegalArgumentException("tom kan ikke være null"),
         person = person
     )
+
+    fun erGyldig(): Boolean {
+        return fom != null && tom != null && innvilgelsesResultat == InnvilgelsesResultat.INNVILGET
+    }
 }
 
 data class UkjentMelding(
