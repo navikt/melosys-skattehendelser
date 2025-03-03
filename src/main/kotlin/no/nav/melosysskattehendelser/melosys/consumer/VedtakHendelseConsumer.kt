@@ -45,33 +45,38 @@ open class VedtakHendelseConsumer(
     }
 
     private fun leggTilPersonOgEllerPeriode(vedtakHendelseMelding: VedtakHendelseMelding) {
-        vedtakHendelseRepository.findPersonByIdent(vedtakHendelseMelding.folkeregisterIdent)?.let { person ->
-            log.info("person med ident(${vedtakHendelseMelding.folkeregisterIdent}) finnes allerede")
+        val person = hentEllerLagPerson(vedtakHendelseMelding)
 
-            for (periode in vedtakHendelseMelding.gyldigePerioder()) {
-                if (person.harPeriode(periode)) {
-                    log.info("perioden $periode finnes allerede på person med id:${person.id}")
-                    continue
-                }
-
-                log.info("legger til $periode på person med id: ${person.id}")
-                person.leggTilPeriode(periode)
-                vedtakHendelseRepository.save(person)
+        vedtakHendelseMelding.medlemskapsperioder
+            .filter { it.erGyldig() }
+            .filterNot { person.harPeriode(it) { log.info("perioden $it finnes allerede på person med id:${person.id}") } }
+            .forEach {
+                log.info("legger til $it på person med id: ${person.id}")
                 metrikker.vedtakMottattOgPeriodeLagtTil()
+                person.leggTilPeriode(it)
             }
-            return
+        vedtakHendelseRepository.save(person)
+    }
+
+    private fun hentEllerLagPerson(vedtakHendelseMelding: VedtakHendelseMelding): Person =
+        vedtakHendelseRepository.findPersonByIdent(vedtakHendelseMelding.folkeregisterIdent)?.also {
+            log.info("person med ident(${vedtakHendelseMelding.folkeregisterIdent}) finnes allerede")
+        } ?: run {
+            metrikker.vedtakMottattOgPersonLagtTil()
+            Person(ident = vedtakHendelseMelding.folkeregisterIdent)
         }
 
-        metrikker.vedtakMottattOgPersonLagtTil()
-        log.info("person med ident(${vedtakHendelseMelding.folkeregisterIdent}) og perioder:${vedtakHendelseMelding.medlemskapsperioder} er lagt til")
-        vedtakHendelseRepository.save(vedtakHendelseMelding.toPerson())
-    }
-
-    private fun Person.harPeriode(periode: Periode) = perioder.any {
+    private fun Person.harPeriode(periode: Periode, block: () -> Unit) = perioder.any {
         it.fom == periode.fom && it.tom == periode.tom
-    }
+    }.also { if (it) block() }
 
     private fun Person.leggTilPeriode(periode: Periode) {
-        perioder.add(periode.toDbPeriode(this))
+        perioder.add(
+            no.nav.melosysskattehendelser.domain.Periode(
+                fom = periode.fom ?: throw IllegalArgumentException("fom kan ikke være null"),
+                tom = periode.tom ?: throw IllegalArgumentException("tom kan ikke være null"),
+                person = this
+            )
+        )
     }
 }
