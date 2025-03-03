@@ -6,10 +6,11 @@ import no.nav.melosysskattehendelser.domain.PersonRepository
 import no.nav.melosysskattehendelser.metrics.Metrikker
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.springframework.kafka.annotation.KafkaListener
+import org.springframework.transaction.annotation.Transactional
 
 private val log = KotlinLogging.logger { }
 
-class VedtakHendelseConsumer(
+open class VedtakHendelseConsumer(
     private val vedtakHendelseRepository: PersonRepository,
     private val metrikker: Metrikker
 ) {
@@ -20,7 +21,8 @@ class VedtakHendelseConsumer(
         containerFactory = "melosysVedtakListenerContainerFactory",
         groupId = "\${melosys.kafka.consumer.groupId}"
     )
-    fun vedtakHendelseConsumer(consumerRecord: ConsumerRecord<String, MelosysHendelse>) {
+    @Transactional
+    open fun vedtakHendelseConsumer(consumerRecord: ConsumerRecord<String, MelosysHendelse>) {
         val melding = consumerRecord.value().melding
         val vedtakHendelseMelding = melding as? VedtakHendelseMelding
             ?: return log.debug { "Ignorerer melding av type ${melding.javaClass.simpleName} " }
@@ -46,26 +48,22 @@ class VedtakHendelseConsumer(
         vedtakHendelseRepository.findPersonByIdent(vedtakHendelseMelding.folkeregisterIdent)?.let { person ->
             log.info("person med ident(${vedtakHendelseMelding.folkeregisterIdent}) finnes allerede")
 
-            for (periode in vedtakHendelseMelding.medlemskapsperioder) {
+            for (periode in vedtakHendelseMelding.gyldigePerioder()) {
                 if (person.harPeriode(periode)) {
                     log.info("perioden $periode finnes allerede på person med id:${person.id}")
                     continue
                 }
 
-                if (periode.erGyldig()) {
-                    log.info("legger til periode $periode på person med id: ${person.id}")
-                    metrikker.vedtakMottattOgPeriodeLagtTil()
-                    person.leggTilPeriode(periode)
-                    vedtakHendelseRepository.save(person)
-                } else {
-                    log.warn { "Forsøkte å legge til periode med fom:${periode.fom} tom:${periode.tom} for person med id: ${person.id}" }
-                }
+                log.info("legger til $periode på person med id: ${person.id}")
+                person.leggTilPeriode(periode)
+                vedtakHendelseRepository.save(person)
+                metrikker.vedtakMottattOgPeriodeLagtTil()
             }
             return
         }
 
         metrikker.vedtakMottattOgPersonLagtTil()
-        log.info("person med ident(${vedtakHendelseMelding.folkeregisterIdent}) er lagt til")
+        log.info("person med ident(${vedtakHendelseMelding.folkeregisterIdent}) og perioder:${vedtakHendelseMelding.medlemskapsperioder} er lagt til")
         vedtakHendelseRepository.save(vedtakHendelseMelding.toPerson())
     }
 
@@ -75,9 +73,5 @@ class VedtakHendelseConsumer(
 
     private fun Person.leggTilPeriode(periode: Periode) {
         perioder.add(periode.toDbPeriode(this))
-    }
-
-    private fun Periode.erGyldig(): Boolean {
-        return fom != null && tom != null
     }
 }
