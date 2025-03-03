@@ -1,5 +1,9 @@
 package no.nav.melosysskattehendelser.melosys.consumer
 
+import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.nulls.shouldNotBeNull
@@ -36,7 +40,8 @@ class VedtakHendelseConsumerTest(
     @Autowired private val personRepository: PersonRepository,
     @Value("\${melosys.kafka.consumer.topic}") private val topic: String,
     @Autowired private val kafkaOffsetChecker: KafkaOffsetChecker,
-    @Autowired private val personTestService: PersonTestService
+    @Autowired private val personTestService: PersonTestService,
+    @Autowired private val objectMapper: ObjectMapper
 ) : PostgresTestContainerBase() {
 
     private val ident = "456789123"
@@ -277,4 +282,66 @@ class VedtakHendelseConsumerTest(
                 }
         }.shouldBe(1)
     }
+
+    @Test
+    fun test() {
+        val fnr = "05419636896"
+
+        fun vedtakHendelseMelding(
+            perioder: List<no.nav.melosysskattehendelser.melosys.consumer.Periode>,
+        ) = """
+    {
+        "melding": {
+            "type": "VedtakHendelseMelding",
+            "folkeregisterIdent": "$fnr",
+            "sakstype": "FTRL",
+            "sakstema": "MEDLEMSKAP_LOVVALG",
+            "behandligsresultatType": "MEDLEM_I_FOLKETRYGDEN",
+            "vedtakstype": "FØRSTEGANGSVEDTAK",
+            "medlemskapsperioder": ${perioder.toJson()},
+            "lovvalgsperioder": []
+        }
+    }
+        """
+
+        kafkaOffsetChecker.offsetIncreased {
+            kafkaTemplate.send(
+                topic, vedtakHendelseMelding(
+                    listOf(
+                        Periode(
+                            fom = LocalDate.of(2020, 5, 1), // Samme hva dette er
+                            tom = LocalDate.of(2020, 6, 1),
+                            innvilgelsesResultat = InnvilgelsesResultat.INNVILGET
+                        )
+                    )
+                )
+            )
+
+            kafkaTemplate.send(
+                topic, vedtakHendelseMelding(
+                    listOf(
+                        Periode(
+                            fom = LocalDate.of(2022, 1, 1),
+                            tom = LocalDate.of(2022, 2, 26),
+                            innvilgelsesResultat = InnvilgelsesResultat.INNVILGET
+                        ),
+                        Periode(
+                            fom = LocalDate.of(2025, 2, 27),
+                            tom = LocalDate.of(2025, 5, 30),
+                            innvilgelsesResultat = InnvilgelsesResultat.INNVILGET
+                        )
+                    )
+                )
+            )
+
+            await.timeout(5, TimeUnit.SECONDS)
+                .untilAsserted {
+                    personRepository.findPersonByIdent(fnr).shouldNotBeNull()
+                        .perioder
+                        .shouldHaveSize(3)
+                }
+        }.shouldBe(2)
+    }
+
+    private fun Any.toJson(): String = objectMapper.valueToTree<JsonNode>(this).toPrettyString()
 }

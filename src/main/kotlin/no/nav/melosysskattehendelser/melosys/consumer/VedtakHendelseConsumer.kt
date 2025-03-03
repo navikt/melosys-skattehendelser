@@ -6,10 +6,11 @@ import no.nav.melosysskattehendelser.domain.PersonRepository
 import no.nav.melosysskattehendelser.metrics.Metrikker
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.springframework.kafka.annotation.KafkaListener
+import org.springframework.transaction.annotation.Transactional
 
 private val log = KotlinLogging.logger { }
 
-class VedtakHendelseConsumer(
+open class VedtakHendelseConsumer(
     private val vedtakHendelseRepository: PersonRepository,
     private val metrikker: Metrikker
 ) {
@@ -20,7 +21,8 @@ class VedtakHendelseConsumer(
         containerFactory = "melosysVedtakListenerContainerFactory",
         groupId = "\${melosys.kafka.consumer.groupId}"
     )
-    fun vedtakHendelseConsumer(consumerRecord: ConsumerRecord<String, MelosysHendelse>) {
+    @Transactional
+    open fun vedtakHendelseConsumer(consumerRecord: ConsumerRecord<String, MelosysHendelse>) {
         val melding = consumerRecord.value().melding
         val vedtakHendelseMelding = melding as? VedtakHendelseMelding
             ?: return log.debug { "Ignorerer melding av type ${melding.javaClass.simpleName} " }
