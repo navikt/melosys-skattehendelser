@@ -23,18 +23,7 @@ open class VedtakHendelseConsumer(
     )
     @Transactional
     open fun vedtakHendelseConsumer(consumerRecord: ConsumerRecord<String, MelosysHendelse>) {
-        val melding = consumerRecord.value().melding
-        val vedtakHendelseMelding = melding as? VedtakHendelseMelding
-            ?: return log.debug { "Ignorerer melding av type ${melding.javaClass.simpleName} " }
-
-        if (vedtakHendelseMelding.sakstype != Sakstyper.FTRL) {
-            return log.debug { "Ignorerer melding med sakstype ${vedtakHendelseMelding.sakstype} " }
-        }
-
-        log.info("Mottatt vedtakshendelse sakstype: ${vedtakHendelseMelding.sakstype} sakstema: ${vedtakHendelseMelding.sakstema}")
-        if (vedtakHendelseMelding.medlemskapsperioder.none { it.erGyldig() }) {
-            return log.info { "Ingen gyldige medlemskapsperioder i melding, så lager ikke bruker i databasen" }
-        }
+        val vedtakHendelseMelding = validerOgHentVedtakshendelse(consumerRecord) ?: return
 
         try {
             leggTilPersonOgEllerPeriode(vedtakHendelseMelding)
@@ -42,6 +31,21 @@ open class VedtakHendelseConsumer(
             log.error(e) { "Feil ved konsumering av vedtaksmelding: $consumerRecord" }
             throw e
         }
+    }
+
+    private fun validerOgHentVedtakshendelse(consumerRecord: ConsumerRecord<String, MelosysHendelse>): VedtakHendelseMelding? {
+        val vedtakHendelseMelding = consumerRecord.value().melding as? VedtakHendelseMelding
+            ?: return logAndIgnore("Ignorerer melding av type ${consumerRecord.value().melding.javaClass.simpleName}")
+
+        return vedtakHendelseMelding.takeIf { it.sakstype == Sakstyper.FTRL }
+            ?.also { log.info("Mottatt vedtakshendelse sakstype: ${it.sakstype}, sakstema: ${it.sakstema}") }
+            ?.takeIf { it.medlemskapsperioder.any { periode -> periode.erGyldig() } }
+            ?: logAndIgnore("Ingen gyldige medlemskapsperioder i melding, så lager ikke bruker i databasen")
+    }
+
+    private fun logAndIgnore(message: String): VedtakHendelseMelding? {
+        log.debug { message }
+        return null
     }
 
     private fun leggTilPersonOgEllerPeriode(vedtakHendelseMelding: VedtakHendelseMelding) {
