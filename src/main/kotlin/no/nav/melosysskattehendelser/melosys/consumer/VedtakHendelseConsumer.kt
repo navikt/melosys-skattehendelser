@@ -32,8 +32,8 @@ open class VedtakHendelseConsumer(
         }
 
         log.info("Mottatt vedtakshendelse sakstype: ${vedtakHendelseMelding.sakstype} sakstema: ${vedtakHendelseMelding.sakstema}")
-        if (vedtakHendelseMelding.medlemskapsperioder.isEmpty()) {
-            return log.info { "Ingen medlemskapsperioder i melding, så lager ikke bruker i databasen" }
+        if (vedtakHendelseMelding.medlemskapsperioder.none { it.erGyldig() }) {
+            return log.info { "Ingen gyldige medlemskapsperioder i melding, så lager ikke bruker i databasen" }
         }
 
         try {

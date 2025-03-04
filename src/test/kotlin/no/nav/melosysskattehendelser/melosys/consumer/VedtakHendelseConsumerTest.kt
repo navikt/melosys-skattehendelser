@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldHaveSize
+import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import no.nav.melosysskattehendelser.AwaitUtil.throwOnLogError
@@ -52,7 +53,7 @@ class VedtakHendelseConsumerTest(
     }
 
     @Test
-    fun `skal lagre ikke lagre ned persone om vi ikke har periode`() {
+    fun `skal lagre ikke lagre ned person om vi ikke har periode`() {
         val vedtakHendelseMelding = """
             {
               "melding" : {
@@ -66,20 +67,14 @@ class VedtakHendelseConsumerTest(
         """
 
         kafkaOffsetChecker.offsetIncreased {
-            LoggingTestUtils.withLogCapture { logItems ->
+            kafkaTemplate.send(topic, vedtakHendelseMelding)
 
-                kafkaTemplate.send(topic, vedtakHendelseMelding)
-
-                await.timeout(5, TimeUnit.SECONDS)
-                    .untilAsserted {
-                        logItems.firstOrNull {
-                            it.formattedMessage.contains("Ingen medlemskapsperioder i melding, så lager ikke bruker i databasen")
-                        }.shouldNotBeNull()
-                    }
-            }
+            await.timeout(5, TimeUnit.SECONDS)
+                .untilAsserted {
+                    personRepository.findPersonByIdent(ident) shouldBe null
+                }
         }.shouldBe(1)
 
-        personRepository.findPersonByIdent(ident) shouldBe null
     }
 
     @Test
@@ -219,7 +214,7 @@ class VedtakHendelseConsumerTest(
     }
 
     @Test
-    fun `Ignorer medlemskapsperiode med null for fom eller tom`() {
+    fun `Ikke lagre person om medlemskapsperiode inneholder null for fom eller tom`() {
 
         val vedtakHendelseMelding = vedtakHendelseMelding(
             listOf(
@@ -236,9 +231,7 @@ class VedtakHendelseConsumerTest(
 
             await.timeout(5, TimeUnit.SECONDS)
                 .untilAsserted {
-                    personRepository.findPersonByIdent(ident)
-                        .shouldNotBeNull()
-                        .perioder.shouldBeEmpty()
+                    personRepository.findPersonByIdent(ident).shouldBeNull()
                 }
         }.shouldBe(1)
     }
