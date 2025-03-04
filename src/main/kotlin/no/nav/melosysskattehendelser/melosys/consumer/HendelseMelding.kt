@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonAnySetter
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonSubTypes
 import com.fasterxml.jackson.annotation.JsonTypeInfo
-import no.nav.melosysskattehendelser.domain.Person
 import java.time.LocalDate
 
 data class MelosysHendelse(
@@ -24,31 +23,13 @@ data class VedtakHendelseMelding(
     val sakstype: Sakstyper,
     val sakstema: Sakstemaer,
     val medlemskapsperioder: List<Periode>,
-
-    ) : HendelseMelding() {
-
-    fun toPerson() = Person(
-        ident = folkeregisterIdent,
-    ).also { person ->
-        person.perioder.addAll(
-            gyldigePerioder().map { periode -> periode.toDbPeriode(person) }
-        )
-    }
-
-    fun gyldigePerioder() = medlemskapsperioder.filter { it.erGyldig() }
-}
+) : HendelseMelding()
 
 data class Periode(
     val fom: LocalDate?,
     val tom: LocalDate?,
     val innvilgelsesResultat: InnvilgelsesResultat
 ) {
-    fun toDbPeriode(person: Person) = no.nav.melosysskattehendelser.domain.Periode(
-        fom = fom ?: throw IllegalArgumentException("fom kan ikke være null"),
-        tom = tom ?: throw IllegalArgumentException("tom kan ikke være null"),
-        person = person
-    )
-
     fun erGyldig(): Boolean {
         return fom != null && tom != null && innvilgelsesResultat == InnvilgelsesResultat.INNVILGET
     }
