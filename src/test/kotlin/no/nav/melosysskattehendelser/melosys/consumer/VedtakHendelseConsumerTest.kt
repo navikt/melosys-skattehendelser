@@ -71,7 +71,7 @@ class VedtakHendelseConsumerTest(
 
             await.timeout(5, TimeUnit.SECONDS)
                 .untilAsserted {
-                    personRepository.findPersonByIdent(ident) shouldBe null
+                    personRepository.findPersonByIdent(ident).shouldNotBeNull()
                 }
         }.shouldBe(1)
 
