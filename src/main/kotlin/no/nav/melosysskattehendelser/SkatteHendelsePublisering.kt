@@ -13,6 +13,8 @@ import org.springframework.stereotype.Component
 import java.time.LocalDateTime
 import kotlin.jvm.optionals.getOrNull
 
+private val log = KotlinLogging.logger { }
+
 @Component
 class SkatteHendelsePublisering(
     private val skatteHendelserFetcher: SkatteHendelserFetcher,
@@ -22,7 +24,6 @@ class SkatteHendelsePublisering(
     private val metrikker: Metrikker,
     kafkaContainerMonitor: KafkaContainerMonitor
 ) {
-    private val log = KotlinLogging.logger { }
     private val status: Status = Status(kafkaContainerMonitor)
 
     @Async
@@ -30,42 +31,37 @@ class SkatteHendelsePublisering(
         prosesserSkattHendelser()
     }
 
-    fun prosesserSkattHendelser() {
-        if (status.isRunning) {
-            log.warn("Prosessering av skattehendelser er allerede i gang!")
-        }
-        status.run {
-            val start = skatteHendelserStatusRepository.findById(skatteHendelserFetcher.consumerId)
-                .getOrNull()?.sekvensnummer ?: skatteHendelserFetcher.startSekvensnummer
+    fun prosesserSkattHendelser() = status.run {
+        val start = skatteHendelserStatusRepository.findById(skatteHendelserFetcher.consumerId)
+            .getOrNull()?.sekvensnummer ?: skatteHendelserFetcher.startSekvensnummer
 
-            skatteHendelserFetcher.hentHendelser(
-                startSeksvensnummer = start,
-                batchDone = { sekvensnummer ->
-                    oppdaterStatus(sekvensnummer)
-                },
-                reportStats = { stats ->
-                    antallBatcher = stats.antallBatcher
-                    sisteBatchSize = stats.sisteBatchSize
+        skatteHendelserFetcher.hentHendelser(
+            startSeksvensnummer = start,
+            batchDone = { sekvensnummer ->
+                oppdaterStatus(sekvensnummer)
+            },
+            reportStats = { stats ->
+                antallBatcher = stats.antallBatcher
+                sisteBatchSize = stats.sisteBatchSize
+            }
+        ).forEach { hendelse ->
+            if (stop) return@run
+            metrikker.hendelseHentet()
+            totaltAntallHendelser++
+            finnPersonMedTreffIGjelderPeriode(hendelse)?.let { person ->
+                metrikker.personFunnet()
+                personerFunnet++
+                log.info("Fant person ${person.ident} for sekvensnummer ${hendelse.sekvensnummer}")
+                val sekvensHistorikk = person.hentEllerLagSekvensHistorikk(hendelse.sekvensnummer)
+                if (sekvensHistorikk.erNyHendelse()) {
+                    publiserMelding(hendelse, person)
+                } else {
+                    metrikker.duplikatHendelse()
+                    log.warn("Hendelse med ${hendelse.sekvensnummer} er allerede kjørt ${sekvensHistorikk.antall} ganger for person ${person.ident}")
                 }
-            ).forEach { hendelse ->
-                if (stop) return@run
-                metrikker.hendelseHentet()
-                totaltAntallHendelser++
-                finnPersonMedTreffIGjelderPeriode(hendelse)?.let { person ->
-                    metrikker.personFunnet()
-                    personerFunnet++
-                    log.info("Fant person ${person.ident} for sekvensnummer ${hendelse.sekvensnummer}")
-                    val sekvensHistorikk = person.hentEllerLagSekvensHistorikk(hendelse.sekvensnummer)
-                    if (sekvensHistorikk.erNyHendelse()) {
-                        publiserMelding(hendelse, person)
-                    } else {
-                        metrikker.duplikatHendelse()
-                        log.warn("Hendelse med ${hendelse.sekvensnummer} er allerede kjørt ${sekvensHistorikk.antall} ganger for person ${person.ident}")
-                    }
 
-                    personRepository.save(person)
-                    oppdaterStatus(hendelse.sekvensnummer + 1)
-                }
+                personRepository.save(person)
+                oppdaterStatus(hendelse.sekvensnummer + 1)
             }
         }
     }
@@ -113,6 +109,14 @@ class SkatteHendelsePublisering(
         @Volatile var sisteBatchSize: Int = 0
     ) {
         fun run(block: Status.() -> Unit) {
+            if (isRunning) {
+                log.warn("Prosessering av skattehendelser er allerede i gang!")
+                return
+            }
+            if(kafkaContainerMonitor.isKafkaContainerStopped()) {
+                log.warn("Kafka container er stoppet, starter ikke prosessering av skattehendelser")
+                return
+            }
             totaltAntallHendelser = 0
             personerFunnet = 0
             isRunning = true
