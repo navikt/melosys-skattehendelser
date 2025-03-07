@@ -2,6 +2,7 @@ package no.nav.melosysskattehendelser
 
 import mu.KotlinLogging
 import no.nav.melosysskattehendelser.domain.*
+import no.nav.melosysskattehendelser.melosys.consumer.KafkaContainerMonitor
 import no.nav.melosysskattehendelser.melosys.producer.SkattehendelserProducer
 import no.nav.melosysskattehendelser.melosys.toMelosysSkatteHendelse
 import no.nav.melosysskattehendelser.metrics.Metrikker
@@ -18,10 +19,11 @@ class SkatteHendelsePublisering(
     private val personRepository: PersonRepository,
     private val skatteHendelserStatusRepository: SkatteHendelserStatusRepository,
     private val skattehendelserProducer: SkattehendelserProducer,
-    private val metrikker: Metrikker
+    private val metrikker: Metrikker,
+    kafkaContainerMonitor: KafkaContainerMonitor
 ) {
     private val log = KotlinLogging.logger { }
-    private val status: Status = Status()
+    private val status: Status = Status(kafkaContainerMonitor)
 
     @Async
     fun asynkronProsesseringAvSkattHendelser() {
@@ -100,6 +102,7 @@ class SkatteHendelsePublisering(
     }
 
     class Status(
+        private var kafkaContainerMonitor: KafkaContainerMonitor,
         @Volatile var totaltAntallHendelser: Int = 0,
         @Volatile var personerFunnet: Int = 0,
         @Volatile var isRunning: Boolean = false,
@@ -132,7 +135,8 @@ class SkatteHendelsePublisering(
             "antallBatcher" to antallBatcher,
             "sisteBatchSize" to sisteBatchSize,
             "sisteSekvensnummer" to sisteSekvensnummer,
-            "personerFunnet" to personerFunnet
+            "personerFunnet" to personerFunnet,
+            "Kafka konteiner er stoppet" to kafkaContainerMonitor.isKafkaContainerStopped(),
         )
     }
 }
