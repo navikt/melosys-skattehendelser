@@ -15,7 +15,7 @@ open class VedtakHendelseConsumer(
     private val metrikker: Metrikker
 ) {
     @KafkaListener(
-        id = "melosysVedtakMottatt",
+        id = LISTENER_ID,
         clientIdPrefix = "melosys-vedtak-mottatt",
         topics = ["\${melosys.kafka.consumer.topic}"],
         containerFactory = "melosysVedtakListenerContainerFactory",
@@ -82,5 +82,9 @@ open class VedtakHendelseConsumer(
                 person = this
             )
         )
+    }
+
+    companion object {
+        const val LISTENER_ID = "melosysVedtakMottatt"
     }
 }
