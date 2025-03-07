@@ -24,14 +24,14 @@ class SkatteHendelsePublisering(
     private val metrikker: Metrikker,
     kafkaContainerMonitor: KafkaContainerMonitor
 ) {
-    private val status: Status = Status(kafkaContainerMonitor)
+    private val jobStatus: JobStatus = JobStatus(kafkaContainerMonitor)
 
     @Async
     fun asynkronProsesseringAvSkattHendelser() {
         prosesserSkattHendelser()
     }
 
-    fun prosesserSkattHendelser() = status.run {
+    fun prosesserSkattHendelser() = jobStatus.monitor {
         val start = skatteHendelserStatusRepository.findById(skatteHendelserFetcher.consumerId)
             .getOrNull()?.sekvensnummer ?: skatteHendelserFetcher.startSekvensnummer
 
@@ -45,7 +45,7 @@ class SkatteHendelsePublisering(
                 sisteBatchSize = stats.sisteBatchSize
             }
         ).forEach { hendelse ->
-            if (stop) return@run
+            if (stop) return@monitor
             metrikker.hendelseHentet()
             totaltAntallHendelser++
             finnPersonMedTreffIGjelderPeriode(hendelse)?.let { person ->
@@ -87,17 +87,17 @@ class SkatteHendelsePublisering(
 
     fun stopProsesseringAvSkattHendelser() {
         log.info("Stopper prosessering av skattehendelser!")
-        status.stop = true
+        jobStatus.stop = true
     }
 
-    fun status() = status.status()
+    fun status() = jobStatus.status()
 
     private fun oppdaterStatus(sekvensnummer: Long) {
-        status.sisteSekvensnummer = sekvensnummer
+        jobStatus.sisteSekvensnummer = sekvensnummer
         skatteHendelserStatusRepository.save(SkatteHendelserSekvens(skatteHendelserFetcher.consumerId, sekvensnummer))
     }
 
-    class Status(
+    class JobStatus(
         private var kafkaContainerMonitor: KafkaContainerMonitor,
         @Volatile var totaltAntallHendelser: Int = 0,
         @Volatile var personerFunnet: Int = 0,
@@ -108,7 +108,7 @@ class SkatteHendelsePublisering(
         @Volatile var antallBatcher: Int = 0,
         @Volatile var sisteBatchSize: Int = 0
     ) {
-        fun run(block: Status.() -> Unit) {
+        fun monitor(block: JobStatus.() -> Unit) {
             if (isRunning) {
                 log.warn("Prosessering av skattehendelser er allerede i gang!")
                 return
