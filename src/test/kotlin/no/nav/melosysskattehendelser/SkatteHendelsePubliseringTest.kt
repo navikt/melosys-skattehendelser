@@ -3,8 +3,11 @@ package no.nav.melosysskattehendelser
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
+import io.mockk.every
+import io.mockk.mockk
 import no.nav.melosysskattehendelser.domain.*
 import no.nav.melosysskattehendelser.melosys.MelosysSkatteHendelse
+import no.nav.melosysskattehendelser.melosys.consumer.KafkaContainerMonitor
 import no.nav.melosysskattehendelser.melosys.producer.SkattehendelserProducerFake
 import no.nav.melosysskattehendelser.metrics.Metrikker
 import no.nav.melosysskattehendelser.skatt.Hendelse
@@ -27,7 +30,8 @@ open class SkatteHendelsePubliseringTest {
             personRepository,
             skatteHendelserStatusRepository,
             skattehendelserProducer,
-            Metrikker()
+            Metrikker(),
+            mockk<KafkaContainerMonitor>().apply { every { isKafkaContainerStopped() } returns false },
         )
     }
 
