@@ -6,11 +6,11 @@ import no.nav.melosysskattehendelser.melosys.consumer.KafkaContainerMonitor
 import no.nav.melosysskattehendelser.melosys.producer.SkattehendelserProducer
 import no.nav.melosysskattehendelser.melosys.toMelosysSkatteHendelse
 import no.nav.melosysskattehendelser.metrics.Metrikker
+import no.nav.melosysskattehendelser.prosessering.Job
 import no.nav.melosysskattehendelser.skatt.Hendelse
 import no.nav.melosysskattehendelser.skatt.SkatteHendelserFetcher
 import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Component
-import java.time.LocalDateTime
 import kotlin.jvm.optionals.getOrNull
 
 private val log = KotlinLogging.logger { }
@@ -24,14 +24,19 @@ class SkatteHendelsePublisering(
     private val metrikker: Metrikker,
     kafkaContainerMonitor: KafkaContainerMonitor
 ) {
-    private val jobStatus: JobStatus = JobStatus(kafkaContainerMonitor)
+    private val job = Job(
+        jobName = "SkatteHendelserJob",
+        stats = Stats(),
+        canStart = { kafkaContainerMonitor.isKafkaContainerRunning() },
+        canNotStartMessage ="kafka container er stoppet!"
+    )
 
     @Async
     fun asynkronProsesseringAvSkattHendelser() {
         prosesserSkattHendelser()
     }
 
-    fun prosesserSkattHendelser() = jobStatus.monitor {
+    fun prosesserSkattHendelser() = job.execute {
         val start = skatteHendelserStatusRepository.findById(skatteHendelserFetcher.consumerId)
             .getOrNull()?.sekvensnummer ?: skatteHendelserFetcher.startSekvensnummer
 
@@ -45,7 +50,7 @@ class SkatteHendelsePublisering(
                 sisteBatchSize = stats.sisteBatchSize
             }
         ).forEach { hendelse ->
-            if (stop) return@monitor
+            if (job.shouldStop) return@forEach
             metrikker.hendelseHentet()
             totaltAntallHendelser++
             finnPersonMedTreffIGjelderPeriode(hendelse)?.let { person ->
@@ -87,60 +92,37 @@ class SkatteHendelsePublisering(
 
     fun stopProsesseringAvSkattHendelser() {
         log.info("Stopper prosessering av skattehendelser!")
-        jobStatus.stop = true
+        job.stop()
     }
 
-    fun status() = jobStatus.status()
+    fun status() = job.status()
 
     private fun oppdaterStatus(sekvensnummer: Long) {
-        jobStatus.sisteSekvensnummer = sekvensnummer
+        job.stats.sisteSekvensnummer = sekvensnummer
         skatteHendelserStatusRepository.save(SkatteHendelserSekvens(skatteHendelserFetcher.consumerId, sekvensnummer))
     }
 
-    class JobStatus(
-        private var kafkaContainerMonitor: KafkaContainerMonitor,
+    private data class Stats(
         @Volatile var totaltAntallHendelser: Int = 0,
         @Volatile var personerFunnet: Int = 0,
-        @Volatile var isRunning: Boolean = false,
-        @Volatile var startedAt: LocalDateTime = LocalDateTime.MIN,
-        @Volatile var stop: Boolean = false,
         @Volatile var sisteSekvensnummer: Long = 0,
         @Volatile var antallBatcher: Int = 0,
         @Volatile var sisteBatchSize: Int = 0
-    ) {
-        fun monitor(block: JobStatus.() -> Unit) {
-            if (isRunning) {
-                log.warn("Prosessering av skattehendelser er allerede i gang!")
-                return
-            }
-            if(kafkaContainerMonitor.isKafkaContainerStopped()) {
-                log.warn("Kafka container er stoppet, starter ikke prosessering av skattehendelser")
-                return
-            }
+    ) : Job.Stats {
+        override fun reset() {
             totaltAntallHendelser = 0
             personerFunnet = 0
-            isRunning = true
-            startedAt = LocalDateTime.now()
             sisteSekvensnummer = 0
             antallBatcher = 0
             sisteBatchSize = 0
-            try {
-                this.block()
-            } finally {
-                isRunning = false
-                stop = false
-            }
         }
 
-        fun status(): Map<String, Any> = mapOf(
-            "isRunning" to isRunning,
-            "startedAt" to startedAt,
+        override fun asMap() = mapOf(
             "totaltAntallHendelser" to totaltAntallHendelser,
+            "personerFunnet" to personerFunnet,
+            "sisteSekvensnummer" to sisteSekvensnummer,
             "antallBatcher" to antallBatcher,
             "sisteBatchSize" to sisteBatchSize,
-            "sisteSekvensnummer" to sisteSekvensnummer,
-            "personerFunnet" to personerFunnet,
-            "Kafka konteiner er stoppet" to kafkaContainerMonitor.isKafkaContainerStopped(),
         )
     }
 }
