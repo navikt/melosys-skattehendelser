@@ -7,7 +7,9 @@ import org.springframework.stereotype.Component
 class KafkaContainerMonitor(
     private val registry: KafkaListenerEndpointRegistry
 ) {
-    fun isKafkaContainerStopped(): Boolean =
+    fun isKafkaContainerStopped(): Boolean = !isKafkaContainerRunning()
+
+    fun isKafkaContainerRunning(): Boolean =
         registry.getListenerContainer(VedtakHendelseConsumer.LISTENER_ID)?.isRunning
             ?: throw IllegalStateException("Listener container not found for ID: ${VedtakHendelseConsumer.LISTENER_ID}")
 }
