@@ -25,7 +25,7 @@ class AdminController(
     @PostMapping("/hendelseprosessering/start")
     fun startHendelseProsessering(): ResponseEntity<String> {
         log.info("Starter hendelseprosessering")
-        if(kafkaContainerMonitor.isKafkaContainerStopped()) {
+        if (kafkaContainerMonitor.isKafkaContainerStopped()) {
             return ResponseEntity("Kafka container har stoppet", HttpStatus.SERVICE_UNAVAILABLE)
         }
 
@@ -41,12 +41,10 @@ class AdminController(
     }
 
     @GetMapping("/hendelseprosessering/status")
-    fun status(): ResponseEntity<Map<String, Any>> {
-        return ResponseEntity<Map<String, Any>>(skatteHendelsePublisering.status(), HttpStatus.OK)
-    }
+    fun status() = ResponseEntity<Map<String, Any?>>(skatteHendelsePublisering.status(), HttpStatus.OK)
 
     @GetMapping("/person/{id}")
-    fun getPerson(@PathVariable id: Long): ResponseEntity<Map<String,Any?>> {
+    fun getPerson(@PathVariable id: Long): ResponseEntity<Map<String, Any?>> {
         val person = personRepository.findPersonById(id) ?: return ResponseEntity(HttpStatus.NOT_FOUND)
         return ResponseEntity(person.toMap(), HttpStatus.OK)
     }

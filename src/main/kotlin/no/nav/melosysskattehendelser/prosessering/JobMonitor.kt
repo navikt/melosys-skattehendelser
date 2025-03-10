@@ -1,6 +1,7 @@
 package no.nav.melosysskattehendelser.prosessering
 
 import mu.KotlinLogging
+import java.time.Duration
 import java.time.LocalDateTime
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -22,7 +23,10 @@ class JobMonitor<T : JobMonitor.Stats>(
     private var isRunning: Boolean = false
 
     @Volatile
-    private var startedAt: LocalDateTime = LocalDateTime.MIN
+    private var startedAt: LocalDateTime? = null
+
+    @Volatile
+    private var stoppedAt: LocalDateTime? = null
 
     fun execute(block: T.() -> Unit) {
         if (isRunning) {
@@ -43,7 +47,7 @@ class JobMonitor<T : JobMonitor.Stats>(
         } finally {
             isRunning = false
             shouldStop = false
-            log.info("Job '$jobName' completed.")
+            log.info("Job '$jobName' completed. Runtime: ${startedAt.durationUntil(stoppedAt)}")
         }
     }
 
@@ -52,11 +56,18 @@ class JobMonitor<T : JobMonitor.Stats>(
         shouldStop = true
     }
 
-    fun status(): Map<String, Any> =
+    private fun LocalDateTime?.durationUntil(other: LocalDateTime?): String =
+        Duration.between(this ?: LocalDateTime.now(), other ?: LocalDateTime.now()).format()
+
+    private fun Duration.format(): String =
+        if (toMillis() < 1000) "${toMillis()} ms" else String.format("%.2f sec", toMillis() / 1000.0)
+
+    fun status(): Map<String, Any?> =
         mapOf(
             "jobName" to jobName,
             "isRunning" to isRunning,
-            "startedAt" to startedAt
+            "startedAt" to startedAt,
+            "runtime" to startedAt.durationUntil(stoppedAt),
         ) + stats.asMap()
 
     interface Stats {
