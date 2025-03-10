@@ -46,7 +46,10 @@ class JobMonitor<T : JobMonitor.Stats>(
             log.warn("'$jobName' will not start. reason: $canNotStartMessage")
             return
         }
-
+        isRunning = true
+        startedAt = LocalDateTime.now()
+        errorCount = 0
+        exceptions.clear()
         stats.reset()
         return try {
             stats.block()
@@ -57,6 +60,7 @@ class JobMonitor<T : JobMonitor.Stats>(
         } finally {
             isRunning = false
             shouldStop = false
+            stoppedAt = LocalDateTime.now()
             log.info("Job '$jobName' completed. Runtime: ${startedAt.durationUntil(stoppedAt)}")
         }
     }
