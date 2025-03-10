@@ -31,7 +31,9 @@ open class SkatteHendelsePubliseringTest {
             skatteHendelserStatusRepository,
             skattehendelserProducer,
             Metrikker(),
-            mockk<KafkaContainerMonitor>().apply { every { isKafkaContainerStopped() } returns false },
+            mockk<KafkaContainerMonitor>().apply {
+                every { isKafkaContainerRunning() } returns true
+            }
         )
     }
 
