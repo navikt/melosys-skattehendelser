@@ -26,7 +26,7 @@ class SkatteHendelsePublisering(
 ) {
     private val log = KotlinLogging.logger { }
 
-    private val job = Job(
+    private val jobMonitor = JobMonitor(
         jobName = "SkatteHendelserJob",
         stats = Stats(),
         canStart = { kafkaContainerMonitor.isKafkaContainerRunning() },
@@ -38,7 +38,7 @@ class SkatteHendelsePublisering(
         prosesserSkattHendelser()
     }
 
-    fun prosesserSkattHendelser() = job.execute {
+    fun prosesserSkattHendelser() = jobMonitor.execute {
         val start = skatteHendelserStatusRepository.findById(skatteHendelserFetcher.consumerId)
             .getOrNull()?.sekvensnummer ?: skatteHendelserFetcher.startSekvensnummer
 
@@ -52,7 +52,7 @@ class SkatteHendelsePublisering(
                 sisteBatchSize = stats.sisteBatchSize
             }
         ).forEach { hendelse ->
-            if (job.shouldStop) return@forEach
+            if (jobMonitor.shouldStop) return@forEach
             metrikker.hendelseHentet()
             totaltAntallHendelser++
             finnPersonMedTreffIGjelderPeriode(hendelse)?.let { person ->
@@ -94,13 +94,13 @@ class SkatteHendelsePublisering(
 
     fun stopProsesseringAvSkattHendelser() {
         log.info("Stopper prosessering av skattehendelser!")
-        job.stop()
+        jobMonitor.stop()
     }
 
-    fun status() = job.status()
+    fun status() = jobMonitor.status()
 
     private fun oppdaterStatus(sekvensnummer: Long) {
-        job.stats.sisteSekvensnummer = sekvensnummer
+        jobMonitor.stats.sisteSekvensnummer = sekvensnummer
         skatteHendelserStatusRepository.save(SkatteHendelserSekvens(skatteHendelserFetcher.consumerId, sekvensnummer))
     }
 
@@ -110,7 +110,7 @@ class SkatteHendelsePublisering(
         @Volatile var sisteSekvensnummer: Long = 0,
         @Volatile var antallBatcher: Int = 0,
         @Volatile var sisteBatchSize: Int = 0
-    ) : Job.Stats {
+    ) : JobMonitor.Stats {
         override fun reset() {
             totaltAntallHendelser = 0
             personerFunnet = 0

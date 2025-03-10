@@ -6,7 +6,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 private val log = KotlinLogging.logger {}
 
-class Job<T : Job.Stats>(
+class JobMonitor<T : JobMonitor.Stats>(
     private val jobName: String,
     private val canStart: () -> Boolean = { true },
     private val canNotStartMessage: String = "",
