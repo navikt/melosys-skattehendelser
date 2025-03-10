@@ -1,19 +1,19 @@
-package no.nav.melosysskattehendelser
+package no.nav.melosysskattehendelser.prosessering
 
 import mu.KotlinLogging
-import no.nav.melosysskattehendelser.domain.*
+import no.nav.melosysskattehendelser.domain.Person
+import no.nav.melosysskattehendelser.domain.PersonRepository
+import no.nav.melosysskattehendelser.domain.SkatteHendelserSekvens
+import no.nav.melosysskattehendelser.domain.SkatteHendelserStatusRepository
 import no.nav.melosysskattehendelser.melosys.consumer.KafkaContainerMonitor
 import no.nav.melosysskattehendelser.melosys.producer.SkattehendelserProducer
 import no.nav.melosysskattehendelser.melosys.toMelosysSkatteHendelse
 import no.nav.melosysskattehendelser.metrics.Metrikker
-import no.nav.melosysskattehendelser.prosessering.Job
 import no.nav.melosysskattehendelser.skatt.Hendelse
 import no.nav.melosysskattehendelser.skatt.SkatteHendelserFetcher
 import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Component
 import kotlin.jvm.optionals.getOrNull
-
-private val log = KotlinLogging.logger { }
 
 @Component
 class SkatteHendelsePublisering(
@@ -24,6 +24,8 @@ class SkatteHendelsePublisering(
     private val metrikker: Metrikker,
     kafkaContainerMonitor: KafkaContainerMonitor
 ) {
+    private val log = KotlinLogging.logger { }
+
     private val job = Job(
         jobName = "SkatteHendelserJob",
         stats = Stats(),

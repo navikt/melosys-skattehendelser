@@ -1,7 +1,7 @@
 package no.nav.melosysskattehendelser.controller
 
 import mu.KotlinLogging
-import no.nav.melosysskattehendelser.SkatteHendelsePublisering
+import no.nav.melosysskattehendelser.prosessering.SkatteHendelsePublisering
 import no.nav.melosysskattehendelser.domain.Periode
 import no.nav.melosysskattehendelser.domain.Person
 import no.nav.melosysskattehendelser.domain.PersonRepository

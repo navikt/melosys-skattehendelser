@@ -1,11 +1,17 @@
-package no.nav.melosysskattehendelser
+package no.nav.melosysskattehendelser.prosessering
 
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import io.mockk.every
 import io.mockk.mockk
-import no.nav.melosysskattehendelser.domain.*
+import no.nav.melosysskattehendelser.domain.Periode
+import no.nav.melosysskattehendelser.domain.Person
+import no.nav.melosysskattehendelser.domain.PersonRepository
+import no.nav.melosysskattehendelser.domain.PersonRepositoryFake
+import no.nav.melosysskattehendelser.domain.SekvensHistorikk
+import no.nav.melosysskattehendelser.domain.SkatteHendelserStatusRepository
+import no.nav.melosysskattehendelser.domain.SkatteHendelserStatusRepositoryFake
 import no.nav.melosysskattehendelser.melosys.MelosysSkatteHendelse
 import no.nav.melosysskattehendelser.melosys.consumer.KafkaContainerMonitor
 import no.nav.melosysskattehendelser.melosys.producer.SkattehendelserProducerFake

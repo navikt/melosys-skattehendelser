@@ -1,6 +1,7 @@
-package no.nav.melosysskattehendelser
+package no.nav.melosysskattehendelser.prosessering
 
 import io.mockk.mockk
+import no.nav.melosysskattehendelser.PostgresTestContainer
 import no.nav.melosysskattehendelser.domain.PersonRepository
 import no.nav.melosysskattehendelser.domain.SkatteHendelserStatusRepository
 import no.nav.melosysskattehendelser.melosys.KafkaConfig
