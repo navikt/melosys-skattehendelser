@@ -28,6 +28,15 @@ class JobMonitor<T : JobMonitor.Stats>(
     @Volatile
     private var stoppedAt: LocalDateTime? = null
 
+    @Volatile
+    var errorCount: Int = 0
+
+    @Volatile
+    var maxErrorsBeforeStop: Int = 0
+
+    @Volatile
+    var exceptions: MutableMap<String, Int> = mutableMapOf()
+
     fun execute(block: T.() -> Unit) {
         if (isRunning) {
             log.warn("Job '$jobName' is already running.")
@@ -43,11 +52,21 @@ class JobMonitor<T : JobMonitor.Stats>(
             stats.block()
         } catch (ex: Exception) {
             log.error(ex) { "Job '$jobName' failed" }
+            registerException(ex)
             throw ex
         } finally {
             isRunning = false
             shouldStop = false
             log.info("Job '$jobName' completed. Runtime: ${startedAt.durationUntil(stoppedAt)}")
+        }
+    }
+
+    fun registerException(e: Throwable) {
+        val msg = e.message ?: e::class.simpleName ?: "Unknown error"
+        exceptions[msg] = exceptions.getOrDefault(msg, 0) + 1
+        if (errorCount++ >= maxErrorsBeforeStop) {
+            stop()
+            log.error { "Stopping processing due to too many ($maxErrorsBeforeStop) errors" }
         }
     }
 
@@ -68,7 +87,10 @@ class JobMonitor<T : JobMonitor.Stats>(
             "isRunning" to isRunning,
             "startedAt" to startedAt,
             "runtime" to startedAt.durationUntil(stoppedAt),
-        ) + stats.asMap()
+        ) + stats.asMap() + mapOf(
+            "errorCount" to errorCount,
+            "exceptions" to exceptions
+        )
 
     interface Stats {
         fun reset()
