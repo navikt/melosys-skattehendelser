@@ -1,6 +1,7 @@
 package no.nav.melosysskattehendelser
 
 import mu.KotlinLogging
+import no.nav.melosysskattehendelser.prosessering.SkatteHendelsePublisering
 import org.springframework.context.SmartLifecycle
 import org.springframework.stereotype.Component
 

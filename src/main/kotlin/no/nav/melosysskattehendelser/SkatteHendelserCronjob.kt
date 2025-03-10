@@ -2,6 +2,7 @@ package no.nav.melosysskattehendelser
 
 import mu.KotlinLogging
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock
+import no.nav.melosysskattehendelser.prosessering.SkatteHendelsePublisering
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 

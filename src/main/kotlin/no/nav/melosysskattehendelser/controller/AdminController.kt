@@ -1,11 +1,12 @@
 package no.nav.melosysskattehendelser.controller
 
 import mu.KotlinLogging
-import no.nav.melosysskattehendelser.SkatteHendelsePublisering
+import no.nav.melosysskattehendelser.prosessering.SkatteHendelsePublisering
 import no.nav.melosysskattehendelser.domain.Periode
 import no.nav.melosysskattehendelser.domain.Person
 import no.nav.melosysskattehendelser.domain.PersonRepository
 import no.nav.melosysskattehendelser.domain.SekvensHistorikk
+import no.nav.melosysskattehendelser.melosys.consumer.KafkaContainerMonitor
 import no.nav.security.token.support.core.api.Unprotected
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -18,11 +19,16 @@ private val log = KotlinLogging.logger { }
 @RequestMapping("/admin")
 class AdminController(
     private val skatteHendelsePublisering: SkatteHendelsePublisering,
-    private val personRepository: PersonRepository
+    private val personRepository: PersonRepository,
+    private val kafkaContainerMonitor: KafkaContainerMonitor
 ) {
     @PostMapping("/hendelseprosessering/start")
     fun startHendelseProsessering(): ResponseEntity<String> {
         log.info("Starter hendelseprosessering")
+        if (kafkaContainerMonitor.isKafkaContainerStopped()) {
+            return ResponseEntity("Kafka container har stoppet", HttpStatus.SERVICE_UNAVAILABLE)
+        }
+
         skatteHendelsePublisering.asynkronProsesseringAvSkattHendelser()
         return ResponseEntity.ok("Hendelseprosessering startet")
     }
@@ -35,12 +41,10 @@ class AdminController(
     }
 
     @GetMapping("/hendelseprosessering/status")
-    fun status(): ResponseEntity<Map<String, Any>> {
-        return ResponseEntity<Map<String, Any>>(skatteHendelsePublisering.status(), HttpStatus.OK)
-    }
+    fun status() = ResponseEntity<Map<String, Any?>>(skatteHendelsePublisering.status(), HttpStatus.OK)
 
     @GetMapping("/person/{id}")
-    fun getPerson(@PathVariable id: Long): ResponseEntity<Map<String,Any?>> {
+    fun getPerson(@PathVariable id: Long): ResponseEntity<Map<String, Any?>> {
         val person = personRepository.findPersonById(id) ?: return ResponseEntity(HttpStatus.NOT_FOUND)
         return ResponseEntity(person.toMap(), HttpStatus.OK)
     }
