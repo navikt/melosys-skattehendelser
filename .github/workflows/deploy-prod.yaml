@@ -11,7 +11,7 @@ jobs:
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       IMAGE: europe-north1-docker.pkg.dev/nais-management-233d/teammelosys/melosys-skattehendelser:${{ github.sha }}
-    runs-on: ubuntu-latest-8-cores
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
