@@ -13,16 +13,18 @@ permissions:
   packages: write
   id-token: write
 env:
-  image: ghcr.io/${{ github.repository }}/melosys-skattehendelser
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 jobs:
   build:
-    name: Build code and push image
-    runs-on: ubuntu-latest
+    name: Build
+    runs-on: ubuntu-latest-8-cores
+    outputs:
+      image: ${{ steps.docker-push.outputs.image }}
+      telemetry: ${{ steps.docker-push.outputs.telemetry }}
     steps:
       - name: Checkout latest code
         uses: actions/checkout@v4
-      - name: Setup Java 17
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
@@ -40,27 +42,19 @@ jobs:
         run: ./gradlew test
       - name: Build
         run: ./gradlew clean build -x test
-
-      - name: Setup Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Login to GitHub Container Registry
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u THIS_IS_NOT_USED --password-stdin
-
-      - name: Build and push multi-arch Docker image
-        run: |
-          versioned_image="${image}:${{ github.sha }}"
-          latest_image="${image}:latest"
-
-          # Build and push multi-architecture image
-          docker buildx build --platform linux/amd64,linux/arm64 \
-            --push \
-            --tag "$versioned_image" \
-            --tag "$latest_image" \
-            .
+      - name: Build and publish Docker images (multi-arch)
+        id: docker-push
+        uses: nais/docker-build-push@v0
+        with:
+          team: teammelosys
+          tag: |
+              type=raw,value=latest,priority=9001
+              type=raw,value=${{ github.sha }},priority=9000
+          platforms: linux/amd64,linux/arm64
+          salsa: true
 
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-8-cores
     needs: build
     steps:
       - name: Checkout
@@ -76,15 +70,17 @@ jobs:
         env:
           CLUSTER: dev-gcp
           RESOURCE: nais/nais.yml
-          VAR: image=${{env.image}}:${{ github.sha }}
+          IMAGE: ${{ needs.build.outputs.image }}
           VARS: nais/vars-q2.json
+          TELEMETRY: ${{ needs.build.outputs.telemetry }}
 #      - name: Deploy til dev (Q1)
 #        uses: nais/deploy/actions/deploy@v2
 #        env:
 #          CLUSTER: dev-gcp
 #          RESOURCE: nais/nais.yml
-#          VAR: image=${{env.image}}
+#          IMAGE: ${{ needs.build.outputs.image }}
 #          VARS: nais/vars-q1.json
+#          TELEMETRY: ${{ needs.build.outputs.telemetry }}
       - name: Get commit message
         run: echo "COMMIT_MSG=$(git log --format=%s -n 1)" >> $GITHUB_ENV
       - name: Slack Notification
