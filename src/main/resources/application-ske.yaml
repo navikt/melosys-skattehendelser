@@ -9,6 +9,10 @@ spring:
     locations: classpath:db/migration
     enabled: true
 
+no.nav.security.jwt.client.registration:
+  sigrun:
+    token-endpoint-url: https://login.microsoftonline.com/62366534-1ec3-4962-8869-9b5535279d0b/oauth2/v2.0/token
+
 CLUSTER_SIGRUN: dev-fss
 APP_NAME_SIGRUN: sigrun-q4
 KAFKA_BROKERS: localhost:29092
