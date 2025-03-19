@@ -15,7 +15,7 @@ class SkatteHendelserFetcherAPI(
     @Value("\${skatt.fetcher.start-dato}") private val startDato: LocalDate
 ) : SkatteHendelserFetcher {
     init {
-        log.info("batchSize er satt til $batchSize")
+        log.info("batchSize er satt til $batchSize, startDato er satt til $startDato")
     }
 
 
