@@ -1,5 +1,7 @@
 package no.nav.melosysskattehendelser.skatt
 
+import com.fasterxml.jackson.annotation.JsonSetter
+import com.fasterxml.jackson.annotation.Nulls
 import java.time.LocalDate
 import java.time.Year
 
@@ -21,6 +23,7 @@ data class Hendelse(
     val identifikator: String,
     val sekvensnummer: Long,
     val somAktoerid: Boolean,
+    @JsonSetter(nulls = Nulls.SKIP)
     val hendelsetype: String = "ny"
 ) {
     fun gjelderPeriodeSomÅr() = Year.parse(gjelderPeriode).value

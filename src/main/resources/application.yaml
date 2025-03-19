@@ -49,7 +49,7 @@ skatt:
 
 no.nav.security.jwt.client.registration:
   sigrun:
-    token-endpoint-url: https://login.microsoftonline.com/966ac572-f5b7-4bbe-aa88-c76419c0f851/oauth2/v2.0/token
+    token-endpoint-url: https://login.microsoftonline.com/62366534-1ec3-4962-8869-9b5535279d0b/oauth2/v2.0/token
     grant-type: client_credentials
     scope: api://${CLUSTER_SIGRUN}.team-inntekt.${APP_NAME_SIGRUN}/.default
     authentication:
