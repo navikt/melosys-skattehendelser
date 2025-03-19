@@ -21,10 +21,12 @@ data class HendelseRequest(
 data class Hendelse(
     val gjelderPeriode: String,
     val identifikator: String,
+    val registreringstidspunkt: String,
     val sekvensnummer: Long,
     val somAktoerid: Boolean,
     @JsonSetter(nulls = Nulls.SKIP)
     val hendelsetype: String = "ny"
 ) {
     fun gjelderPeriodeSomÅr() = Year.parse(gjelderPeriode).value
+    fun registreringstidspunktAsYearMonth() = registreringstidspunkt.substring(0,7)
 }
