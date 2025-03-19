@@ -13,6 +13,7 @@ import no.nav.melosysskattehendelser.skatt.Hendelse
 import no.nav.melosysskattehendelser.skatt.SkatteHendelserFetcher
 import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Component
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.jvm.optionals.getOrNull
 
 @Component
@@ -55,6 +56,8 @@ class SkatteHendelsePublisering(
             if (jobMonitor.shouldStop) return@forEach
             metrikker.hendelseHentet()
             totaltAntallHendelser++
+            gjelderPeriodeToCount.incrementCount(hendelse.gjelderPeriode)
+            registreringstidspunktToCount.incrementCount(hendelse.registreringstidspunktAsYearMonth())
             finnPersonMedTreffIGjelderPeriode(hendelse)?.let { person ->
                 metrikker.personFunnet()
                 personerFunnet++
@@ -87,6 +90,10 @@ class SkatteHendelsePublisering(
         }
     }
 
+    private fun <K> MutableMap<K, Int>.incrementCount(key: K, incrementBy: Int = 1) {
+        this[key] = getOrDefault(key, 0) + incrementBy
+    }
+
     private fun finnPersonMedTreffIGjelderPeriode(hendelse: Hendelse): Person? =
         personRepository.findPersonByIdent(hendelse.identifikator)?.takeIf { person ->
             person.harTreffIPeriode(hendelse.gjelderPeriodeSomÅr())
@@ -109,7 +116,9 @@ class SkatteHendelsePublisering(
         @Volatile var personerFunnet: Int = 0,
         @Volatile var sisteSekvensnummer: Long = 0,
         @Volatile var antallBatcher: Int = 0,
-        @Volatile var sisteBatchSize: Int = 0
+        @Volatile var sisteBatchSize: Int = 0,
+        var gjelderPeriodeToCount: ConcurrentHashMap<String, Int> = ConcurrentHashMap(),
+        var registreringstidspunktToCount: ConcurrentHashMap<String, Int> = ConcurrentHashMap()
     ) : JobMonitor.Stats {
         override fun reset() {
             totaltAntallHendelser = 0
@@ -117,6 +126,8 @@ class SkatteHendelsePublisering(
             sisteSekvensnummer = 0
             antallBatcher = 0
             sisteBatchSize = 0
+            gjelderPeriodeToCount.clear()
+            registreringstidspunktToCount.clear()
         }
 
         override fun asMap() = mapOf(
@@ -125,6 +136,8 @@ class SkatteHendelsePublisering(
             "sisteSekvensnummer" to sisteSekvensnummer,
             "antallBatcher" to antallBatcher,
             "sisteBatchSize" to sisteBatchSize,
+            "gjelderPeriodeToCount" to gjelderPeriodeToCount,
+            "registreringstidspunktToCount" to registreringstidspunktToCount
         )
     }
 }
