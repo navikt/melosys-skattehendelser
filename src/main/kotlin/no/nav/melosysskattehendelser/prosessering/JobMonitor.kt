@@ -88,9 +88,12 @@ class JobMonitor<T : JobMonitor.Stats>(
         }
         isRunning = true
         startedAt = LocalDateTime.now()
+        stoppedAt = null
         errorCount = 0
         exceptions.clear()
         stats.reset()
+        methodToNanoTime.clear()
+        methodToCount.clear()
         return try {
             stats.block()
         } catch (ex: Exception) {
@@ -108,7 +111,7 @@ class JobMonitor<T : JobMonitor.Stats>(
         }
     }
 
-     fun registerException(e: Throwable) {
+     private fun registerException(e: Throwable) {
         val msg = e.message ?: e::class.simpleName ?: "Unknown error"
         exceptions[msg] = exceptions.getOrDefault(msg, 0) + 1
         if (errorCount++ >= maxErrorsBeforeStop) {
