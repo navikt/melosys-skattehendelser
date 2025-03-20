@@ -56,7 +56,7 @@ class JobMonitor<T : JobMonitor.Stats>(
         }
     }
 
-    fun sampleMethod(name: String, duration: Long) {
+    private fun sampleMethod(name: String, duration: Long) {
         methodToCount.computeIfAbsent(name) { AtomicLong(0) }.incrementAndGet()
         methodToNanoTime.computeIfAbsent(name) { AtomicLong(0) }.addAndGet(duration)
     }
@@ -67,22 +67,17 @@ class JobMonitor<T : JobMonitor.Stats>(
         }
     }
 
-    fun getMethodStats(): Map<String, Any> {
-        val result = mutableMapOf<String, Any>()
+    private fun methodStats(): Map<String, Map<String, Number>> =
+        methodToNanoTime.keys.associateWith { method ->
+            val totalNanos = methodToNanoTime[method]?.get() ?: 0L
+            val count = methodToCount[method]?.get() ?: 0L
 
-        methodToNanoTime.keys.forEach { method ->
-            val totalNanos = methodToNanoTime[method]?.get() ?: 0
-            val count = methodToCount[method]?.get() ?: 0
-
-            result[method] = mapOf(
-                "totalTimeMs" to totalNanos / 1_000_000.0f,
+            mapOf(
+                "totalTimeMs" to totalNanos / 1_000_000.0,
                 "count" to count,
-                "avgTimeMs" to if (count > 0) (totalNanos / count) / 1_000_000.0f else 0.0f
+                "avgTimeMs" to if (count > 0) (totalNanos / count) / 1_000_000.0 else 0.0
             )
         }
-
-        return result
-    }
 
     fun execute(block: T.() -> Unit) {
         if (isRunning) {
@@ -141,7 +136,7 @@ class JobMonitor<T : JobMonitor.Stats>(
             "isRunning" to isRunning,
             "startedAt" to startedAt,
             "runtime" to startedAt.durationUntil(stoppedAt),
-            "metodeToMillis" to getMethodStats(),
+            "metodeToMillis" to methodStats(),
         ) + stats.asMap() + mapOf(
             "errorCount" to errorCount,
             "exceptions" to exceptions
