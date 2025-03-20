@@ -133,6 +133,7 @@ class SkatteHendelsePublisering(
             sisteBatchSize = 0
             gjelderPeriodeToCount.clear()
             registreringstidspunktToCount.clear()
+            hendelsetypeToCount.clear()
         }
 
         override fun asMap() = mapOf(
