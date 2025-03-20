@@ -45,28 +45,26 @@ class JobMonitor<T : JobMonitor.Stats>(
     private val methodToNanoTime = ConcurrentHashMap<String, AtomicLong>()
     private val methodToCount = ConcurrentHashMap<String, AtomicLong>()
 
-    fun <T> sampleMethod(name: String, block: () -> T): T {
+    inline fun <T> measureExecution(methodName: String, block: () -> T): T {
         val start = System.nanoTime()
         try {
             return block()
         } finally {
             val duration = System.nanoTime() - start
-
-            sampleMethod(name, duration)
+            recordMethodMetrics(methodName, duration)
         }
     }
 
-    private fun sampleMethod(name: String, duration: Long) {
-        methodToCount.computeIfAbsent(name) { AtomicLong(0) }.incrementAndGet()
-        methodToNanoTime.computeIfAbsent(name) { AtomicLong(0) }.addAndGet(duration)
+    fun recordMethodMetrics(methodName: String, durationNanos: Long) {
+        methodToCount.computeIfAbsent(methodName) { AtomicLong(0) }.incrementAndGet()
+        methodToNanoTime.computeIfAbsent(methodName) { AtomicLong(0) }.addAndGet(durationNanos)
     }
 
-    fun sampleMethod(metodeTilNanoSec: Map<String, AtomicLong>) {
-        metodeTilNanoSec.forEach {
-            sampleMethod(it.key, it.value.get())
+    fun importMethodMetrics(methodDurations: Map<String, AtomicLong>) {
+        methodDurations.forEach { (methodName, duration) ->
+            recordMethodMetrics(methodName, duration.get())
         }
     }
-
     private fun methodStats(): Map<String, Map<String, Number>> =
         methodToNanoTime.keys.associateWith { method ->
             val totalNanos = methodToNanoTime[method]?.get() ?: 0L
@@ -110,7 +108,7 @@ class JobMonitor<T : JobMonitor.Stats>(
         }
     }
 
-    fun registerException(e: Throwable) {
+     fun registerException(e: Throwable) {
         val msg = e.message ?: e::class.simpleName ?: "Unknown error"
         exceptions[msg] = exceptions.getOrDefault(msg, 0) + 1
         if (errorCount++ >= maxErrorsBeforeStop) {

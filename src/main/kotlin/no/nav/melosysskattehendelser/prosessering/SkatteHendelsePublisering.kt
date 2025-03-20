@@ -51,7 +51,7 @@ class SkatteHendelsePublisering(
             reportStats = { stats ->
                 antallBatcher = stats.antallBatcher
                 sisteBatchSize = stats.sisteBatchSize
-                jobMonitor.sampleMethod(stats.metodeStats)
+                jobMonitor.importMethodMetrics(stats.metodeStats)
             }
         ).forEach { hendelse ->
             if (jobMonitor.shouldStop) return@forEach
@@ -97,7 +97,7 @@ class SkatteHendelsePublisering(
     }
 
     private fun finnPersonMedTreffIGjelderPeriode(hendelse: Hendelse): Person? =
-        jobMonitor.sampleMethod("finnPersonMedTreffIGjelderPeriode") {
+        jobMonitor.measureExecution("finnPersonMedTreffIGjelderPeriode") {
             personRepository.findPersonByIdent(hendelse.identifikator)?.takeIf { person ->
                 person.harTreffIPeriode(hendelse.gjelderPeriodeSomÅr())
             }
