@@ -6,7 +6,9 @@ import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import mu.KotlinLogging
 import java.time.Duration
 import java.time.LocalDateTime
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicLong
 
 private val log = KotlinLogging.logger {}
 
@@ -39,6 +41,42 @@ class JobMonitor<T : JobMonitor.Stats>(
 
     @Volatile
     var exceptions: MutableMap<String, Int> = mutableMapOf()
+
+    val methodToNanoTime = ConcurrentHashMap<String, AtomicLong>()
+    val methodToCount = ConcurrentHashMap<String, AtomicLong>()
+
+    inline fun <T> sampleMethod(name: String, block: () -> T): T {
+        val start = System.nanoTime()
+        try {
+            return block()
+        } finally {
+            val duration = System.nanoTime() - start
+
+            registerMetodeMedTidBrukt(name, duration)
+        }
+    }
+
+    fun registerMetodeMedTidBrukt(name: String, duration: Long) {
+        methodToCount.computeIfAbsent(name) { AtomicLong(0) }.incrementAndGet()
+        methodToNanoTime.computeIfAbsent(name) { AtomicLong(0) }.addAndGet(duration)
+    }
+
+    fun getMethodStats(): Map<String, Any> {
+        val result = mutableMapOf<String, Any>()
+
+        methodToNanoTime.keys.forEach { method ->
+            val totalNanos = methodToNanoTime[method]?.get() ?: 0
+            val count = methodToCount[method]?.get() ?: 0
+
+            result[method] = mapOf(
+                "totalTimeMs" to totalNanos / 1_000_000.0f,
+                "count" to count,
+                "avgTimeMs" to if (count > 0) (totalNanos / count) / 1_000_000.0f else 0.0f
+            )
+        }
+
+        return result
+    }
 
     fun execute(block: T.() -> Unit) {
         if (isRunning) {
@@ -97,6 +135,7 @@ class JobMonitor<T : JobMonitor.Stats>(
             "isRunning" to isRunning,
             "startedAt" to startedAt,
             "runtime" to startedAt.durationUntil(stoppedAt),
+            "metodeToMillis" to getMethodStats(),
         ) + stats.asMap() + mapOf(
             "errorCount" to errorCount,
             "exceptions" to exceptions

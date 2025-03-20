@@ -31,7 +31,7 @@ class SkatteHendelsePublisering(
         jobName = "SkatteHendelserJob",
         stats = Stats(),
         canStart = { kafkaContainerMonitor.isKafkaContainerRunning() },
-        canNotStartMessage ="kafka container er stoppet!"
+        canNotStartMessage = "kafka container er stoppet!"
     )
 
     @Async
@@ -51,6 +51,7 @@ class SkatteHendelsePublisering(
             reportStats = { stats ->
                 antallBatcher = stats.antallBatcher
                 sisteBatchSize = stats.sisteBatchSize
+                jobMonitor.registerMetodeMedTidBrukt("hentSkatteHendelser", stats.nanoSecUsed)
             }
         ).forEach { hendelse ->
             if (jobMonitor.shouldStop) return@forEach
@@ -96,8 +97,10 @@ class SkatteHendelsePublisering(
     }
 
     private fun finnPersonMedTreffIGjelderPeriode(hendelse: Hendelse): Person? =
-        personRepository.findPersonByIdent(hendelse.identifikator)?.takeIf { person ->
-            person.harTreffIPeriode(hendelse.gjelderPeriodeSomÅr())
+        jobMonitor.sampleMethod("finnPersonMedTreffIGjelderPeriode") {
+            personRepository.findPersonByIdent(hendelse.identifikator)?.takeIf { person ->
+                person.harTreffIPeriode(hendelse.gjelderPeriodeSomÅr())
+            }
         }
 
     fun stopProsesseringAvSkattHendelser() {

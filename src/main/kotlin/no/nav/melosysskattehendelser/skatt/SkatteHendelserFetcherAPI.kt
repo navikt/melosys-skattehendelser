@@ -22,14 +22,16 @@ class SkatteHendelserFetcherAPI(
     override fun hentHendelser(
         startSeksvensnummer: Long,
         batchDone: (seksvensnummer: Long) -> Unit,
-        reportStats: (stats: Stats) -> Unit
-    ): Sequence<Hendelse> = sequence<Hendelse> {
+        reportStats: (stats: Stats) -> Unit,
+    ) = sequence<Hendelse> {
         var seksvensnummerFra = startSeksvensnummer
         var hendelseListe: List<Hendelse>
         var totaltAntallHendelser = 0
         var antallBatcher = 0
         while (true) {
+            val start = System.nanoTime()
             hendelseListe = hentSkatteHendelser(seksvensnummerFra)
+            val nanoSecUsed = System.nanoTime() - start
             if (hendelseListe.size > batchSize) error("hendelseListe.size ${hendelseListe.size} > batchSize $batchSize")
             val last = hendelseListe.lastOrNull() ?: break
             log.info(
@@ -42,7 +44,9 @@ class SkatteHendelserFetcherAPI(
             Stats(
                 totaltAntallHendelser = totaltAntallHendelser,
                 antallBatcher = ++antallBatcher,
-                sisteBatchSize = hendelseListe.size
+                sisteBatchSize = hendelseListe.size,
+                nanoSecUsed = nanoSecUsed
+
             ).applyReport(reportStats)
         }
         log.info("totalt antall hendelser prossessert: $totaltAntallHendelser seksvensnummerFra er nå: $seksvensnummerFra")
