@@ -48,6 +48,11 @@ spec:
       external:
         - host: "melosys-unleash-api.nav.cloud.nais.io"
         - host: {{sigrun_host}}
+observability:
+  logging:
+    destinations:
+      - id: elastic
+      - id: loki
   prometheus:
     enabled: true
     path: /internal/prometheus
