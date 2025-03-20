@@ -51,7 +51,7 @@ class SkatteHendelsePublisering(
             reportStats = { stats ->
                 antallBatcher = stats.antallBatcher
                 sisteBatchSize = stats.sisteBatchSize
-                jobMonitor.registerMetodeMedTidBrukt("hentSkatteHendelser", stats.nanoSecUsed)
+                jobMonitor.sampleMethod(stats.metodeStats)
             }
         ).forEach { hendelse ->
             if (jobMonitor.shouldStop) return@forEach

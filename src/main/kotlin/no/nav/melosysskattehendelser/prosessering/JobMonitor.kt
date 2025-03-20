@@ -42,23 +42,29 @@ class JobMonitor<T : JobMonitor.Stats>(
     @Volatile
     var exceptions: MutableMap<String, Int> = mutableMapOf()
 
-    val methodToNanoTime = ConcurrentHashMap<String, AtomicLong>()
-    val methodToCount = ConcurrentHashMap<String, AtomicLong>()
+    private val methodToNanoTime = ConcurrentHashMap<String, AtomicLong>()
+    private val methodToCount = ConcurrentHashMap<String, AtomicLong>()
 
-    inline fun <T> sampleMethod(name: String, block: () -> T): T {
+    fun <T> sampleMethod(name: String, block: () -> T): T {
         val start = System.nanoTime()
         try {
             return block()
         } finally {
             val duration = System.nanoTime() - start
 
-            registerMetodeMedTidBrukt(name, duration)
+            sampleMethod(name, duration)
         }
     }
 
-    fun registerMetodeMedTidBrukt(name: String, duration: Long) {
+    fun sampleMethod(name: String, duration: Long) {
         methodToCount.computeIfAbsent(name) { AtomicLong(0) }.incrementAndGet()
         methodToNanoTime.computeIfAbsent(name) { AtomicLong(0) }.addAndGet(duration)
+    }
+
+    fun sampleMethod(metodeTilNanoSec: Map<String, AtomicLong>) {
+        metodeTilNanoSec.forEach {
+            sampleMethod(it.key, it.value.get())
+        }
     }
 
     fun getMethodStats(): Map<String, Any> {
@@ -151,5 +157,19 @@ class JobMonitor<T : JobMonitor.Stats>(
     interface Stats {
         fun reset()
         fun asMap(): Map<String, Any>
+    }
+}
+
+inline fun <T> measure(
+    statsMap: MutableMap<String, AtomicLong>,
+    methodName: String,
+    block: () -> T
+): T {
+    val start = System.nanoTime()
+    try {
+        return block()
+    } finally {
+        val duration = System.nanoTime() - start
+        statsMap.computeIfAbsent(methodName) { AtomicLong(0) }.addAndGet(duration)
     }
 }

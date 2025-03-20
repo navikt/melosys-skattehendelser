@@ -1,5 +1,7 @@
 package no.nav.melosysskattehendelser.skatt
 
+import java.util.concurrent.atomic.AtomicLong
+
 interface SkatteHendelserFetcher {
     fun hentHendelser(
         startSeksvensnummer: Long,
@@ -15,7 +17,7 @@ interface SkatteHendelserFetcher {
         val totaltAntallHendelser: Int,
         val antallBatcher: Int,
         val sisteBatchSize: Int,
-        val nanoSecUsed: Long = 0
+        val metodeStats : Map<String, AtomicLong>,
     ) {
         fun applyReport(reportStats: (Stats) -> Unit) {
             reportStats(this)
