@@ -58,6 +58,7 @@ class SkatteHendelsePublisering(
             totaltAntallHendelser++
             gjelderPeriodeToCount.incrementCount(hendelse.gjelderPeriode)
             registreringstidspunktToCount.incrementCount(hendelse.registreringstidspunktAsYearMonth())
+            hendelsetypeToCount.incrementCount(hendelse.hendelsetype)
             finnPersonMedTreffIGjelderPeriode(hendelse)?.let { person ->
                 metrikker.personFunnet()
                 personerFunnet++
@@ -117,8 +118,9 @@ class SkatteHendelsePublisering(
         @Volatile var sisteSekvensnummer: Long = 0,
         @Volatile var antallBatcher: Int = 0,
         @Volatile var sisteBatchSize: Int = 0,
-        var gjelderPeriodeToCount: ConcurrentHashMap<String, Int> = ConcurrentHashMap(),
-        var registreringstidspunktToCount: ConcurrentHashMap<String, Int> = ConcurrentHashMap()
+        val gjelderPeriodeToCount: ConcurrentHashMap<String, Int> = ConcurrentHashMap(),
+        val registreringstidspunktToCount: ConcurrentHashMap<String, Int> = ConcurrentHashMap(),
+        val hendelsetypeToCount: ConcurrentHashMap<String, Int> = ConcurrentHashMap()
     ) : JobMonitor.Stats {
         override fun reset() {
             totaltAntallHendelser = 0
@@ -136,6 +138,7 @@ class SkatteHendelsePublisering(
             "sisteSekvensnummer" to sisteSekvensnummer,
             "antallBatcher" to antallBatcher,
             "sisteBatchSize" to sisteBatchSize,
+            "hendelsetypeToCount" to hendelsetypeToCount,
             "gjelderPeriodeToCount" to gjelderPeriodeToCount,
             "registreringstidspunktToCount" to registreringstidspunktToCount
         )
