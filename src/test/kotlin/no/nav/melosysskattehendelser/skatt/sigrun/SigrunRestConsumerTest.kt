@@ -75,8 +75,8 @@ class SigrunRestConsumerTest {
 
         hendelseListe
             .shouldContainExactly(
-                Hendelse("2023", "123456", 0, true, hendelsetype = "ny"),
-                Hendelse("2023", "456789", 1, true, hendelsetype = "ny")
+                Hendelse("2023", "123456", 0, true, hendelsetype = "ukjent"),
+                Hendelse("2023", "456789", 1, true, hendelsetype = "ukjent")
             )
     }
 

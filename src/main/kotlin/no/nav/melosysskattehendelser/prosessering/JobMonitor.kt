@@ -1,9 +1,14 @@
 package no.nav.melosysskattehendelser.prosessering
 
+import com.fasterxml.jackson.databind.SerializationFeature
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import mu.KotlinLogging
 import java.time.Duration
 import java.time.LocalDateTime
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicLong
 
 private val log = KotlinLogging.logger {}
 
@@ -37,6 +42,41 @@ class JobMonitor<T : JobMonitor.Stats>(
     @Volatile
     var exceptions: MutableMap<String, Int> = mutableMapOf()
 
+    private val methodToNanoTime = ConcurrentHashMap<String, AtomicLong>()
+    private val methodToCount = ConcurrentHashMap<String, AtomicLong>()
+
+    inline fun <T> measureExecution(methodName: String, block: () -> T): T {
+        val start = System.nanoTime()
+        try {
+            return block()
+        } finally {
+            val duration = System.nanoTime() - start
+            recordMethodMetrics(methodName, duration)
+        }
+    }
+
+    fun recordMethodMetrics(methodName: String, durationNanos: Long) {
+        methodToCount.computeIfAbsent(methodName) { AtomicLong(0) }.incrementAndGet()
+        methodToNanoTime.computeIfAbsent(methodName) { AtomicLong(0) }.addAndGet(durationNanos)
+    }
+
+    fun importMethodMetrics(methodDurations: Map<String, AtomicLong>) {
+        methodDurations.forEach { (methodName, duration) ->
+            recordMethodMetrics(methodName, duration.get())
+        }
+    }
+    private fun methodStats(): Map<String, Map<String, Number>> =
+        methodToNanoTime.keys.associateWith { method ->
+            val totalNanos = methodToNanoTime[method]?.get() ?: 0L
+            val count = methodToCount[method]?.get() ?: 0L
+
+            mapOf(
+                "totalTimeMs" to totalNanos / 1_000_000.0,
+                "count" to count,
+                "avgTimeMs" to if (count > 0) (totalNanos / count) / 1_000_000.0 else 0.0
+            )
+        }
+
     fun execute(block: T.() -> Unit) {
         if (isRunning) {
             log.warn("Job '$jobName' is already running.")
@@ -48,9 +88,12 @@ class JobMonitor<T : JobMonitor.Stats>(
         }
         isRunning = true
         startedAt = LocalDateTime.now()
+        stoppedAt = null
         errorCount = 0
         exceptions.clear()
         stats.reset()
+        methodToNanoTime.clear()
+        methodToCount.clear()
         return try {
             stats.block()
         } catch (ex: Exception) {
@@ -61,11 +104,14 @@ class JobMonitor<T : JobMonitor.Stats>(
             isRunning = false
             shouldStop = false
             stoppedAt = LocalDateTime.now()
-            log.info("Job '$jobName' completed. Runtime: ${startedAt.durationUntil(stoppedAt)}")
+            log.info(
+                "Job '$jobName' completed. Runtime: ${startedAt.durationUntil(stoppedAt)}" +
+                        "\nStats: ${status().toJson()}"
+            )
         }
     }
 
-    fun registerException(e: Throwable) {
+     private fun registerException(e: Throwable) {
         val msg = e.message ?: e::class.simpleName ?: "Unknown error"
         exceptions[msg] = exceptions.getOrDefault(msg, 0) + 1
         if (errorCount++ >= maxErrorsBeforeStop) {
@@ -75,7 +121,7 @@ class JobMonitor<T : JobMonitor.Stats>(
     }
 
     fun stop() {
-        log.info("Stopping job '$jobName' stats:${status()}")
+        log.info("Stopping job '$jobName' stats: ${status().toJson()}")
         shouldStop = true
     }
 
@@ -91,10 +137,18 @@ class JobMonitor<T : JobMonitor.Stats>(
             "isRunning" to isRunning,
             "startedAt" to startedAt,
             "runtime" to startedAt.durationUntil(stoppedAt),
+            "metodeToMillis" to methodStats(),
         ) + stats.asMap() + mapOf(
             "errorCount" to errorCount,
             "exceptions" to exceptions
         )
+
+    private fun Any.toJson() = jacksonObjectMapper()
+        .configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false)
+        .registerModule(JavaTimeModule())
+        .writerWithDefaultPrettyPrinter()
+        .writeValueAsString(this)
+
 
     interface Stats {
         fun reset()

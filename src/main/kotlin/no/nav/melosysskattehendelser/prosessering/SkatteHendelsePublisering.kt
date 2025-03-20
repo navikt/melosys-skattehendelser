@@ -13,6 +13,7 @@ import no.nav.melosysskattehendelser.skatt.Hendelse
 import no.nav.melosysskattehendelser.skatt.SkatteHendelserFetcher
 import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Component
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.jvm.optionals.getOrNull
 
 @Component
@@ -30,7 +31,7 @@ class SkatteHendelsePublisering(
         jobName = "SkatteHendelserJob",
         stats = Stats(),
         canStart = { kafkaContainerMonitor.isKafkaContainerRunning() },
-        canNotStartMessage ="kafka container er stoppet!"
+        canNotStartMessage = "kafka container er stoppet!"
     )
 
     @Async
@@ -50,11 +51,15 @@ class SkatteHendelsePublisering(
             reportStats = { stats ->
                 antallBatcher = stats.antallBatcher
                 sisteBatchSize = stats.sisteBatchSize
+                jobMonitor.importMethodMetrics(stats.metodeStats)
             }
         ).forEach { hendelse ->
             if (jobMonitor.shouldStop) return@forEach
             metrikker.hendelseHentet()
             totaltAntallHendelser++
+            gjelderPeriodeToCount.incrementCount(hendelse.gjelderPeriode)
+            registreringstidspunktToCount.incrementCount(hendelse.registreringstidspunktAsYearMonth())
+            hendelsetypeToCount.incrementCount(hendelse.hendelsetype)
             finnPersonMedTreffIGjelderPeriode(hendelse)?.let { person ->
                 metrikker.personFunnet()
                 personerFunnet++
@@ -87,9 +92,15 @@ class SkatteHendelsePublisering(
         }
     }
 
+    private fun <K> MutableMap<K, Int>.incrementCount(key: K, incrementBy: Int = 1) {
+        this[key] = getOrDefault(key, 0) + incrementBy
+    }
+
     private fun finnPersonMedTreffIGjelderPeriode(hendelse: Hendelse): Person? =
-        personRepository.findPersonByIdent(hendelse.identifikator)?.takeIf { person ->
-            person.harTreffIPeriode(hendelse.gjelderPeriodeSomÅr())
+        jobMonitor.measureExecution("finnPersonMedTreffIGjelderPeriode") {
+            personRepository.findPersonByIdent(hendelse.identifikator)?.takeIf { person ->
+                person.harTreffIPeriode(hendelse.gjelderPeriodeSomÅr())
+            }
         }
 
     fun stopProsesseringAvSkattHendelser() {
@@ -109,7 +120,10 @@ class SkatteHendelsePublisering(
         @Volatile var personerFunnet: Int = 0,
         @Volatile var sisteSekvensnummer: Long = 0,
         @Volatile var antallBatcher: Int = 0,
-        @Volatile var sisteBatchSize: Int = 0
+        @Volatile var sisteBatchSize: Int = 0,
+        val gjelderPeriodeToCount: ConcurrentHashMap<String, Int> = ConcurrentHashMap(),
+        val registreringstidspunktToCount: ConcurrentHashMap<String, Int> = ConcurrentHashMap(),
+        val hendelsetypeToCount: ConcurrentHashMap<String, Int> = ConcurrentHashMap()
     ) : JobMonitor.Stats {
         override fun reset() {
             totaltAntallHendelser = 0
@@ -117,6 +131,9 @@ class SkatteHendelsePublisering(
             sisteSekvensnummer = 0
             antallBatcher = 0
             sisteBatchSize = 0
+            gjelderPeriodeToCount.clear()
+            registreringstidspunktToCount.clear()
+            hendelsetypeToCount.clear()
         }
 
         override fun asMap() = mapOf(
@@ -125,6 +142,9 @@ class SkatteHendelsePublisering(
             "sisteSekvensnummer" to sisteSekvensnummer,
             "antallBatcher" to antallBatcher,
             "sisteBatchSize" to sisteBatchSize,
+            "hendelsetypeToCount" to hendelsetypeToCount,
+            "gjelderPeriodeToCount" to gjelderPeriodeToCount,
+            "registreringstidspunktToCount" to registreringstidspunktToCount
         )
     }
 }
