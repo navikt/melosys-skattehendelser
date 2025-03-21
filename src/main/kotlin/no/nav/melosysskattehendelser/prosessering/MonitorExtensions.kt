@@ -15,3 +15,7 @@ inline fun <T> measure(
         statsMap.computeIfAbsent(methodName) { AtomicLong(0) }.addAndGet(duration)
     }
 }
+
+fun <K> MutableMap<K, Int>.incrementCount(key: K, incrementBy: Int = 1) {
+    this[key] = getOrDefault(key, 0) + incrementBy
+}

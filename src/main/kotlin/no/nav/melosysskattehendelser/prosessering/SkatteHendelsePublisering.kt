@@ -92,10 +92,6 @@ class SkatteHendelsePublisering(
         }
     }
 
-    private fun <K> MutableMap<K, Int>.incrementCount(key: K, incrementBy: Int = 1) {
-        this[key] = getOrDefault(key, 0) + incrementBy
-    }
-
     private fun finnPersonMedTreffIGjelderPeriode(hendelse: Hendelse): Person? =
         jobMonitor.measureExecution("finnPersonMedTreffIGjelderPeriode") {
             personRepository.findPersonByIdent(hendelse.identifikator)?.takeIf { person ->
