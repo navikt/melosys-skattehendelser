@@ -1,5 +1,6 @@
 package no.nav.melosysskattehendelser.prosessering
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import mu.KotlinLogging
 import no.nav.melosysskattehendelser.domain.Person
 import no.nav.melosysskattehendelser.domain.PersonRepository
@@ -11,6 +12,7 @@ import no.nav.melosysskattehendelser.melosys.toMelosysSkatteHendelse
 import no.nav.melosysskattehendelser.metrics.Metrikker
 import no.nav.melosysskattehendelser.skatt.Hendelse
 import no.nav.melosysskattehendelser.skatt.SkatteHendelserFetcher
+import org.springframework.core.env.Environment
 import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Component
 import java.util.concurrent.ConcurrentHashMap
@@ -23,7 +25,7 @@ class SkatteHendelsePublisering(
     private val skatteHendelserStatusRepository: SkatteHendelserStatusRepository,
     private val skattehendelserProducer: SkattehendelserProducer,
     private val metrikker: Metrikker,
-    kafkaContainerMonitor: KafkaContainerMonitor
+    kafkaContainerMonitor: KafkaContainerMonitor,
 ) {
     private val log = KotlinLogging.logger { }
 
@@ -35,11 +37,11 @@ class SkatteHendelsePublisering(
     )
 
     @Async
-    fun asynkronProsesseringAvSkattHendelser() {
-        prosesserSkattHendelser()
+    fun asynkronProsesseringAvSkattHendelser(options: Options) {
+        prosesserSkattHendelser(options)
     }
 
-    fun prosesserSkattHendelser() = jobMonitor.execute {
+    fun prosesserSkattHendelser(options: Options = Options()) = jobMonitor.execute {
         val start = skatteHendelserStatusRepository.findById(skatteHendelserFetcher.consumerId)
             .getOrNull()?.sekvensnummer ?: skatteHendelserFetcher.startSekvensnummer
 
@@ -54,12 +56,13 @@ class SkatteHendelsePublisering(
                 jobMonitor.importMethodMetrics(stats.metodeStats)
             }
         ).forEach { hendelse ->
-            if (jobMonitor.shouldStop) return@forEach
+            if (jobMonitor.shouldStop) return@execute
             metrikker.hendelseHentet()
             totaltAntallHendelser++
             gjelderPeriodeToCount.incrementCount(hendelse.gjelderPeriode)
             registreringstidspunktToCount.incrementCount(hendelse.registreringstidspunktAsYearMonth())
             hendelsetypeToCount.incrementCount(hendelse.hendelsetype)
+            if (options.dryRun) return@forEach
             finnPersonMedTreffIGjelderPeriode(hendelse)?.let { person ->
                 metrikker.personFunnet()
                 personerFunnet++
@@ -142,5 +145,22 @@ class SkatteHendelsePublisering(
             "gjelderPeriodeToCount" to gjelderPeriodeToCount,
             "registreringstidspunktToCount" to registreringstidspunktToCount
         )
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    data class Options(
+        val dryRun: Boolean = false,
+        val filterSaksnummer: String? = null,
+    ) {
+        companion object {
+            fun av(environment: Environment): Options {
+                val profiles = environment.activeProfiles
+                val isDryRun = profiles.contains("default") || profiles.isEmpty() // default for prod er dryRun true
+
+                return Options(
+                    dryRun = isDryRun,
+                )
+            }
+        }
     }
 }

@@ -8,6 +8,7 @@ import no.nav.melosysskattehendelser.domain.PersonRepository
 import no.nav.melosysskattehendelser.domain.SekvensHistorikk
 import no.nav.melosysskattehendelser.melosys.consumer.KafkaContainerMonitor
 import no.nav.security.token.support.core.api.Unprotected
+import org.springframework.core.env.Environment
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -20,18 +21,23 @@ private val log = KotlinLogging.logger { }
 class AdminController(
     private val skatteHendelsePublisering: SkatteHendelsePublisering,
     private val personRepository: PersonRepository,
-    private val kafkaContainerMonitor: KafkaContainerMonitor
+    private val kafkaContainerMonitor: KafkaContainerMonitor,
+    private val environment: Environment
 ) {
     @PostMapping("/hendelseprosessering/start")
-    fun startHendelseProsessering(): ResponseEntity<String> {
-        log.info("Starter hendelseprosessering")
+    fun startHendelseProsessering(
+        @RequestBody(required = false) options: SkatteHendelsePublisering.Options = options()
+    ): ResponseEntity<String> {
+        log.info("Starter hendelseprosessering. Options: $options")
         if (kafkaContainerMonitor.isKafkaContainerStopped()) {
             return ResponseEntity("Kafka container har stoppet", HttpStatus.SERVICE_UNAVAILABLE)
         }
 
-        skatteHendelsePublisering.asynkronProsesseringAvSkattHendelser()
-        return ResponseEntity.ok("Hendelseprosessering startet")
+        skatteHendelsePublisering.asynkronProsesseringAvSkattHendelser(options)
+        return ResponseEntity.ok("Hendelseprosessering startet. Options: ${options}")
     }
+
+    private fun options() = SkatteHendelsePublisering.Options.av(environment)
 
     @PostMapping("/hendelseprosessering/stop")
     fun stopHendelseProsessering(): ResponseEntity<String> {
