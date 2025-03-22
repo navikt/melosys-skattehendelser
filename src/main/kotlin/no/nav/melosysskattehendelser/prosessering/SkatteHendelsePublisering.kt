@@ -58,11 +58,7 @@ class SkatteHendelsePublisering(
         ).forEach { hendelse ->
             if (jobMonitor.shouldStop) return@execute
             metrikker.hendelseHentet()
-            totaltAntallHendelser++
-            gjelderPeriodeToCount.incrementCount(hendelse.gjelderPeriode)
-            registreringstidspunktToCount.incrementCount(hendelse.registreringstidspunktAsYearMonth())
-            hendelsetypeToCount.incrementCount(hendelse.hendelsetype)
-            identifikatorToCount.incrementCount(hendelse.identifikator)
+            registerHendelseStats(hendelse)
             if (options.dryRun) return@forEach
             finnPersonMedTreffIGjelderPeriode(hendelse)?.let { person ->
                 metrikker.personFunnet()
@@ -126,6 +122,14 @@ class SkatteHendelsePublisering(
         val hendelsetypeToCount: ConcurrentHashMap<String, Int> = ConcurrentHashMap(),
         val identifikatorToCount: ConcurrentHashMap<String, Int> = ConcurrentHashMap()
     ) : JobMonitor.Stats {
+        fun registerHendelseStats(hendelse: Hendelse) {
+            totaltAntallHendelser++
+            gjelderPeriodeToCount.incrementCount(hendelse.gjelderPeriode)
+            registreringstidspunktToCount.incrementCount(hendelse.registreringstidspunktAsYearMonth())
+            hendelsetypeToCount.incrementCount(hendelse.hendelsetype)
+            identifikatorToCount.incrementCount(hendelse.identifikator)
+        }
+
         override fun reset() {
             totaltAntallHendelser = 0
             personerFunnet = 0
