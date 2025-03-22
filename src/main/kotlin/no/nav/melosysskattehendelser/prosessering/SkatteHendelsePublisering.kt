@@ -106,6 +106,8 @@ class SkatteHendelsePublisering(
 
     fun status() = jobMonitor.status()
 
+    fun finnHendelser(identifikator: String): List<Hendelse>? = jobMonitor.stats.identifikatorDuplikatToHendelse[identifikator]
+
     private fun oppdaterStatus(sekvensnummer: Long) {
         jobMonitor.stats.sisteSekvensnummer = sekvensnummer
         skatteHendelserStatusRepository.save(SkatteHendelserSekvens(skatteHendelserFetcher.consumerId, sekvensnummer))
@@ -120,15 +122,17 @@ class SkatteHendelsePublisering(
         val gjelderPeriodeToCount: ConcurrentHashMap<String, Int> = ConcurrentHashMap(),
         val registreringstidspunktToCount: ConcurrentHashMap<String, Int> = ConcurrentHashMap(),
         val hendelsetypeToCount: ConcurrentHashMap<String, Int> = ConcurrentHashMap(),
-        val identifikatorToCount: ConcurrentHashMap<String, Int> = ConcurrentHashMap()
+        val identifikatorDuplikatToHendelse: ConcurrentHashMap<String, MutableList<Hendelse>> = ConcurrentHashMap()
     ) : JobMonitor.Stats {
         fun registerHendelseStats(hendelse: Hendelse) {
             totaltAntallHendelser++
             gjelderPeriodeToCount.incrementCount(hendelse.gjelderPeriode)
             registreringstidspunktToCount.incrementCount(hendelse.registreringstidspunktAsYearMonth())
-            hendelsetypeToCount.incrementCount(hendelse.hendelsetype)
-            identifikatorToCount.incrementCount(hendelse.identifikator)
+            val hendelseList = identifikatorDuplikatToHendelse.getOrDefault(hendelse.identifikator, mutableListOf())
+            hendelseList.add(hendelse)
+            identifikatorDuplikatToHendelse[hendelse.identifikator] = hendelseList
         }
+
 
         override fun reset() {
             totaltAntallHendelser = 0
@@ -147,10 +151,32 @@ class SkatteHendelsePublisering(
             "sisteSekvensnummer" to sisteSekvensnummer,
             "antallBatcher" to antallBatcher,
             "sisteBatchSize" to sisteBatchSize,
+            "identifikatorDuplikatCount" to identifikatorDuplikatToHendelse.size,
             "hendelsetypeToCount" to hendelsetypeToCount,
             "gjelderPeriodeToCount" to gjelderPeriodeToCount,
             "registreringstidspunktToCount" to registreringstidspunktToCount,
-            "fntToCountFiltered" to identifikatorToCount.filter { it.value > 1 }
+
+            "identifikatorToCount" to identifikatorDuplikatToHendelse
+                .filter { it.value.size > 1 }
+                .entries
+                .sortedByDescending { it.value.size }
+                .take(100)
+                .associate { it.key to it.value.size },
+
+            "identifikatorToHendelse" to identifikatorDuplikatToHendelse
+                .filter { it.value.size > 1 }
+                .entries
+                .sortedByDescending { it.value.size }
+                .take(10)
+                .associate {
+                    it.key to it.value.map {
+                        mapOf(
+                            "sekvensnummer" to it.sekvensnummer,
+                            "gjelderPeriode" to it.gjelderPeriode,
+                            "registreringstidspunkt" to it.registreringstidspunkt,
+                        )
+                    }
+                }
         )
     }
 
