@@ -42,8 +42,7 @@ class SkatteHendelsePublisering(
     }
 
     fun prosesserSkattHendelser(options: Options = Options()) = jobMonitor.execute {
-        val start = skatteHendelserStatusRepository.findById(skatteHendelserFetcher.consumerId)
-            .getOrNull()?.sekvensnummer ?: skatteHendelserFetcher.startSekvensnummer
+        val start = hentStartSekvensNummer()
 
         skatteHendelserFetcher.hentHendelser(
             startSeksvensnummer = start,
@@ -78,6 +77,13 @@ class SkatteHendelsePublisering(
         }
     }
 
+    private fun hentStartSekvensNummer(): Long {
+        val sekvensnummer = skatteHendelserStatusRepository.findById(skatteHendelserFetcher.consumerId)
+            .getOrNull()?.sekvensnummer?.also { log.info { "Sekvensnummer:$it funnet i databasen" } }
+
+        return sekvensnummer ?: skatteHendelserFetcher.startSekvensnummer
+    }
+
     private fun publiserMelding(hendelse: Hendelse, person: Person) {
         try {
             skattehendelserProducer.publiserMelding(hendelse.toMelosysSkatteHendelse())
@@ -106,7 +112,8 @@ class SkatteHendelsePublisering(
 
     fun status() = jobMonitor.status()
 
-    fun finnHendelser(identifikator: String): List<Hendelse>? = jobMonitor.stats.identifikatorDuplikatToHendelse[identifikator]
+    fun finnHendelser(identifikator: String): List<Hendelse>? =
+        jobMonitor.stats.identifikatorDuplikatToHendelse[identifikator]
 
     private fun oppdaterStatus(sekvensnummer: Long) {
         jobMonitor.stats.sisteSekvensnummer = sekvensnummer
