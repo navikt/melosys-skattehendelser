@@ -170,13 +170,22 @@ class SkatteHendelsePublisering(
                 .take(100)
                 .associate { it.key to it.value.size },
 
-            "identifikatorToHendelse" to identifikatorDuplikatToHendelse
+            "identifikatorToMoreThanOne2024PeriodeCount" to identifikatorDuplikatToHendelse
                 .filter { it.value.size > 1 }
+                .filter { it.value.filter { it.gjelderPeriode == "2024" }.size > 1 }
                 .entries
-                .sortedByDescending { it.value.size }
+                .sortedByDescending { it.value.filter { it.gjelderPeriode == "2024" }.size }
+                .take(100)
+                .associate { it.key to it.value.filter { it.gjelderPeriode == "2024" }.size },
+
+            "identifikatorToHendelse2024Periode" to identifikatorDuplikatToHendelse
+                .filter { it.value.size > 1 }
+                .filter { it.value.filter { it.gjelderPeriode == "2024" }.size > 1 }
+                .entries
+                .sortedByDescending { it.value.filter { it.gjelderPeriode == "2024" }.size }
                 .take(10)
                 .associate {
-                    it.key to it.value.map {
+                    it.key to it.value.filter { it.gjelderPeriode == "2024" }.map {
                         mapOf(
                             "sekvensnummer" to it.sekvensnummer,
                             "gjelderPeriode" to it.gjelderPeriode,
