@@ -175,25 +175,30 @@ class SkatteHendelsePublisering(
                 .associate { it.key to it.value.size },
 
             "identifikatorToMoreThanOne${periodeFilter}PeriodeCount" to identifikatorDuplikatToHendelse
-                .mapValues { it.value.filter { it.gjelderPeriode == periodeFilter } }
-                .filter { it.value.size > 1 }
-                .entries
-                .sortedByDescending { it.value.size }
+                .asSequence()
+                .map { (identifikator, hendelser) ->
+                    identifikator to hendelser.count { it.gjelderPeriode == periodeFilter }
+                }
+                .filter { (_, count) -> count > 1 }
+                .sortedByDescending { (_, count) -> count }
                 .take(100)
-                .associate { it.key to it.value.size },
+                .toMap(),
 
             "identifikatorToHendelse${periodeFilter}Periode" to identifikatorDuplikatToHendelse
-                .mapValues { it.value.filter { it.gjelderPeriode == periodeFilter } }
-                .filter { it.value.size > 1 }
-                .entries
-                .sortedByDescending { it.value.size }
+                .asSequence()
+                .map { (identifikator, hendelser) ->
+                    val filteredHendelser = hendelser.filter { it.gjelderPeriode == periodeFilter }
+                    identifikator to filteredHendelser
+                }
+                .filter { (_, filteredHendelser) -> filteredHendelser.size > 1 }
+                .sortedByDescending { (_, filteredHendelser) -> filteredHendelser.size }
                 .take(10)
-                .associate {
-                    it.key to it.value.map {
+                .associate { (key, filteredHendelser) ->
+                    key to filteredHendelser.map { hendelse ->
                         mapOf(
-                            "sekvensnummer" to it.sekvensnummer,
-                            "gjelderPeriode" to it.gjelderPeriode,
-                            "registreringstidspunkt" to it.registreringstidspunkt,
+                            "sekvensnummer" to hendelse.sekvensnummer,
+                            "gjelderPeriode" to hendelse.gjelderPeriode,
+                            "registreringstidspunkt" to hendelse.registreringstidspunkt,
                         )
                     }
                 }
