@@ -47,7 +47,8 @@ class AdminController(
     }
 
     @GetMapping("/hendelseprosessering/status")
-    fun status() = ResponseEntity<Map<String, Any?>>(skatteHendelsePublisering.status(), HttpStatus.OK)
+    fun status(@RequestParam(value = "periodeFilter", required = false) periodeFilter: String = "2024") =
+        ResponseEntity<Map<String, Any?>>(skatteHendelsePublisering.status(periodeFilter), HttpStatus.OK)
 
     @GetMapping("/hendelseprosessering/status/hendelser/{identifikator}")
     fun hendelser(@PathVariable identifikator: String) =

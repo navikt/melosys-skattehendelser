@@ -110,7 +110,10 @@ class SkatteHendelsePublisering(
         jobMonitor.stop()
     }
 
-    fun status() = jobMonitor.status()
+    fun status(periodeFilter: String): Map<String, Any?> {
+        jobMonitor.stats.periodeFilter = periodeFilter
+        return jobMonitor.status()
+    }
 
     fun finnHendelser(identifikator: String): List<Hendelse>? =
         jobMonitor.stats.identifikatorDuplikatToHendelse[identifikator]
@@ -129,7 +132,8 @@ class SkatteHendelsePublisering(
         val gjelderPeriodeToCount: ConcurrentHashMap<String, Int> = ConcurrentHashMap(),
         val registreringstidspunktToCount: ConcurrentHashMap<String, Int> = ConcurrentHashMap(),
         val hendelsetypeToCount: ConcurrentHashMap<String, Int> = ConcurrentHashMap(),
-        val identifikatorDuplikatToHendelse: ConcurrentHashMap<String, MutableList<Hendelse>> = ConcurrentHashMap()
+        val identifikatorDuplikatToHendelse: ConcurrentHashMap<String, MutableList<Hendelse>> = ConcurrentHashMap(),
+        var periodeFilter: String? = "2024"
     ) : JobMonitor.Stats {
         fun registerHendelseStats(hendelse: Hendelse) {
             totaltAntallHendelser++
@@ -170,22 +174,22 @@ class SkatteHendelsePublisering(
                 .take(100)
                 .associate { it.key to it.value.size },
 
-            "identifikatorToMoreThanOne2024PeriodeCount" to identifikatorDuplikatToHendelse
+            "identifikatorToMoreThanOne${periodeFilter}PeriodeCount" to identifikatorDuplikatToHendelse
+                .mapValues { it.value.filter { it.gjelderPeriode == periodeFilter } }
                 .filter { it.value.size > 1 }
-                .filter { it.value.filter { it.gjelderPeriode == "2024" }.size > 1 }
                 .entries
-                .sortedByDescending { it.value.filter { it.gjelderPeriode == "2024" }.size }
+                .sortedByDescending { it.value.size }
                 .take(100)
-                .associate { it.key to it.value.filter { it.gjelderPeriode == "2024" }.size },
+                .associate { it.key to it.value.size },
 
-            "identifikatorToHendelse2024Periode" to identifikatorDuplikatToHendelse
+            "identifikatorToHendelse${periodeFilter}Periode" to identifikatorDuplikatToHendelse
+                .mapValues { it.value.filter { it.gjelderPeriode == periodeFilter } }
                 .filter { it.value.size > 1 }
-                .filter { it.value.filter { it.gjelderPeriode == "2024" }.size > 1 }
                 .entries
-                .sortedByDescending { it.value.filter { it.gjelderPeriode == "2024" }.size }
+                .sortedByDescending { it.value.size }
                 .take(10)
                 .associate {
-                    it.key to it.value.filter { it.gjelderPeriode == "2024" }.map {
+                    it.key to it.value.map {
                         mapOf(
                             "sekvensnummer" to it.sekvensnummer,
                             "gjelderPeriode" to it.gjelderPeriode,
@@ -199,7 +203,7 @@ class SkatteHendelsePublisering(
     @JsonIgnoreProperties(ignoreUnknown = true)
     data class Options(
         val dryRun: Boolean = false,
-        val filterSaksnummer: String? = null,
+        val filterSaksnummer: String? = null
     ) {
         companion object {
             fun av(environment: Environment): Options {
