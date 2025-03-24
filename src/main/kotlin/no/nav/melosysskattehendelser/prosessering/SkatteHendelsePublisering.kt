@@ -156,53 +156,60 @@ class SkatteHendelsePublisering(
             hendelsetypeToCount.clear()
         }
 
-        override fun asMap() = mapOf(
-            "totaltAntallHendelser" to totaltAntallHendelser,
-            "personerFunnet" to personerFunnet,
-            "sisteSekvensnummer" to sisteSekvensnummer,
-            "antallBatcher" to antallBatcher,
-            "sisteBatchSize" to sisteBatchSize,
-            "identifikatorDuplikatCount" to identifikatorDuplikatToHendelse.size,
-            "hendelsetypeToCount" to hendelsetypeToCount,
-            "gjelderPeriodeToCount" to gjelderPeriodeToCount,
-            "registreringstidspunktToCount" to registreringstidspunktToCount,
-
-            "identifikatorToCount" to identifikatorDuplikatToHendelse
-                .filter { it.value.size > 1 }
-                .entries
-                .sortedByDescending { it.value.size }
-                .take(100)
-                .associate { it.key to it.value.size },
-
-            "identifikatorToMoreThanOne${periodeFilter}PeriodeCount" to identifikatorDuplikatToHendelse
+        override fun asMap(): Map<String, Any> {
+            val identifikatorsWithMoreThanOnePeriode = identifikatorDuplikatToHendelse
                 .asSequence()
                 .map { (identifikator, hendelser) ->
-                    identifikator to hendelser.count { it.gjelderPeriode == periodeFilter }
+                    val count = hendelser.count { it.gjelderPeriode == periodeFilter }
+                    Triple(identifikator, hendelser, count)
                 }
-                .filter { (_, count) -> count > 1 }
-                .sortedByDescending { (_, count) -> count }
-                .take(100)
-                .toMap(),
+                .filter { (_, _, count) -> count > 1 }
+                .sortedByDescending { (_, _, count) -> count }
+                .toList()
 
-            "identifikatorToHendelse${periodeFilter}Periode" to identifikatorDuplikatToHendelse
-                .asSequence()
-                .map { (identifikator, hendelser) ->
-                    val filteredHendelser = hendelser.filter { it.gjelderPeriode == periodeFilter }
-                    identifikator to filteredHendelser
-                }
-                .filter { (_, filteredHendelser) -> filteredHendelser.size > 1 }
-                .sortedByDescending { (_, filteredHendelser) -> filteredHendelser.size }
-                .take(10)
-                .associate { (key, filteredHendelser) ->
-                    key to filteredHendelser.map { hendelse ->
-                        mapOf(
-                            "sekvensnummer" to hendelse.sekvensnummer,
-                            "gjelderPeriode" to hendelse.gjelderPeriode,
-                            "registreringstidspunkt" to hendelse.registreringstidspunkt,
-                        )
+            return mapOf(
+                "totaltAntallHendelser" to totaltAntallHendelser,
+                "personerFunnet" to personerFunnet,
+                "sisteSekvensnummer" to sisteSekvensnummer,
+                "antallBatcher" to antallBatcher,
+                "sisteBatchSize" to sisteBatchSize,
+                "identifikatorDuplikatCount" to identifikatorDuplikatToHendelse.size,
+                "hendelsetypeToCount" to hendelsetypeToCount,
+                "gjelderPeriodeToCount" to gjelderPeriodeToCount,
+                "registreringstidspunktToCount" to registreringstidspunktToCount,
+
+                "identifikatorToCount" to identifikatorDuplikatToHendelse
+                    .filter { it.value.size > 1 }
+                    .entries
+                    .sortedByDescending { it.value.size }
+                    .take(100)
+                    .associate { it.key to it.value.size },
+
+                "moreThanOne${periodeFilter}PeriodeCount" to identifikatorsWithMoreThanOnePeriode.size,
+
+                "identifikatorToMoreThanOne${periodeFilter}PeriodeCount" to identifikatorsWithMoreThanOnePeriode
+                    .take(100)
+                    .associate { (identifikator, _, count) -> identifikator to count },
+
+                "identifikatorToHendelse${periodeFilter}Periode" to identifikatorDuplikatToHendelse
+                    .asSequence()
+                    .map { (identifikator, hendelser) ->
+                        identifikator to hendelser.filter { it.gjelderPeriode == periodeFilter }
                     }
-                }
-        )
+                    .filter { (_, filteredHendelser) -> filteredHendelser.size > 1 }
+                    .sortedByDescending { (_, filteredHendelser) -> filteredHendelser.size }
+                    .take(10)
+                    .associate { (key, filteredHendelser) ->
+                        key to filteredHendelser.map { hendelse ->
+                            mapOf(
+                                "sekvensnummer" to hendelse.sekvensnummer,
+                                "gjelderPeriode" to hendelse.gjelderPeriode,
+                                "registreringstidspunkt" to hendelse.registreringstidspunkt,
+                            )
+                        }
+                    }
+            )
+        }
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
