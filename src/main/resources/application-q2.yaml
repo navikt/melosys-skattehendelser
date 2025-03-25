@@ -17,7 +17,7 @@ CLUSTER_SIGRUN: dev-fss
 APP_NAME_SIGRUN: sigrun-q2
 KAFKA_BROKERS: localhost:29092
 KAFKA_VEDTAK_TOPIC: teammelosys.melosys-hendelser-local
-KAFKA_SKATTEHENDELSE_TOPIC: teammelosys.melosys-skattehendelser-local
+KAFKA_SKATTEHENDELSE_TOPIC: teammelosys.skattehendelser.v1-local
 AZURE_APP_CLIENT_ID: 1e140b30-6daf-4383-aab5-bba972467d32
 SIGRUN_REST_URL: https://sigrun-q2.dev.adeo.no
 ADMIN_API_KEY: dummy
