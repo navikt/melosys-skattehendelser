@@ -20,7 +20,6 @@ class SkatteHendelserFetcherAPI(
         log.info("batchSize er satt til $batchSize, startDato er satt til $startDato")
     }
 
-
     override fun hentHendelser(
         startSeksvensnummer: Long,
         batchDone: (seksvensnummer: Long) -> Unit,
@@ -37,9 +36,9 @@ class SkatteHendelserFetcherAPI(
             }
             if (hendelseListe.size > batchSize) error("hendelseListe.size ${hendelseListe.size} > batchSize $batchSize")
             val last = hendelseListe.lastOrNull() ?: break
-            log.info(
+            log.debug {
                 "Hentet ${hendelseListe.size} hendelser fra sekvensnummer $seksvensnummerFra til ${last.sekvensnummer}"
-            )
+            }
             seksvensnummerFra = last.sekvensnummer + 1
             yieldAll(hendelseListe)
             batchDone(seksvensnummerFra)
@@ -65,11 +64,8 @@ class SkatteHendelserFetcherAPI(
     override val consumerId
         get() = skatteHendelseConsumer.getConsumerId()
 
-    override val startSekvensnummer
-        get() = skatteHendelseConsumer.getStartSekvensnummer(
-            startDato
-                .apply {
-                    log.info("start dato for startSekvensnummer: $this")
-                }
-        )
+    override val startSekvensnummer: Long
+        get() = skatteHendelseConsumer.getStartSekvensnummer(startDato).also {
+            log.info("Start sekvensnummer:$it fra $startDato hentet for ${skatteHendelseConsumer.getConsumerId()}")
+        }
 }

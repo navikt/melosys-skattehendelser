@@ -1,5 +1,6 @@
 package no.nav.melosysskattehendelser.prosessering
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import mu.KotlinLogging
 import no.nav.melosysskattehendelser.domain.Person
 import no.nav.melosysskattehendelser.domain.PersonRepository
@@ -11,6 +12,7 @@ import no.nav.melosysskattehendelser.melosys.toMelosysSkatteHendelse
 import no.nav.melosysskattehendelser.metrics.Metrikker
 import no.nav.melosysskattehendelser.skatt.Hendelse
 import no.nav.melosysskattehendelser.skatt.SkatteHendelserFetcher
+import org.springframework.core.env.Environment
 import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Component
 import java.util.concurrent.ConcurrentHashMap
@@ -23,7 +25,7 @@ class SkatteHendelsePublisering(
     private val skatteHendelserStatusRepository: SkatteHendelserStatusRepository,
     private val skattehendelserProducer: SkattehendelserProducer,
     private val metrikker: Metrikker,
-    kafkaContainerMonitor: KafkaContainerMonitor
+    kafkaContainerMonitor: KafkaContainerMonitor,
 ) {
     private val log = KotlinLogging.logger { }
 
@@ -35,13 +37,12 @@ class SkatteHendelsePublisering(
     )
 
     @Async
-    fun asynkronProsesseringAvSkattHendelser() {
-        prosesserSkattHendelser()
+    fun asynkronProsesseringAvSkattHendelser(options: Options) {
+        prosesserSkattHendelser(options)
     }
 
-    fun prosesserSkattHendelser() = jobMonitor.execute {
-        val start = skatteHendelserStatusRepository.findById(skatteHendelserFetcher.consumerId)
-            .getOrNull()?.sekvensnummer ?: skatteHendelserFetcher.startSekvensnummer
+    fun prosesserSkattHendelser(options: Options = Options()) = jobMonitor.execute {
+        val start = hentStartSekvensNummer()
 
         skatteHendelserFetcher.hentHendelser(
             startSeksvensnummer = start,
@@ -54,12 +55,10 @@ class SkatteHendelsePublisering(
                 jobMonitor.importMethodMetrics(stats.metodeStats)
             }
         ).forEach { hendelse ->
-            if (jobMonitor.shouldStop) return@forEach
+            if (jobMonitor.shouldStop) return@execute
             metrikker.hendelseHentet()
-            totaltAntallHendelser++
-            gjelderPeriodeToCount.incrementCount(hendelse.gjelderPeriode)
-            registreringstidspunktToCount.incrementCount(hendelse.registreringstidspunktAsYearMonth())
-            hendelsetypeToCount.incrementCount(hendelse.hendelsetype)
+            registerHendelseStats(hendelse)
+            if (options.dryRun) return@forEach
             finnPersonMedTreffIGjelderPeriode(hendelse)?.let { person ->
                 metrikker.personFunnet()
                 personerFunnet++
@@ -78,6 +77,13 @@ class SkatteHendelsePublisering(
         }
     }
 
+    private fun hentStartSekvensNummer(): Long {
+        val sekvensnummer = skatteHendelserStatusRepository.findById(skatteHendelserFetcher.consumerId)
+            .getOrNull()?.sekvensnummer?.also { log.info { "Sekvensnummer:$it funnet i databasen" } }
+
+        return sekvensnummer ?: skatteHendelserFetcher.startSekvensnummer
+    }
+
     private fun publiserMelding(hendelse: Hendelse, person: Person) {
         try {
             skattehendelserProducer.publiserMelding(hendelse.toMelosysSkatteHendelse())
@@ -92,10 +98,6 @@ class SkatteHendelsePublisering(
         }
     }
 
-    private fun <K> MutableMap<K, Int>.incrementCount(key: K, incrementBy: Int = 1) {
-        this[key] = getOrDefault(key, 0) + incrementBy
-    }
-
     private fun finnPersonMedTreffIGjelderPeriode(hendelse: Hendelse): Person? =
         jobMonitor.measureExecution("finnPersonMedTreffIGjelderPeriode") {
             personRepository.findPersonByIdent(hendelse.identifikator)?.takeIf { person ->
@@ -108,7 +110,13 @@ class SkatteHendelsePublisering(
         jobMonitor.stop()
     }
 
-    fun status() = jobMonitor.status()
+    fun status(periodeFilter: String): Map<String, Any?> {
+        jobMonitor.stats.periodeFilter = periodeFilter
+        return jobMonitor.status()
+    }
+
+    fun finnHendelser(identifikator: String): List<Hendelse>? =
+        jobMonitor.stats.identifikatorDuplikatToHendelse[identifikator]
 
     private fun oppdaterStatus(sekvensnummer: Long) {
         jobMonitor.stats.sisteSekvensnummer = sekvensnummer
@@ -123,8 +131,20 @@ class SkatteHendelsePublisering(
         @Volatile var sisteBatchSize: Int = 0,
         val gjelderPeriodeToCount: ConcurrentHashMap<String, Int> = ConcurrentHashMap(),
         val registreringstidspunktToCount: ConcurrentHashMap<String, Int> = ConcurrentHashMap(),
-        val hendelsetypeToCount: ConcurrentHashMap<String, Int> = ConcurrentHashMap()
+        val hendelsetypeToCount: ConcurrentHashMap<String, Int> = ConcurrentHashMap(),
+        val identifikatorDuplikatToHendelse: ConcurrentHashMap<String, MutableList<Hendelse>> = ConcurrentHashMap(),
+        var periodeFilter: String? = "2024"
     ) : JobMonitor.Stats {
+        fun registerHendelseStats(hendelse: Hendelse) {
+            totaltAntallHendelser++
+            gjelderPeriodeToCount.incrementCount(hendelse.gjelderPeriode)
+            registreringstidspunktToCount.incrementCount(hendelse.registreringstidspunktAsYearMonth())
+            val hendelseList = identifikatorDuplikatToHendelse.getOrDefault(hendelse.identifikator, mutableListOf())
+            hendelseList.add(hendelse)
+            identifikatorDuplikatToHendelse[hendelse.identifikator] = hendelseList
+        }
+
+
         override fun reset() {
             totaltAntallHendelser = 0
             personerFunnet = 0
@@ -136,15 +156,76 @@ class SkatteHendelsePublisering(
             hendelsetypeToCount.clear()
         }
 
-        override fun asMap() = mapOf(
-            "totaltAntallHendelser" to totaltAntallHendelser,
-            "personerFunnet" to personerFunnet,
-            "sisteSekvensnummer" to sisteSekvensnummer,
-            "antallBatcher" to antallBatcher,
-            "sisteBatchSize" to sisteBatchSize,
-            "hendelsetypeToCount" to hendelsetypeToCount,
-            "gjelderPeriodeToCount" to gjelderPeriodeToCount,
-            "registreringstidspunktToCount" to registreringstidspunktToCount
-        )
+        override fun asMap(): Map<String, Any> {
+            val identifikatorsWithMoreThanOnePeriode = identifikatorDuplikatToHendelse
+                .asSequence()
+                .map { (identifikator, hendelser) ->
+                    val count = hendelser.count { it.gjelderPeriode == periodeFilter }
+                    Triple(identifikator, hendelser, count)
+                }
+                .filter { (_, _, count) -> count > 1 }
+                .sortedByDescending { (_, _, count) -> count }
+                .toList()
+
+            return mapOf(
+                "totaltAntallHendelser" to totaltAntallHendelser,
+                "personerFunnet" to personerFunnet,
+                "sisteSekvensnummer" to sisteSekvensnummer,
+                "antallBatcher" to antallBatcher,
+                "sisteBatchSize" to sisteBatchSize,
+                "identifikatorDuplikatCount" to identifikatorDuplikatToHendelse.size,
+                "hendelsetypeToCount" to hendelsetypeToCount,
+                "gjelderPeriodeToCount" to gjelderPeriodeToCount,
+                "registreringstidspunktToCount" to registreringstidspunktToCount,
+
+                "identifikatorToCount" to identifikatorDuplikatToHendelse
+                    .filter { it.value.size > 1 }
+                    .entries
+                    .sortedByDescending { it.value.size }
+                    .take(100)
+                    .associate { it.key to it.value.size },
+
+                "moreThanOne${periodeFilter}PeriodeCount" to identifikatorsWithMoreThanOnePeriode.size,
+
+                "identifikatorToMoreThanOne${periodeFilter}PeriodeCount" to identifikatorsWithMoreThanOnePeriode
+                    .take(100)
+                    .associate { (identifikator, _, count) -> identifikator to count },
+
+                "identifikatorToHendelse${periodeFilter}Periode" to identifikatorDuplikatToHendelse
+                    .asSequence()
+                    .map { (identifikator, hendelser) ->
+                        identifikator to hendelser.filter { it.gjelderPeriode == periodeFilter }
+                    }
+                    .filter { (_, filteredHendelser) -> filteredHendelser.size > 1 }
+                    .sortedByDescending { (_, filteredHendelser) -> filteredHendelser.size }
+                    .take(10)
+                    .associate { (key, filteredHendelser) ->
+                        key to filteredHendelser.map { hendelse ->
+                            mapOf(
+                                "sekvensnummer" to hendelse.sekvensnummer,
+                                "gjelderPeriode" to hendelse.gjelderPeriode,
+                                "registreringstidspunkt" to hendelse.registreringstidspunkt,
+                            )
+                        }
+                    }
+            )
+        }
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    data class Options(
+        val dryRun: Boolean = false,
+        val filterSaksnummer: String? = null
+    ) {
+        companion object {
+            fun av(environment: Environment): Options {
+                val profiles = environment.activeProfiles
+                val isDryRun = profiles.contains("default") || profiles.isEmpty() // default for prod er dryRun true
+
+                return Options(
+                    dryRun = isDryRun,
+                )
+            }
+        }
     }
 }

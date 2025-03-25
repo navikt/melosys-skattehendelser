@@ -7,7 +7,9 @@ import no.nav.melosysskattehendelser.domain.Person
 import no.nav.melosysskattehendelser.domain.PersonRepository
 import no.nav.melosysskattehendelser.domain.SekvensHistorikk
 import no.nav.melosysskattehendelser.melosys.consumer.KafkaContainerMonitor
+import no.nav.melosysskattehendelser.skatt.Hendelse
 import no.nav.security.token.support.core.api.Unprotected
+import org.springframework.core.env.Environment
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -20,17 +22,21 @@ private val log = KotlinLogging.logger { }
 class AdminController(
     private val skatteHendelsePublisering: SkatteHendelsePublisering,
     private val personRepository: PersonRepository,
-    private val kafkaContainerMonitor: KafkaContainerMonitor
+    private val kafkaContainerMonitor: KafkaContainerMonitor,
+    private val environment: Environment
 ) {
     @PostMapping("/hendelseprosessering/start")
-    fun startHendelseProsessering(): ResponseEntity<String> {
-        log.info("Starter hendelseprosessering")
+    fun startHendelseProsessering(
+        @RequestBody(required = false) options: SkatteHendelsePublisering.Options =
+            SkatteHendelsePublisering.Options.av(environment)
+    ): ResponseEntity<String> {
+        log.info("Starter hendelseprosessering. Options: $options")
         if (kafkaContainerMonitor.isKafkaContainerStopped()) {
             return ResponseEntity("Kafka container har stoppet", HttpStatus.SERVICE_UNAVAILABLE)
         }
 
-        skatteHendelsePublisering.asynkronProsesseringAvSkattHendelser()
-        return ResponseEntity.ok("Hendelseprosessering startet")
+        skatteHendelsePublisering.asynkronProsesseringAvSkattHendelser(options)
+        return ResponseEntity.ok("Hendelseprosessering startet. Options: $options")
     }
 
     @PostMapping("/hendelseprosessering/stop")
@@ -41,7 +47,12 @@ class AdminController(
     }
 
     @GetMapping("/hendelseprosessering/status")
-    fun status() = ResponseEntity<Map<String, Any?>>(skatteHendelsePublisering.status(), HttpStatus.OK)
+    fun status(@RequestParam(value = "periodeFilter", required = false) periodeFilter: String = "2024") =
+        ResponseEntity<Map<String, Any?>>(skatteHendelsePublisering.status(periodeFilter), HttpStatus.OK)
+
+    @GetMapping("/hendelseprosessering/status/hendelser/{identifikator}")
+    fun hendelser(@PathVariable identifikator: String) =
+        ResponseEntity<List<Hendelse>?>(skatteHendelsePublisering.finnHendelser(identifikator), HttpStatus.OK)
 
     @GetMapping("/person/{id}")
     fun getPerson(@PathVariable id: Long): ResponseEntity<Map<String, Any?>> {

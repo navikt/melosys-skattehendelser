@@ -58,11 +58,11 @@ spec:
     path: /internal/prometheus
   resources:
     limits:
-      cpu: 500m
-      memory: 1024Mi
+      cpu: 2000m
+      memory: 4096Mi
     requests:
-      cpu: 200m
-      memory: 512Mi
+      cpu: 1000m
+      memory: 2048Mi
   ingresses:
     - {{ingress}}
   kafka:
