@@ -237,11 +237,12 @@ class SkatteHendelsePublisering(
     ) {
         companion object {
             fun av(environment: Environment): Options {
-                val profiles = environment.activeProfiles
-                val isDryRun = profiles.contains("default") || profiles.isEmpty() // default for prod er dryRun true
+                val naisClusterName = environment.getProperty(NAIS_CLUSTER_NAME)
+                val isProd: Boolean = naisClusterName?.contains("prod") == true
+                log.info { "NAIS_CLUSTER_NAME=$naisClusterName, isProd=$isProd, dryRun:${isProd}" }
 
                 return Options(
-                    dryRun = isDryRun,
+                    dryRun = isProd
                 )
             }
         }
