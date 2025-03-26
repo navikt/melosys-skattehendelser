@@ -11,6 +11,8 @@ import no.nav.melosysskattehendelser.melosys.producer.SkattehendelserProducer
 import no.nav.melosysskattehendelser.melosys.toMelosysSkatteHendelse
 import no.nav.melosysskattehendelser.metrics.Metrikker
 import no.nav.melosysskattehendelser.skatt.Hendelse
+import no.nav.melosysskattehendelser.skatt.PensjonsgivendeInntektConsumer
+import no.nav.melosysskattehendelser.skatt.PensjonsgivendeInntektRequest
 import no.nav.melosysskattehendelser.skatt.SkatteHendelserFetcher
 import org.springframework.core.env.Environment
 import org.springframework.scheduling.annotation.Async
@@ -18,16 +20,18 @@ import org.springframework.stereotype.Component
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.jvm.optionals.getOrNull
 
+private val log = KotlinLogging.logger { }
+
 @Component
 class SkatteHendelsePublisering(
     private val skatteHendelserFetcher: SkatteHendelserFetcher,
     private val personRepository: PersonRepository,
     private val skatteHendelserStatusRepository: SkatteHendelserStatusRepository,
     private val skattehendelserProducer: SkattehendelserProducer,
+    private val pensjonsgivendeInntektConsumer: PensjonsgivendeInntektConsumer,
     private val metrikker: Metrikker,
     kafkaContainerMonitor: KafkaContainerMonitor,
 ) {
-    private val log = KotlinLogging.logger { }
 
     private val jobMonitor = JobMonitor(
         jobName = "SkatteHendelserJob",
@@ -56,6 +60,11 @@ class SkatteHendelsePublisering(
             }
         ).forEach { hendelse ->
             if (jobMonitor.shouldStop) return@execute
+            if (hendelse.identifikator == "22469241479") {
+                println("------------------------------------------------------")
+                println(hendelse.sekvensnummer)
+                println(hendelse)
+            }
             metrikker.hendelseHentet()
             registerHendelseStats(hendelse)
             if (options.dryRun) return@forEach
@@ -115,8 +124,22 @@ class SkatteHendelsePublisering(
         return jobMonitor.status()
     }
 
-    fun finnHendelser(identifikator: String): List<Hendelse>? =
-        jobMonitor.stats.identifikatorDuplikatToHendelse[identifikator]
+
+    fun finnHendelser(identifikator: String): List<HendelseMedDatoForFastsetting>? {
+        return jobMonitor.stats.identifikatorDuplikatToHendelse[identifikator]?.map {
+            hentDatoForFastsetting(it)
+        }
+    }
+
+    private fun hentDatoForFastsetting(hendelse: Hendelse): HendelseMedDatoForFastsetting =
+        HendelseMedDatoForFastsetting(
+            hendelse, pensjonsgivendeInntektConsumer.hentPensjonsgivendeInntekt(
+                PensjonsgivendeInntektRequest(
+                    navPersonident = hendelse.identifikator,
+                    inntektsaar = hendelse.gjelderPeriode,
+                )
+            ).pensjonsgivendeInntekt.map { it.datoForFastsetting }
+        )
 
     private fun oppdaterStatus(sekvensnummer: Long) {
         jobMonitor.stats.sisteSekvensnummer = sekvensnummer
@@ -229,3 +252,8 @@ class SkatteHendelsePublisering(
         }
     }
 }
+
+data class HendelseMedDatoForFastsetting(
+    val hendelse: Hendelse,
+    val datoForFastsetting: List<String>
+)
