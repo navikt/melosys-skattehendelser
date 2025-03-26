@@ -17,6 +17,7 @@ import no.nav.melosysskattehendelser.melosys.consumer.KafkaContainerMonitor
 import no.nav.melosysskattehendelser.melosys.producer.SkattehendelserProducerFake
 import no.nav.melosysskattehendelser.metrics.Metrikker
 import no.nav.melosysskattehendelser.skatt.Hendelse
+import no.nav.melosysskattehendelser.skatt.PensjonsgivendeInntektConsumer
 import no.nav.melosysskattehendelser.skatt.SkatteHendelserFetcherFake
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
@@ -36,6 +37,7 @@ open class SkatteHendelsePubliseringTest {
             personRepository,
             skatteHendelserStatusRepository,
             skattehendelserProducer,
+            mockk<PensjonsgivendeInntektConsumer>(relaxed = true),
             Metrikker(),
             mockk<KafkaContainerMonitor>().apply {
                 every { isKafkaContainerRunning() } returns true
