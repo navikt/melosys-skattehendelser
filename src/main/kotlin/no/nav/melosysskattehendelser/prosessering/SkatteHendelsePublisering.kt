@@ -60,11 +60,6 @@ class SkatteHendelsePublisering(
             }
         ).forEach { hendelse ->
             if (jobMonitor.shouldStop) return@execute
-            if (hendelse.identifikator == "22469241479") {
-                println("------------------------------------------------------")
-                println(hendelse.sekvensnummer)
-                println(hendelse)
-            }
             metrikker.hendelseHentet()
             registerHendelseStats(hendelse)
             if (options.dryRun) return@forEach
@@ -250,6 +245,10 @@ class SkatteHendelsePublisering(
                 )
             }
         }
+    }
+
+    companion object {
+        const val NAIS_CLUSTER_NAME = "NAIS_CLUSTER_NAME"
     }
 }
 
