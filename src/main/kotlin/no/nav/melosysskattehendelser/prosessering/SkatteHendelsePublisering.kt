@@ -18,6 +18,8 @@ import org.springframework.stereotype.Component
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.jvm.optionals.getOrNull
 
+private val log = KotlinLogging.logger { }
+
 @Component
 class SkatteHendelsePublisering(
     private val skatteHendelserFetcher: SkatteHendelserFetcher,
@@ -27,7 +29,6 @@ class SkatteHendelsePublisering(
     private val metrikker: Metrikker,
     kafkaContainerMonitor: KafkaContainerMonitor,
 ) {
-    private val log = KotlinLogging.logger { }
 
     private val jobMonitor = JobMonitor(
         jobName = "SkatteHendelserJob",
@@ -219,13 +220,18 @@ class SkatteHendelsePublisering(
     ) {
         companion object {
             fun av(environment: Environment): Options {
-                val profiles = environment.activeProfiles
-                val isDryRun = profiles.contains("default") || profiles.isEmpty() // default for prod er dryRun true
+                val naisClusterName = environment.getProperty(NAIS_CLUSTER_NAME)
+                val isProd: Boolean = naisClusterName?.contains("prod") == true
+                log.info { "NAIS_CLUSTER_NAME=$naisClusterName, isProd=$isProd, dryRun:${isProd}" }
 
                 return Options(
-                    dryRun = isDryRun,
+                    dryRun = isProd
                 )
             }
         }
+    }
+
+    companion object {
+        const val NAIS_CLUSTER_NAME = "NAIS_CLUSTER_NAME"
     }
 }
