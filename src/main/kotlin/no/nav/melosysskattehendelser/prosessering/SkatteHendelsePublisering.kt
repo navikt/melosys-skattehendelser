@@ -172,6 +172,7 @@ class SkatteHendelsePublisering(
             gjelderPeriodeToCount.clear()
             registreringstidspunktToCount.clear()
             hendelsetypeToCount.clear()
+            identifikatorDuplikatToHendelse.clear()
         }
 
         override fun asMap(): Map<String, Any> {
