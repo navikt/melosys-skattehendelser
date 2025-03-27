@@ -7,9 +7,9 @@ import no.nav.melosysskattehendelser.domain.Person
 import no.nav.melosysskattehendelser.domain.PersonRepository
 import no.nav.melosysskattehendelser.domain.SekvensHistorikk
 import no.nav.melosysskattehendelser.melosys.consumer.KafkaContainerMonitor
+import no.nav.melosysskattehendelser.prosessering.HendelseMedDatoForFastsetting
 import no.nav.melosysskattehendelser.melosys.producer.SkattehendelserProducer
 import no.nav.melosysskattehendelser.melosys.MelosysSkatteHendelse
-import no.nav.melosysskattehendelser.skatt.Hendelse
 import no.nav.security.token.support.core.api.Unprotected
 import org.springframework.core.env.Environment
 import org.springframework.http.HttpStatus
@@ -55,7 +55,7 @@ class AdminController(
 
     @GetMapping("/hendelseprosessering/status/hendelser/{identifikator}")
     fun hendelser(@PathVariable identifikator: String) =
-        ResponseEntity<List<Hendelse>?>(skatteHendelsePublisering.finnHendelser(identifikator), HttpStatus.OK)
+        ResponseEntity<List<HendelseMedDatoForFastsetting>?>(skatteHendelsePublisering.finnHendelser(identifikator), HttpStatus.OK)
 
     @GetMapping("/person/{id}")
     fun getPerson(@PathVariable id: Long): ResponseEntity<Map<String, Any?>> {

@@ -17,6 +17,10 @@ spring:
         ddl-auto: none
   lifecycle:
     timeout-per-shutdown-phase: ${SHUTDOWN_TIMEOUT:30s}
+  cache:
+    type: caffeine
+    caffeine:
+      spec: maximumSize=500,expireAfterWrite=15m
 
 melosys:
   kafka:
@@ -61,8 +65,11 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,prometheus
+        include: health,prometheus,caches
       base-path: /internal
   health:
     diskspace:
       enabled: false
+  metrics:
+    enable:
+      cache: true

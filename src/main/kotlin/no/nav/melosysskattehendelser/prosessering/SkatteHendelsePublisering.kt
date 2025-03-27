@@ -11,6 +11,8 @@ import no.nav.melosysskattehendelser.melosys.producer.SkattehendelserProducer
 import no.nav.melosysskattehendelser.melosys.toMelosysSkatteHendelse
 import no.nav.melosysskattehendelser.metrics.Metrikker
 import no.nav.melosysskattehendelser.skatt.Hendelse
+import no.nav.melosysskattehendelser.skatt.PensjonsgivendeInntektConsumer
+import no.nav.melosysskattehendelser.skatt.PensjonsgivendeInntektRequest
 import no.nav.melosysskattehendelser.skatt.SkatteHendelserFetcher
 import org.springframework.core.env.Environment
 import org.springframework.scheduling.annotation.Async
@@ -26,6 +28,7 @@ class SkatteHendelsePublisering(
     private val personRepository: PersonRepository,
     private val skatteHendelserStatusRepository: SkatteHendelserStatusRepository,
     private val skattehendelserProducer: SkattehendelserProducer,
+    private val pensjonsgivendeInntektConsumer: PensjonsgivendeInntektConsumer,
     private val metrikker: Metrikker,
     kafkaContainerMonitor: KafkaContainerMonitor,
 ) {
@@ -116,8 +119,22 @@ class SkatteHendelsePublisering(
         return jobMonitor.status()
     }
 
-    fun finnHendelser(identifikator: String): List<Hendelse>? =
-        jobMonitor.stats.identifikatorDuplikatToHendelse[identifikator]
+
+    fun finnHendelser(identifikator: String): List<HendelseMedDatoForFastsetting>? {
+        return jobMonitor.stats.identifikatorDuplikatToHendelse[identifikator]?.map {
+            hentDatoForFastsetting(it)
+        }
+    }
+
+    private fun hentDatoForFastsetting(hendelse: Hendelse): HendelseMedDatoForFastsetting =
+        HendelseMedDatoForFastsetting(
+            hendelse, pensjonsgivendeInntektConsumer.hentPensjonsgivendeInntekt(
+                PensjonsgivendeInntektRequest(
+                    navPersonident = hendelse.identifikator,
+                    inntektsaar = hendelse.gjelderPeriode,
+                )
+            ).pensjonsgivendeInntekt.map { it.datoForFastsetting }
+        )
 
     private fun oppdaterStatus(sekvensnummer: Long) {
         jobMonitor.stats.sisteSekvensnummer = sekvensnummer
@@ -155,6 +172,7 @@ class SkatteHendelsePublisering(
             gjelderPeriodeToCount.clear()
             registreringstidspunktToCount.clear()
             hendelsetypeToCount.clear()
+            identifikatorDuplikatToHendelse.clear()
         }
 
         override fun asMap(): Map<String, Any> {
@@ -235,3 +253,8 @@ class SkatteHendelsePublisering(
         const val NAIS_CLUSTER_NAME = "NAIS_CLUSTER_NAME"
     }
 }
+
+data class HendelseMedDatoForFastsetting(
+    val hendelse: Hendelse,
+    val datoForFastsetting: List<String>
+)
