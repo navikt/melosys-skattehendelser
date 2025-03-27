@@ -8,6 +8,8 @@ import no.nav.melosysskattehendelser.domain.PersonRepository
 import no.nav.melosysskattehendelser.domain.SekvensHistorikk
 import no.nav.melosysskattehendelser.melosys.consumer.KafkaContainerMonitor
 import no.nav.melosysskattehendelser.prosessering.HendelseMedDatoForFastsetting
+import no.nav.melosysskattehendelser.melosys.producer.SkattehendelserProducer
+import no.nav.melosysskattehendelser.melosys.MelosysSkatteHendelse
 import no.nav.security.token.support.core.api.Unprotected
 import org.springframework.core.env.Environment
 import org.springframework.http.HttpStatus
@@ -23,6 +25,7 @@ class AdminController(
     private val skatteHendelsePublisering: SkatteHendelsePublisering,
     private val personRepository: PersonRepository,
     private val kafkaContainerMonitor: KafkaContainerMonitor,
+    private val skattehendelserProducer: SkattehendelserProducer,
     private val environment: Environment
 ) {
     @PostMapping("/hendelseprosessering/start")
@@ -67,6 +70,13 @@ class AdminController(
             .take(max)
             .map { it.toMap() }
         return ResponseEntity(list, HttpStatus.OK)
+    }
+
+    @PostMapping("/kafka")
+    fun lagKafkaMelding(@RequestBody melosysSkatteHendelse: MelosysSkatteHendelse): ResponseEntity<String> {
+        log.info { "publiserer melding til kafka: $melosysSkatteHendelse" }
+        skattehendelserProducer.publiserMelding(melosysSkatteHendelse)
+        return ResponseEntity.ok("Melding publisert")
     }
 
     fun Person.toMap(): Map<String, Any?> = linkedMapOf(
