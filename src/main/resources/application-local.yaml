@@ -20,4 +20,7 @@ no.nav.security.jwt.client.registration:
       client-secret: lol
 
 KAFKA_VEDTAK_TOPIC: teammelosys.melosys-hendelser-local
+KAFKA_SKATTEHENDELSE_TOPIC: teammelosys.skattehendelser.v1-local
 SHUTDOWN_TIMEOUT: 3s
+ADMIN_API_KEY: dummy
+KAFKA_BROKERS: localhost:29092

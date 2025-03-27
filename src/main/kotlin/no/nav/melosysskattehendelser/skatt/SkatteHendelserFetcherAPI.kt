@@ -1,10 +1,12 @@
 package no.nav.melosysskattehendelser.skatt
 
 import mu.KotlinLogging
+import no.nav.melosysskattehendelser.prosessering.measure
 import no.nav.melosysskattehendelser.skatt.SkatteHendelserFetcher.*
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import java.time.LocalDate
+import java.util.concurrent.atomic.AtomicLong
 
 private val log = KotlinLogging.logger { }
 
@@ -15,26 +17,28 @@ class SkatteHendelserFetcherAPI(
     @Value("\${skatt.fetcher.start-dato}") private val startDato: LocalDate
 ) : SkatteHendelserFetcher {
     init {
-        log.info("batchSize er satt til $batchSize")
+        log.info("batchSize er satt til $batchSize, startDato er satt til $startDato")
     }
-
 
     override fun hentHendelser(
         startSeksvensnummer: Long,
         batchDone: (seksvensnummer: Long) -> Unit,
-        reportStats: (stats: Stats) -> Unit
-    ): Sequence<Hendelse> = sequence<Hendelse> {
+        reportStats: (stats: Stats) -> Unit,
+    ) = sequence<Hendelse> {
         var seksvensnummerFra = startSeksvensnummer
         var hendelseListe: List<Hendelse>
         var totaltAntallHendelser = 0
         var antallBatcher = 0
         while (true) {
-            hendelseListe = hentSkatteHendelser(seksvensnummerFra)
+            val metodeStats = mutableMapOf<String, AtomicLong>()
+            hendelseListe = measure(metodeStats, "hentSkatteHendelser") {
+                hentSkatteHendelser(seksvensnummerFra)
+            }
             if (hendelseListe.size > batchSize) error("hendelseListe.size ${hendelseListe.size} > batchSize $batchSize")
             val last = hendelseListe.lastOrNull() ?: break
-            log.info(
+            log.debug {
                 "Hentet ${hendelseListe.size} hendelser fra sekvensnummer $seksvensnummerFra til ${last.sekvensnummer}"
-            )
+            }
             seksvensnummerFra = last.sekvensnummer + 1
             yieldAll(hendelseListe)
             batchDone(seksvensnummerFra)
@@ -42,10 +46,11 @@ class SkatteHendelserFetcherAPI(
             Stats(
                 totaltAntallHendelser = totaltAntallHendelser,
                 antallBatcher = ++antallBatcher,
-                sisteBatchSize = hendelseListe.size
+                sisteBatchSize = hendelseListe.size,
+                metodeStats = metodeStats
             ).applyReport(reportStats)
         }
-        log.info("totalt antall hendelser prossessert: $totaltAntallHendelser seksvensnummerFra er nå: $seksvensnummerFra")
+        log.info("totalt antall hendelser prosessert: $totaltAntallHendelser seksvensnummerFra er nå: $seksvensnummerFra")
     }
 
     private fun hentSkatteHendelser(seksvensnummerFra: Long) = skatteHendelseConsumer.hentHendelseListe(
@@ -59,11 +64,8 @@ class SkatteHendelserFetcherAPI(
     override val consumerId
         get() = skatteHendelseConsumer.getConsumerId()
 
-    override val startSekvensnummer
-        get() = skatteHendelseConsumer.getStartSekvensnummer(
-            startDato
-                .apply {
-                    log.info("start dato for startSekvensnummer: $this")
-                }
-        )
+    override val startSekvensnummer: Long
+        get() = skatteHendelseConsumer.getStartSekvensnummer(startDato).also {
+            log.info("Start sekvensnummer:$it fra $startDato hentet for ${skatteHendelseConsumer.getConsumerId()}")
+        }
 }

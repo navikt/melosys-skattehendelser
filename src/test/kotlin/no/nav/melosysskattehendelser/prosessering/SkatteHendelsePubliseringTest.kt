@@ -1,11 +1,21 @@
-package no.nav.melosysskattehendelser
+package no.nav.melosysskattehendelser.prosessering
 
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
-import no.nav.melosysskattehendelser.domain.*
+import io.mockk.every
+import io.mockk.mockk
+import no.nav.melosysskattehendelser.domain.Periode
+import no.nav.melosysskattehendelser.domain.Person
+import no.nav.melosysskattehendelser.domain.PersonRepository
+import no.nav.melosysskattehendelser.domain.PersonRepositoryFake
+import no.nav.melosysskattehendelser.domain.SekvensHistorikk
+import no.nav.melosysskattehendelser.domain.SkatteHendelserStatusRepository
+import no.nav.melosysskattehendelser.domain.SkatteHendelserStatusRepositoryFake
 import no.nav.melosysskattehendelser.melosys.MelosysSkatteHendelse
+import no.nav.melosysskattehendelser.melosys.consumer.KafkaContainerMonitor
 import no.nav.melosysskattehendelser.melosys.producer.SkattehendelserProducerFake
+import no.nav.melosysskattehendelser.metrics.Metrikker
 import no.nav.melosysskattehendelser.skatt.Hendelse
 import no.nav.melosysskattehendelser.skatt.SkatteHendelserFetcherFake
 import org.junit.jupiter.api.AfterEach
@@ -15,12 +25,22 @@ import java.time.LocalDate
 
 open class SkatteHendelsePubliseringTest {
     protected open var personRepository: PersonRepository = PersonRepositoryFake()
-    protected open var skatteHendelserStatusRepository: SkatteHendelserStatusRepository = SkatteHendelserStatusRepositoryFake()
+    protected open var skatteHendelserStatusRepository: SkatteHendelserStatusRepository =
+        SkatteHendelserStatusRepositoryFake()
     private val skattehendelserProducer: SkattehendelserProducerFake = SkattehendelserProducerFake()
     private val skatteHendelserFetcher: SkatteHendelserFetcherFake = SkatteHendelserFetcherFake()
 
     private val skatteHendelsePublisering by lazy {
-        SkatteHendelsePublisering(skatteHendelserFetcher, personRepository, skatteHendelserStatusRepository, skattehendelserProducer)
+        SkatteHendelsePublisering(
+            skatteHendelserFetcher,
+            personRepository,
+            skatteHendelserStatusRepository,
+            skattehendelserProducer,
+            Metrikker(),
+            mockk<KafkaContainerMonitor>().apply {
+                every { isKafkaContainerRunning() } returns true
+            }
+        )
     }
 
     @BeforeEach
@@ -146,7 +166,14 @@ open class SkatteHendelsePubliseringTest {
     @Test
     fun `skal få flere treff i sekvensHistorikk ved samme identifikator`() {
         skatteHendelserFetcher.hendelser.addAll(
-            (1..2).map { Hendelse(gjelderPeriode = "2022", identifikator = "123", sekvensnummer = it.toLong(), somAktoerid = false) }
+            (1..2).map {
+                Hendelse(
+                    gjelderPeriode = "2022",
+                    identifikator = "123",
+                    sekvensnummer = it.toLong(),
+                    somAktoerid = false
+                )
+            }
         )
 
 

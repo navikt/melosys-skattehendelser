@@ -49,15 +49,14 @@ class SigrunRestConsumerTest {
                                   "gjelderPeriode": "2023",
                                   "identifikator": "123456",
                                   "sekvensnummer": 0,
-                                  "somAktoerid": true,
-                                  "hendelsetype": "ny"
+                                  "somAktoerid": true
                                 },
                                 {
                                   "gjelderPeriode": "2023",
                                   "identifikator": "456789",
                                   "sekvensnummer": 1,
                                   "somAktoerid": true,
-                                  "hendelsetype": "ny"
+                                  "hendelsetype": null
                                 }
                               ]
                             }
@@ -76,8 +75,8 @@ class SigrunRestConsumerTest {
 
         hendelseListe
             .shouldContainExactly(
-                Hendelse("2023", "123456", 0, true, hendelsetype = "ny"),
-                Hendelse("2023", "456789", 1, true, hendelsetype = "ny")
+                Hendelse("2023", "123456", 0, true, hendelsetype = "ukjent"),
+                Hendelse("2023", "456789", 1, true, hendelsetype = "ukjent")
             )
     }
 
