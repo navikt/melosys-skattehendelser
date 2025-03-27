@@ -8,6 +8,7 @@ import no.nav.melosysskattehendelser.domain.PersonRepository
 import no.nav.melosysskattehendelser.domain.SekvensHistorikk
 import no.nav.melosysskattehendelser.melosys.consumer.KafkaContainerMonitor
 import no.nav.melosysskattehendelser.melosys.producer.SkattehendelserProducer
+import no.nav.melosysskattehendelser.melosys.MelosysSkatteHendelse
 import no.nav.melosysskattehendelser.skatt.Hendelse
 import no.nav.security.token.support.core.api.Unprotected
 import org.springframework.core.env.Environment
