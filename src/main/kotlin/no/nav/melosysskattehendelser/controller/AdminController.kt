@@ -10,6 +10,7 @@ import no.nav.melosysskattehendelser.melosys.consumer.KafkaContainerMonitor
 import no.nav.melosysskattehendelser.prosessering.HendelseMedDatoForFastsetting
 import no.nav.melosysskattehendelser.melosys.producer.SkattehendelserProducer
 import no.nav.melosysskattehendelser.melosys.MelosysSkatteHendelse
+import no.nav.melosysskattehendelser.prosessering.SkatteHendelsePubliseringOptions
 import no.nav.security.token.support.core.api.Unprotected
 import org.springframework.core.env.Environment
 import org.springframework.http.HttpStatus
@@ -30,8 +31,8 @@ class AdminController(
 ) {
     @PostMapping("/hendelseprosessering/start")
     fun startHendelseProsessering(
-        @RequestBody(required = false) options: SkatteHendelsePublisering.Options =
-            SkatteHendelsePublisering.Options.av(environment)
+        @RequestBody(required = false) options: SkatteHendelsePubliseringOptions =
+            SkatteHendelsePubliseringOptions.av(environment)
     ): ResponseEntity<String> {
         log.info("Starter hendelseprosessering. Options: $options")
         if (kafkaContainerMonitor.isKafkaContainerStopped()) {
