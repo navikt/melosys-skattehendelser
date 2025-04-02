@@ -39,6 +39,7 @@ open class SkatteHendelsePubliseringTest {
             skattehendelserProducer,
             mockk<PensjonsgivendeInntektConsumer>(relaxed = true),
             Metrikker(),
+            mockk<PersonFinderSelector>().apply { every { find(any()) } returns PersonFinderDB(personRepository) },
             mockk<KafkaContainerMonitor>().apply {
                 every { isKafkaContainerRunning() } returns true
             }
