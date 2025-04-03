@@ -27,6 +27,7 @@ class SkatteHendelsePublisering(
     private val skattehendelserProducer: SkattehendelserProducer,
     private val pensjonsgivendeInntektConsumer: PensjonsgivendeInntektConsumer,
     private val metrikker: Metrikker,
+    private val personFinderSelector: PersonFinderSelector,
     kafkaContainerMonitor: KafkaContainerMonitor,
 ) {
 
@@ -37,6 +38,8 @@ class SkatteHendelsePublisering(
         canNotStartMessage = "kafka container er stoppet!"
     )
 
+    private lateinit var personFinder: PersonFinder
+
     @Async
     fun asynkronProsesseringAvSkattHendelser(options: SkatteHendelsePubliseringOptions) {
         prosesserSkattHendelser(options)
@@ -44,6 +47,13 @@ class SkatteHendelsePublisering(
 
     fun prosesserSkattHendelser(options: SkatteHendelsePubliseringOptions = SkatteHendelsePubliseringOptions()) =
         jobMonitor.execute {
+            personFinder = if (options.useCache) {
+                personFinderSelector.find(PersonFinderType.CACHED).also {
+                    personCacheSize = (it as PersonFinderCached).refresh()
+                    log.info("Bruker cached person finder, cache size: $personCacheSize")
+                }
+            } else personFinderSelector.find(PersonFinderType.DB)
+
             val start = hentStartSekvensNummer()
 
             skatteHendelserFetcher.hentHendelser(
@@ -102,9 +112,7 @@ class SkatteHendelsePublisering(
 
     private fun finnPersonMedTreffIGjelderPeriode(hendelse: Hendelse): Person? =
         jobMonitor.measureExecution("finnPersonMedTreffIGjelderPeriode") {
-            personRepository.findPersonByIdent(hendelse.identifikator)?.takeIf { person ->
-                person.harTreffIPeriode(hendelse.gjelderPeriodeSomÅr())
-            }
+            personFinder.findPersonByIdent(hendelse)
         }
 
     fun stopProsesseringAvSkattHendelser() {

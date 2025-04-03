@@ -12,6 +12,7 @@ data class SkatteHendelsePubliseringStats(
     @Volatile var sisteSekvensnummer: Long = 0,
     @Volatile var antallBatcher: Int = 0,
     @Volatile var sisteBatchSize: Int = 0,
+    @Volatile var personCacheSize: Int = 0,
     val gjelderPeriodeToCount: ConcurrentHashMap<String, Int> = ConcurrentHashMap(),
     val registreringstidspunktToCount: ConcurrentHashMap<String, Int> = ConcurrentHashMap(),
     val hendelsetypeToCount: ConcurrentHashMap<String, Int> = ConcurrentHashMap(),
@@ -33,6 +34,7 @@ data class SkatteHendelsePubliseringStats(
         sisteSekvensnummer = 0
         antallBatcher = 0
         sisteBatchSize = 0
+        personCacheSize = 0
         gjelderPeriodeToCount.clear()
         registreringstidspunktToCount.clear()
         hendelsetypeToCount.clear()
@@ -51,6 +53,7 @@ data class SkatteHendelsePubliseringStats(
             .toList()
 
         return mapOf(
+            "personCache" to personCacheSize,
             "totaltAntallHendelser" to totaltAntallHendelser,
             "personerFunnet" to personerFunnet,
             "sisteSekvensnummer" to sisteSekvensnummer,

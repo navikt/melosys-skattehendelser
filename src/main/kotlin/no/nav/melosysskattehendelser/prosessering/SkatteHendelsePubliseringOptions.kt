@@ -9,7 +9,8 @@ private val log = KotlinLogging.logger { }
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class SkatteHendelsePubliseringOptions(
     val dryRun: Boolean = false,
-    val filterSaksnummer: String? = null
+    val filterSaksnummer: String? = null,
+    val useCache: Boolean = false
 ) {
     companion object {
         fun av(environment: Environment): SkatteHendelsePubliseringOptions {
