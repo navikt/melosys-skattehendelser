@@ -70,19 +70,20 @@ class SkatteHendelsePublisering(
                 if (jobMonitor.shouldStop) return@execute
                 metrikker.hendelseHentet()
                 registerHendelseStats(hendelse)
-                if (options.dryRun) return@forEach
                 finnPersonMedTreffIGjelderPeriode(hendelse)?.let { person ->
                     metrikker.personFunnet()
                     personerFunnet++
                     log.info("Fant person ${person.ident} for sekvensnummer ${hendelse.sekvensnummer}")
                     val sekvensHistorikk = person.hentEllerLagSekvensHistorikk(hendelse.sekvensnummer)
                     if (sekvensHistorikk.erNyHendelse()) {
+                        if (options.dryRun) return@forEach
                         publiserMelding(hendelse, person)
                     } else {
                         metrikker.duplikatHendelse()
                         log.warn("Hendelse med ${hendelse.sekvensnummer} er allerede kjørt ${sekvensHistorikk.antall} ganger for person ${person.ident}")
                     }
 
+                    if (options.dryRun) return@forEach
                     personRepository.save(person)
                     oppdaterStatus(hendelse.sekvensnummer + 1)
                 }
