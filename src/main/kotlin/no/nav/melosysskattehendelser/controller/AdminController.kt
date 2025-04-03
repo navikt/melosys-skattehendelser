@@ -51,12 +51,18 @@ class AdminController(
     }
 
     @GetMapping("/hendelseprosessering/status")
-    fun status(@RequestParam(value = "periodeFilter", required = false) periodeFilter: String = "2024") =
-        ResponseEntity<Map<String, Any?>>(skatteHendelsePublisering.status(periodeFilter), HttpStatus.OK)
+    fun status(
+        @RequestParam(value = "periodeFilter", required = false) periodeFilter: String = "2024",
+        @RequestParam(value = "kunIdentMatch", required = false) kunIdentMatch: Boolean = false
+    ) =
+        ResponseEntity<Map<String, Any?>>(skatteHendelsePublisering.status(periodeFilter, kunIdentMatch), HttpStatus.OK)
 
     @GetMapping("/hendelseprosessering/status/hendelser/{identifikator}")
     fun hendelser(@PathVariable identifikator: String) =
-        ResponseEntity<List<HendelseMedDatoForFastsetting>?>(skatteHendelsePublisering.finnHendelser(identifikator), HttpStatus.OK)
+        ResponseEntity<List<HendelseMedDatoForFastsetting>?>(
+            skatteHendelsePublisering.finnHendelser(identifikator),
+            HttpStatus.OK
+        )
 
     @GetMapping("/person/{id}")
     fun getPerson(@PathVariable id: Long): ResponseEntity<Map<String, Any?>> {

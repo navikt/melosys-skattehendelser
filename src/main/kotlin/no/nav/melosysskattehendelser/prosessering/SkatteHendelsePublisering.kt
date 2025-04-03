@@ -69,8 +69,8 @@ class SkatteHendelsePublisering(
             ).forEach { hendelse ->
                 if (jobMonitor.shouldStop) return@execute
                 metrikker.hendelseHentet()
-                registerHendelseStats(hendelse)
                 finnPersonMedTreffIGjelderPeriode(hendelse)?.let { person ->
+                    registerHendelseStats(hendelse, person.ident)
                     metrikker.personFunnet()
                     personerFunnet++
                     log.info("Fant person ${person.ident} for sekvensnummer ${hendelse.sekvensnummer}")
@@ -86,7 +86,7 @@ class SkatteHendelsePublisering(
                     if (options.dryRun) return@forEach
                     personRepository.save(person)
                     oppdaterStatus(hendelse.sekvensnummer + 1)
-                }
+                } ?: registerHendelseStats(hendelse)
             }
         }
 
@@ -121,8 +121,9 @@ class SkatteHendelsePublisering(
         jobMonitor.stop()
     }
 
-    fun status(periodeFilter: String): Map<String, Any?> {
+    fun status(periodeFilter: String, kunIdentMatch: Boolean): Map<String, Any?> {
         jobMonitor.stats.periodeFilter = periodeFilter
+        jobMonitor.stats.kunIdentMatch = kunIdentMatch
         return jobMonitor.status()
     }
 

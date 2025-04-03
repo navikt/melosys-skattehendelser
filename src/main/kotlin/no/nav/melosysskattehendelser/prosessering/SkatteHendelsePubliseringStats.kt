@@ -1,6 +1,7 @@
 package no.nav.melosysskattehendelser.prosessering
 
 import no.nav.melosysskattehendelser.skatt.Hendelse
+import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.collections.component1
 import kotlin.collections.component2
@@ -17,10 +18,13 @@ data class SkatteHendelsePubliseringStats(
     val registreringstidspunktToCount: ConcurrentHashMap<String, Int> = ConcurrentHashMap(),
     val hendelsetypeToCount: ConcurrentHashMap<String, Int> = ConcurrentHashMap(),
     val identifikatorDuplikatToHendelse: ConcurrentHashMap<String, MutableList<Hendelse>> = ConcurrentHashMap(),
-    var periodeFilter: String? = "2024"
+    val skatteHendelseIdentMatch: MutableSet<String> = Collections.newSetFromMap(ConcurrentHashMap()),
+    var periodeFilter: String? = "2024",
+    var kunIdentMatch: Boolean = false,
 ) : JobMonitor.Stats {
-    fun registerHendelseStats(hendelse: Hendelse) {
+    fun registerHendelseStats(hendelse: Hendelse, ident: String? = null) {
         totaltAntallHendelser++
+        if (ident != null) skatteHendelseIdentMatch.add(ident)
         gjelderPeriodeToCount.incrementCount(hendelse.gjelderPeriode)
         registreringstidspunktToCount.incrementCount(hendelse.registreringstidspunktAsYearMonth())
         val hendelseList = identifikatorDuplikatToHendelse.getOrDefault(hendelse.identifikator, mutableListOf())
@@ -44,6 +48,7 @@ data class SkatteHendelsePubliseringStats(
     override fun asMap(): Map<String, Any> {
         val identifikatorsWithMoreThanOnePeriode = identifikatorDuplikatToHendelse
             .asSequence()
+            .filter { !kunIdentMatch || it.key in skatteHendelseIdentMatch  }
             .map { (identifikator, hendelser) ->
                 val count = hendelser.count { it.gjelderPeriode == periodeFilter }
                 Triple(identifikator, hendelser, count)
@@ -59,12 +64,16 @@ data class SkatteHendelsePubliseringStats(
             "sisteSekvensnummer" to sisteSekvensnummer,
             "antallBatcher" to antallBatcher,
             "sisteBatchSize" to sisteBatchSize,
-            "identifikatorDuplikatCount" to identifikatorDuplikatToHendelse.size,
+            "identifikatorDuplikatCount" to identifikatorDuplikatToHendelse
+                .filter { it.value.size > 1 }
+                .filter { !kunIdentMatch || it.key in skatteHendelseIdentMatch  }
+                .size,
             "hendelsetypeToCount" to hendelsetypeToCount,
             "gjelderPeriodeToCount" to gjelderPeriodeToCount,
             "registreringstidspunktToCount" to registreringstidspunktToCount,
 
             "identifikatorToCount" to identifikatorDuplikatToHendelse
+                .filter { !kunIdentMatch || it.key in skatteHendelseIdentMatch  }
                 .filter { it.value.size > 1 }
                 .entries
                 .sortedByDescending { it.value.size }
@@ -79,6 +88,7 @@ data class SkatteHendelsePubliseringStats(
 
             "identifikatorToHendelse${periodeFilter}Periode" to identifikatorDuplikatToHendelse
                 .asSequence()
+                .filter { !kunIdentMatch || it.key in skatteHendelseIdentMatch  }
                 .map { (identifikator, hendelser) ->
                     identifikator to hendelser.filter { it.gjelderPeriode == periodeFilter }
                 }
