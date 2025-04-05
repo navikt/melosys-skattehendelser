@@ -38,8 +38,6 @@ class SkatteHendelsePublisering(
         canNotStartMessage = "kafka container er stoppet!"
     )
 
-    private lateinit var personFinder: PersonFinder
-
     @Async
     fun asynkronProsesseringAvSkattHendelser(options: SkatteHendelsePubliseringOptions) {
         prosesserSkattHendelser(options)
@@ -47,46 +45,50 @@ class SkatteHendelsePublisering(
 
     fun prosesserSkattHendelser(options: SkatteHendelsePubliseringOptions = SkatteHendelsePubliseringOptions()) =
         jobMonitor.execute {
-            personFinder = if (options.useCache) {
-                personFinderSelector.find(PersonFinderType.CACHED).also {
-                    personCacheSize = (it as PersonFinderCached).refresh()
-                    log.info("Bruker cached person finder, cache size: $personCacheSize")
-                }
-            } else personFinderSelector.find(PersonFinderType.DB)
+            val personFinder = finderFromOptions(options)
 
             val start = hentStartSekvensNummer()
 
             skatteHendelserFetcher.hentHendelser(
                 startSeksvensnummer = start,
-                batchDone = { sekvensnummer ->
-                    oppdaterStatus(sekvensnummer)
-                },
+                batchDone = ::oppdaterStatus,
                 reportStats = { stats ->
                     antallBatcher = stats.antallBatcher
                     sisteBatchSize = stats.sisteBatchSize
                     jobMonitor.importMethodMetrics(stats.metodeStats)
                 }
-            ).forEach { hendelse ->
-                if (jobMonitor.shouldStop) return@execute
+            ).takeWhile { !jobMonitor.shouldStop }.forEach { hendelse ->
                 metrikker.hendelseHentet()
-                finnPersonMedTreffIGjelderPeriode(hendelse)?.let { person ->
+                personFinder.findPersonByIdent(hendelse)?.let { person ->
                     registerHendelseStats(hendelse, person.ident)
                     metrikker.personFunnet()
                     personerFunnet++
+
                     log.info("Fant person ${person.ident} for sekvensnummer ${hendelse.sekvensnummer}")
+
                     val sekvensHistorikk = person.hentEllerLagSekvensHistorikk(hendelse.sekvensnummer)
                     if (sekvensHistorikk.erNyHendelse()) {
-                        if (options.dryRun) return@forEach
-                        publiserMelding(hendelse, person)
+                        if (!options.dryRun) publiserMelding(hendelse, person)
                     } else {
                         metrikker.duplikatHendelse()
                         log.warn("Hendelse med ${hendelse.sekvensnummer} er allerede kjørt ${sekvensHistorikk.antall} ganger for person ${person.ident}")
                     }
 
-                    if (options.dryRun) return@forEach
-                    personRepository.save(person)
-                    oppdaterStatus(hendelse.sekvensnummer + 1)
+                    if (!options.dryRun) {
+                        personRepository.save(person)
+                        oppdaterStatus(hendelse.sekvensnummer + 1)
+                    }
                 } ?: registerHendelseStats(hendelse)
+            }
+        }
+
+    private fun SkatteHendelsePubliseringStats.finderFromOptions(options: SkatteHendelsePubliseringOptions): PersonFinder =
+        personFinderSelector.find(
+            if (options.useCache) PersonFinderType.CACHED else PersonFinderType.DB
+        ).also {
+            if (options.useCache) {
+                personCacheSize = (it as PersonFinderCached).refresh()
+                log.info("Bruker cached person finder, cache size: $personCacheSize")
             }
         }
 
@@ -110,11 +112,6 @@ class SkatteHendelsePublisering(
             throw e
         }
     }
-
-    private fun finnPersonMedTreffIGjelderPeriode(hendelse: Hendelse): Person? =
-        jobMonitor.measureExecution("finnPersonMedTreffIGjelderPeriode") {
-            personFinder.findPersonByIdent(hendelse)
-        }
 
     fun stopProsesseringAvSkattHendelser() {
         log.info("Stopper prosessering av skattehendelser!")
