@@ -65,7 +65,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,prometheus,caches
+        include: health,prometheus,caches,metrics
       base-path: /internal
   health:
     diskspace:

@@ -3,6 +3,7 @@ package no.nav.melosysskattehendelser.prosessering
 import mu.KotlinLogging
 import no.nav.melosysskattehendelser.domain.Person
 import no.nav.melosysskattehendelser.domain.PersonRepository
+import no.nav.melosysskattehendelser.metrics.Measured
 import no.nav.melosysskattehendelser.skatt.Hendelse
 import org.springframework.stereotype.Component
 import java.util.concurrent.ConcurrentHashMap
@@ -26,6 +27,7 @@ class PersonFinderCached(
         return cache.size
     }
 
+    @Measured
     override fun findPersonByIdent(hendelse: Hendelse): Person? =
         cache[hendelse.identifikator]?.takeIf {
             it.harTreffIPeriode(hendelse.gjelderPeriodeSomÅr())
