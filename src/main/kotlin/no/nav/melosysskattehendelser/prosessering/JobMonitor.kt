@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import mu.KotlinLogging
+import no.nav.melosysskattehendelser.metrics.MeasuredMetricsProvider
 import java.time.Duration
 import java.time.LocalDateTime
 import java.util.concurrent.ConcurrentHashMap
@@ -16,7 +17,8 @@ class JobMonitor<T : JobMonitor.Stats>(
     private val jobName: String,
     private val canStart: () -> Boolean = { true },
     private val canNotStartMessage: String = "",
-    val stats: T
+    val stats: T,
+    private val metricsProvider: MeasuredMetricsProvider
 ) {
     private val shouldStopAtomic = AtomicBoolean(false)
 
@@ -45,16 +47,6 @@ class JobMonitor<T : JobMonitor.Stats>(
     private val methodToNanoTime = ConcurrentHashMap<String, AtomicLong>()
     private val methodToCount = ConcurrentHashMap<String, AtomicLong>()
 
-    inline fun <T> measureExecution(methodName: String, block: () -> T): T {
-        val start = System.nanoTime()
-        try {
-            return block()
-        } finally {
-            val duration = System.nanoTime() - start
-            recordMethodMetrics(methodName, duration)
-        }
-    }
-
     fun recordMethodMetrics(methodName: String, durationNanos: Long) {
         methodToCount.computeIfAbsent(methodName) { AtomicLong(0) }.incrementAndGet()
         methodToNanoTime.computeIfAbsent(methodName) { AtomicLong(0) }.addAndGet(durationNanos)
@@ -65,6 +57,7 @@ class JobMonitor<T : JobMonitor.Stats>(
             recordMethodMetrics(methodName, duration.get())
         }
     }
+
     private fun methodStats(): Map<String, Map<String, Number>> =
         methodToNanoTime.keys.associateWith { method ->
             val totalNanos = methodToNanoTime[method]?.get() ?: 0L
@@ -111,7 +104,7 @@ class JobMonitor<T : JobMonitor.Stats>(
         }
     }
 
-     private fun registerException(e: Throwable) {
+    private fun registerException(e: Throwable) {
         val msg = e.message ?: e::class.simpleName ?: "Unknown error"
         exceptions[msg] = exceptions.getOrDefault(msg, 0) + 1
         if (errorCount++ >= maxErrorsBeforeStop) {
@@ -137,6 +130,7 @@ class JobMonitor<T : JobMonitor.Stats>(
             "isRunning" to isRunning,
             "startedAt" to startedAt,
             "runtime" to startedAt.durationUntil(stoppedAt),
+            "measured" to metricsProvider.getMeasured(),
             "metodeToMillis" to methodStats(),
         ) + stats.asMap() + mapOf(
             "errorCount" to errorCount,
