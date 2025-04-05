@@ -60,7 +60,6 @@ class SkatteHendelsePublisering(
                 reportStats = { stats ->
                     antallBatcher = stats.antallBatcher
                     sisteBatchSize = stats.sisteBatchSize
-                    jobMonitor.importMethodMetrics(stats.metodeStats)
                 }
             ).takeWhile { !jobMonitor.shouldStop }.forEach { hendelse ->
                 metrikker.hendelseHentet()

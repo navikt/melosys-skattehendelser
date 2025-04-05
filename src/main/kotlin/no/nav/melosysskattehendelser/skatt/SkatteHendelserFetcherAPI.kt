@@ -1,12 +1,10 @@
 package no.nav.melosysskattehendelser.skatt
 
 import mu.KotlinLogging
-import no.nav.melosysskattehendelser.prosessering.measure
 import no.nav.melosysskattehendelser.skatt.SkatteHendelserFetcher.*
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import java.time.LocalDate
-import java.util.concurrent.atomic.AtomicLong
 
 private val log = KotlinLogging.logger { }
 
@@ -30,10 +28,7 @@ class SkatteHendelserFetcherAPI(
         var totaltAntallHendelser = 0
         var antallBatcher = 0
         while (true) {
-            val metodeStats = mutableMapOf<String, AtomicLong>()
-            hendelseListe = measure(metodeStats, "hentSkatteHendelser") {
-                hentSkatteHendelser(seksvensnummerFra)
-            }
+            hendelseListe = hentSkatteHendelser(seksvensnummerFra)
             if (hendelseListe.size > batchSize) error("hendelseListe.size ${hendelseListe.size} > batchSize $batchSize")
             val last = hendelseListe.lastOrNull() ?: break
             log.debug {
@@ -47,7 +42,6 @@ class SkatteHendelserFetcherAPI(
                 totaltAntallHendelser = totaltAntallHendelser,
                 antallBatcher = ++antallBatcher,
                 sisteBatchSize = hendelseListe.size,
-                metodeStats = metodeStats
             ).applyReport(reportStats)
         }
         log.info("totalt antall hendelser prosessert: $totaltAntallHendelser seksvensnummerFra er nå: $seksvensnummerFra")

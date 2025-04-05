@@ -11,7 +11,7 @@ class MeasuredMetricsAdapter(private val meterRegistry: MeterRegistry?) : Measur
     override fun getMeasured(): List<MeasuredMetricsProvider.MethodTimingStatus> {
         if (meterRegistry == null) return emptyList()
 
-        return meterRegistry["method.execution.time"].meters().mapNotNull { meter ->
+        return meterRegistry.find("method.execution.time").meters().mapNotNull { meter ->
             val timer = meter as? Timer ?: return@mapNotNull null
             val method = meter.id.getTag("method") ?: return@mapNotNull null
 

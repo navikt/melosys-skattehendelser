@@ -1,5 +1,6 @@
 package no.nav.melosysskattehendelser.skatt.sigrun
 
+import no.nav.melosysskattehendelser.metrics.Measured
 import no.nav.melosysskattehendelser.skatt.Hendelse
 import no.nav.melosysskattehendelser.skatt.HendelseRequest
 import no.nav.melosysskattehendelser.skatt.SkatteHendelseConsumer
@@ -7,10 +8,11 @@ import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.bodyToMono
 import java.time.LocalDate
 
-class SigrunRestConsumer(
+open class SigrunRestConsumer(
     private val webClient: WebClient,
 ) : SkatteHendelseConsumer {
 
+    @Measured
     override fun hentHendelseListe(request: HendelseRequest): List<Hendelse> =
         webClient.get()
             .uri { uriBuilder ->
