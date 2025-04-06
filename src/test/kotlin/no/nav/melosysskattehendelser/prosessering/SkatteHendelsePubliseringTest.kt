@@ -6,6 +6,7 @@ import io.kotest.matchers.shouldBe
 import io.mockk.every
 import io.mockk.mockk
 import no.nav.melosysskattehendelser.domain.PensjonsgivendeInntektRepository
+import no.nav.melosysskattehendelser.domain.PensjonsgivendeInntektRepositoryFake
 import no.nav.melosysskattehendelser.domain.Periode
 import no.nav.melosysskattehendelser.domain.Person
 import no.nav.melosysskattehendelser.domain.PersonRepository
@@ -28,6 +29,8 @@ import java.time.LocalDate
 
 open class SkatteHendelsePubliseringTest {
     protected open var personRepository: PersonRepository = PersonRepositoryFake()
+    protected open var pensjonsgivendeInntektRepository: PensjonsgivendeInntektRepository =
+        PensjonsgivendeInntektRepositoryFake()
     protected open var skatteHendelserStatusRepository: SkatteHendelserStatusRepository =
         SkatteHendelserStatusRepositoryFake()
     private val skattehendelserProducer: SkattehendelserProducerFake = SkattehendelserProducerFake()
@@ -38,7 +41,7 @@ open class SkatteHendelsePubliseringTest {
             skatteHendelserFetcher,
             personRepository,
             skatteHendelserStatusRepository,
-            mockk<PensjonsgivendeInntektRepository>(relaxed = true),
+            pensjonsgivendeInntektRepository,
             skattehendelserProducer,
             mockk<PensjonsgivendeInntektConsumer>(relaxed = true),
             Metrikker(),
@@ -46,7 +49,7 @@ open class SkatteHendelsePubliseringTest {
             mockk<KafkaContainerMonitor>().apply {
                 every { isKafkaContainerRunning() } returns true
             },
-            mockk<MeasuredMetricsProvider>(relaxed = true )
+            mockk<MeasuredMetricsProvider>(relaxed = true)
         )
     }
 
