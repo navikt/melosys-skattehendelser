@@ -8,7 +8,6 @@ import no.nav.melosysskattehendelser.domain.SkatteHendelserStatusRepository
 import no.nav.melosysskattehendelser.melosys.consumer.KafkaContainerMonitor
 import no.nav.melosysskattehendelser.melosys.producer.SkattehendelserProducer
 import no.nav.melosysskattehendelser.melosys.toMelosysSkatteHendelse
-import no.nav.melosysskattehendelser.metrics.Measured
 import no.nav.melosysskattehendelser.metrics.MeasuredMetricsProvider
 import no.nav.melosysskattehendelser.metrics.Metrikker
 import no.nav.melosysskattehendelser.skatt.Hendelse
@@ -43,7 +42,6 @@ class SkatteHendelsePublisering(
     )
 
     @Async
-    @Measured
     fun asynkronProsesseringAvSkattHendelser(options: SkatteHendelsePubliseringOptions) {
         prosesserSkattHendelser(options)
     }
@@ -129,11 +127,10 @@ class SkatteHendelsePublisering(
     }
 
 
-    fun finnHendelser(identifikator: String): List<HendelseMedDatoForFastsetting>? {
-        return jobMonitor.stats.identifikatorDuplikatToHendelse[identifikator]?.map {
+    fun finnHendelser(identifikator: String): List<HendelseMedDatoForFastsetting>? =
+        jobMonitor.stats.identifikatorDuplikatToHendelse[identifikator]?.map {
             hentDatoForFastsetting(it)
         }
-    }
 
     private fun hentDatoForFastsetting(hendelse: Hendelse): HendelseMedDatoForFastsetting =
         HendelseMedDatoForFastsetting(
