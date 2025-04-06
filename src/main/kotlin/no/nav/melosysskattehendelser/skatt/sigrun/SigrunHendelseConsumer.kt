@@ -8,7 +8,7 @@ import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.bodyToMono
 import java.time.LocalDate
 
-open class SigrunRestConsumer(
+open class SigrunHendelseConsumer(
     private val webClient: WebClient,
 ) : SkatteHendelseConsumer {
 
