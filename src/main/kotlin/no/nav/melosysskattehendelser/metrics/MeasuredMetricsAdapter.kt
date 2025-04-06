@@ -6,12 +6,10 @@ import org.springframework.stereotype.Component
 import java.util.concurrent.TimeUnit
 
 @Component
-class MeasuredMetricsAdapter(private val meterRegistry: MeterRegistry?) : MeasuredMetricsProvider {
+class MeasuredMetricsAdapter(private val meterRegistry: MeterRegistry) : MeasuredMetricsProvider {
 
-    override fun getMeasured(): List<MeasuredMetricsProvider.MethodTimingStatus> {
-        if (meterRegistry == null) return emptyList()
-
-        return meterRegistry.find("method.execution.time").meters().mapNotNull { meter ->
+    override fun getMeasured(): List<MeasuredMetricsProvider.MethodTimingStatus> =
+        meterRegistry.find("method.execution.time").meters().mapNotNull { meter ->
             val timer = meter as? Timer ?: return@mapNotNull null
             val method = meter.id.getTag("method") ?: return@mapNotNull null
 
@@ -22,5 +20,4 @@ class MeasuredMetricsAdapter(private val meterRegistry: MeterRegistry?) : Measur
                 maxTimeMs = timer.max(TimeUnit.MILLISECONDS)
             )
         }.sortedByDescending { it.maxTimeMs }
-    }
 }
