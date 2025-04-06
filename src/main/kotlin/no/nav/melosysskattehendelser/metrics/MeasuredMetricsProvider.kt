@@ -7,6 +7,7 @@ fun interface MeasuredMetricsProvider {
         val method: String,
         val count: Long,
         val totalTimeMs: Double,
-        val maxTimeMs: Double
+        val maxTimeMs: Double,
+        val avgTimeMs: Double
     )
 }
