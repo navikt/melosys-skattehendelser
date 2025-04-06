@@ -17,12 +17,12 @@ import org.springframework.http.MediaType
 import org.springframework.web.reactive.function.client.WebClient
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class SigrunRestConsumerTest {
+class SigrunHendelseConsumerTest {
 
     private val wireMockServer = WireMockServer(WireMockConfiguration.wireMockConfig().dynamicPort()).apply {
         start()
     }
-    private val sigrunRestConsumer = SigrunRestConsumer(
+    private val sigrunHendelseConsumer = SigrunHendelseConsumer(
         WebClient.builder()
             .baseUrl("http://localhost:${wireMockServer.port()}")
             .build()
@@ -65,7 +65,7 @@ class SigrunRestConsumerTest {
                 )
         )
 
-        val hendelseListe = sigrunRestConsumer.hentHendelseListe(
+        val hendelseListe = sigrunHendelseConsumer.hentHendelseListe(
             HendelseRequest(
                 0,
                 1000,
@@ -93,7 +93,7 @@ class SigrunRestConsumerTest {
         )
 
         shouldThrow<IllegalStateException> {
-            sigrunRestConsumer.hentHendelseListe(
+            sigrunHendelseConsumer.hentHendelseListe(
                 HendelseRequest(
                     0,
                     1000,
@@ -115,7 +115,7 @@ class SigrunRestConsumerTest {
         )
 
         shouldThrow<IllegalStateException> {
-            sigrunRestConsumer.hentHendelseListe(
+            sigrunHendelseConsumer.hentHendelseListe(
                 HendelseRequest(
                     0,
                     1000,

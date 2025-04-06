@@ -49,7 +49,6 @@ class SkatteHendelsePublisering(
     fun prosesserSkattHendelser(options: SkatteHendelsePubliseringOptions = SkatteHendelsePubliseringOptions()) =
         jobMonitor.execute {
             val personFinder = finderFromOptions(options)
-
             val start = hentStartSekvensNummer()
 
             skatteHendelserFetcher.hentHendelser(

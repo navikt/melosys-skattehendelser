@@ -21,7 +21,7 @@ class SigrunConsumerConfig(@Value("\${sigrun.rest.url}") private val url: String
         webClientBuilder: WebClient.Builder,
         clientConfigurationProperties: ClientConfigurationProperties,
         oAuth2AccessTokenService: OAuth2AccessTokenService
-    ) = SigrunRestConsumer(
+    ) = SigrunHendelseConsumer(
         webClientBuilder
             .baseUrl(url)
             .filter(AzureContextExchangeFilter(clientConfigurationProperties, oAuth2AccessTokenService))
