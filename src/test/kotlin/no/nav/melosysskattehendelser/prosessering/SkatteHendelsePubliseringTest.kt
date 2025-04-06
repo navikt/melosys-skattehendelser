@@ -5,6 +5,7 @@ import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import io.mockk.every
 import io.mockk.mockk
+import no.nav.melosysskattehendelser.domain.PensjonsgivendeInntektRepository
 import no.nav.melosysskattehendelser.domain.Periode
 import no.nav.melosysskattehendelser.domain.Person
 import no.nav.melosysskattehendelser.domain.PersonRepository
@@ -37,6 +38,7 @@ open class SkatteHendelsePubliseringTest {
             skatteHendelserFetcher,
             personRepository,
             skatteHendelserStatusRepository,
+            mockk<PensjonsgivendeInntektRepository>(relaxed = true),
             skattehendelserProducer,
             mockk<PensjonsgivendeInntektConsumer>(relaxed = true),
             Metrikker(),

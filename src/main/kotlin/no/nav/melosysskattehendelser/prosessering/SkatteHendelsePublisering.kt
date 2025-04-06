@@ -1,6 +1,8 @@
 package no.nav.melosysskattehendelser.prosessering
 
 import mu.KotlinLogging
+import no.nav.melosysskattehendelser.domain.PensjonsgivendeInntektRepository
+import no.nav.melosysskattehendelser.domain.Periode
 import no.nav.melosysskattehendelser.domain.Person
 import no.nav.melosysskattehendelser.domain.PersonRepository
 import no.nav.melosysskattehendelser.domain.SkatteHendelserSekvens
@@ -13,6 +15,7 @@ import no.nav.melosysskattehendelser.metrics.Metrikker
 import no.nav.melosysskattehendelser.skatt.Hendelse
 import no.nav.melosysskattehendelser.skatt.PensjonsgivendeInntektConsumer
 import no.nav.melosysskattehendelser.skatt.PensjonsgivendeInntektRequest
+import no.nav.melosysskattehendelser.skatt.PensjonsgivendeInntektResponse
 import no.nav.melosysskattehendelser.skatt.SkatteHendelserFetcher
 import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Component
@@ -25,6 +28,7 @@ class SkatteHendelsePublisering(
     private val skatteHendelserFetcher: SkatteHendelserFetcher,
     private val personRepository: PersonRepository,
     private val skatteHendelserStatusRepository: SkatteHendelserStatusRepository,
+    private val pensjonsgivendeInntektRepository: PensjonsgivendeInntektRepository,
     private val skattehendelserProducer: SkattehendelserProducer,
     private val pensjonsgivendeInntektConsumer: PensjonsgivendeInntektConsumer,
     private val metrikker: Metrikker,
@@ -69,19 +73,42 @@ class SkatteHendelsePublisering(
 
                     val sekvensHistorikk = person.hentEllerLagSekvensHistorikk(hendelse.sekvensnummer)
                     if (sekvensHistorikk.erNyHendelse()) {
-                        if (!options.dryRun) publiserMelding(hendelse, person)
+                        if (!options.dryRun) {
+                            hentOgLagrePensjonsgivendeInntek(hendelse, person)
+                            publiserMelding(hendelse, person)
+                        }
                     } else {
                         metrikker.duplikatHendelse()
                         log.warn("Hendelse med ${hendelse.sekvensnummer} er allerede kjørt ${sekvensHistorikk.antall} ganger for person ${person.ident}")
                     }
 
                     if (!options.dryRun) {
+
                         personRepository.save(person)
                         oppdaterStatus(hendelse.sekvensnummer + 1)
                     }
                 } ?: registerHendelseStats(hendelse)
             }
         }
+
+    private fun hentOgLagrePensjonsgivendeInntek(hendelse: Hendelse, person: Person) {
+        val pensjonsgivendeInntekt = pensjonsgivendeInntektConsumer.hentPensjonsgivendeInntekt(
+            PensjonsgivendeInntektRequest(
+                inntektsaar = hendelse.gjelderPeriode,
+                navPersonident = person.ident
+            )
+        )
+        val periode = person.perioder.find { it.harTreff(hendelse.gjelderPeriodeSomÅr()) }
+            ?: throw IllegalArgumentException("Fant ikke periode for ${hendelse.gjelderPeriodeSomÅr()} for person ${person.ident}")
+        val entity = pensjonsgivendeInntekt.tilDomain(periode)
+        pensjonsgivendeInntektRepository.save(entity)
+    }
+
+    private fun PensjonsgivendeInntektResponse.tilDomain(periode: Periode): no.nav.melosysskattehendelser.domain.PensjonsgivendeInntekt =
+        no.nav.melosysskattehendelser.domain.PensjonsgivendeInntekt(
+            periode = periode,
+            historiskInntekt = this
+        )
 
     private fun SkatteHendelsePubliseringStats.finderFromOptions(options: SkatteHendelsePubliseringOptions): PersonFinder =
         personFinderSelector.find(
