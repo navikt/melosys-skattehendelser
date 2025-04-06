@@ -15,6 +15,7 @@ import no.nav.melosysskattehendelser.domain.SkatteHendelserStatusRepositoryFake
 import no.nav.melosysskattehendelser.melosys.MelosysSkatteHendelse
 import no.nav.melosysskattehendelser.melosys.consumer.KafkaContainerMonitor
 import no.nav.melosysskattehendelser.melosys.producer.SkattehendelserProducerFake
+import no.nav.melosysskattehendelser.metrics.MeasuredMetricsProvider
 import no.nav.melosysskattehendelser.metrics.Metrikker
 import no.nav.melosysskattehendelser.skatt.Hendelse
 import no.nav.melosysskattehendelser.skatt.PensjonsgivendeInntektConsumer
@@ -42,7 +43,8 @@ open class SkatteHendelsePubliseringTest {
             mockk<PersonFinderSelector>().apply { every { find(any()) } returns PersonFinderDB(personRepository) },
             mockk<KafkaContainerMonitor>().apply {
                 every { isKafkaContainerRunning() } returns true
-            }
+            },
+            mockk<MeasuredMetricsProvider>(relaxed = true )
         )
     }
 

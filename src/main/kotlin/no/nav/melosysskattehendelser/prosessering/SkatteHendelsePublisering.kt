@@ -8,6 +8,7 @@ import no.nav.melosysskattehendelser.domain.SkatteHendelserStatusRepository
 import no.nav.melosysskattehendelser.melosys.consumer.KafkaContainerMonitor
 import no.nav.melosysskattehendelser.melosys.producer.SkattehendelserProducer
 import no.nav.melosysskattehendelser.melosys.toMelosysSkatteHendelse
+import no.nav.melosysskattehendelser.metrics.MeasuredMetricsProvider
 import no.nav.melosysskattehendelser.metrics.Metrikker
 import no.nav.melosysskattehendelser.skatt.Hendelse
 import no.nav.melosysskattehendelser.skatt.PensjonsgivendeInntektConsumer
@@ -29,13 +30,15 @@ class SkatteHendelsePublisering(
     private val metrikker: Metrikker,
     private val personFinderSelector: PersonFinderSelector,
     kafkaContainerMonitor: KafkaContainerMonitor,
+    measuredMetricsProvider: MeasuredMetricsProvider
 ) {
 
     private val jobMonitor = JobMonitor(
         jobName = "SkatteHendelserJob",
         stats = SkatteHendelsePubliseringStats(),
         canStart = { kafkaContainerMonitor.isKafkaContainerRunning() },
-        canNotStartMessage = "kafka container er stoppet!"
+        canNotStartMessage = "kafka container er stoppet!",
+        metricsProvider = measuredMetricsProvider
     )
 
     @Async
@@ -55,7 +58,6 @@ class SkatteHendelsePublisering(
                 reportStats = { stats ->
                     antallBatcher = stats.antallBatcher
                     sisteBatchSize = stats.sisteBatchSize
-                    jobMonitor.importMethodMetrics(stats.metodeStats)
                 }
             ).takeWhile { !jobMonitor.shouldStop }.forEach { hendelse ->
                 metrikker.hendelseHentet()
@@ -125,11 +127,10 @@ class SkatteHendelsePublisering(
     }
 
 
-    fun finnHendelser(identifikator: String): List<HendelseMedDatoForFastsetting>? {
-        return jobMonitor.stats.identifikatorDuplikatToHendelse[identifikator]?.map {
+    fun finnHendelser(identifikator: String): List<HendelseMedDatoForFastsetting>? =
+        jobMonitor.stats.identifikatorDuplikatToHendelse[identifikator]?.map {
             hentDatoForFastsetting(it)
         }
-    }
 
     private fun hentDatoForFastsetting(hendelse: Hendelse): HendelseMedDatoForFastsetting =
         HendelseMedDatoForFastsetting(
