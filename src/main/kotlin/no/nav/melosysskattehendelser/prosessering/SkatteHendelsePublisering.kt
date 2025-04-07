@@ -1,6 +1,9 @@
 package no.nav.melosysskattehendelser.prosessering
 
 import mu.KotlinLogging
+import no.nav.melosysskattehendelser.domain.PensjonsgivendeInntekt
+import no.nav.melosysskattehendelser.domain.PensjonsgivendeInntektRepository
+import no.nav.melosysskattehendelser.domain.Periode
 import no.nav.melosysskattehendelser.domain.Person
 import no.nav.melosysskattehendelser.domain.PersonRepository
 import no.nav.melosysskattehendelser.domain.SkatteHendelserSekvens
@@ -13,6 +16,7 @@ import no.nav.melosysskattehendelser.metrics.Metrikker
 import no.nav.melosysskattehendelser.skatt.Hendelse
 import no.nav.melosysskattehendelser.skatt.PensjonsgivendeInntektConsumer
 import no.nav.melosysskattehendelser.skatt.PensjonsgivendeInntektRequest
+import no.nav.melosysskattehendelser.skatt.PensjonsgivendeInntektResponse
 import no.nav.melosysskattehendelser.skatt.SkatteHendelserFetcher
 import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Component
@@ -25,6 +29,7 @@ class SkatteHendelsePublisering(
     private val skatteHendelserFetcher: SkatteHendelserFetcher,
     private val personRepository: PersonRepository,
     private val skatteHendelserStatusRepository: SkatteHendelserStatusRepository,
+    private val pensjonsgivendeInntektRepository: PensjonsgivendeInntektRepository,
     private val skattehendelserProducer: SkattehendelserProducer,
     private val pensjonsgivendeInntektConsumer: PensjonsgivendeInntektConsumer,
     private val metrikker: Metrikker,
@@ -69,19 +74,66 @@ class SkatteHendelsePublisering(
 
                     val sekvensHistorikk = person.hentEllerLagSekvensHistorikk(hendelse.sekvensnummer)
                     if (sekvensHistorikk.erNyHendelse()) {
-                        if (!options.dryRun) publiserMelding(hendelse, person)
+                        if (!options.dryRun) {
+                            sjekkInntektOgPubliserOmNy(hendelse, person)
+                        }
                     } else {
                         metrikker.duplikatHendelse()
                         log.warn("Hendelse med ${hendelse.sekvensnummer} er allerede kjørt ${sekvensHistorikk.antall} ganger for person ${person.ident}")
                     }
 
                     if (!options.dryRun) {
+
                         personRepository.save(person)
                         oppdaterStatus(hendelse.sekvensnummer + 1)
                     }
                 } ?: registerHendelseStats(hendelse)
             }
         }
+
+    private fun sjekkInntektOgPubliserOmNy(hendelse: Hendelse, person: Person) {
+        val inntekt = hentPensjonsgivendeInntekt(hendelse, person)
+        if (inntekt.inntektsaar != hendelse.gjelderPeriode) {
+            log.warn { "inntektsaar ${inntekt.inntektsaar} er ikke lik hendelse.gjelderPeriode ${hendelse.gjelderPeriode}" }
+        }
+        val periode = person.perioder.find { it.harTreff(hendelse.gjelderPeriodeSomÅr()) }
+            ?: throw IllegalArgumentException("Fant ikke periode for ${hendelse.gjelderPeriodeSomÅr()} for person ${person.ident}")
+
+        if (harNyInntekt(inntekt, periode)) {
+            inntekt.tilDomain(periode).also {
+                pensjonsgivendeInntektRepository.save(it)
+                log.info("Lagrer pensjonsgivende inntekt for person ${person.ident} for sekvensnummer ${hendelse.sekvensnummer}")
+            }
+            publiserMelding(hendelse, person)
+        }
+    }
+
+    fun harNyInntekt(ny: PensjonsgivendeInntektResponse, periode: Periode): Boolean {
+        val eksisterendeInntekter: List<PensjonsgivendeInntekt> = pensjonsgivendeInntektRepository.findByPeriode(periode)
+        if (eksisterendeInntekter.isEmpty()) return true
+
+        eksisterendeInntekter.firstOrNull { it.historiskInntekt == ny }?.let { duplikat ->
+            log.warn("Fant duplikat inntekt for person ${periode.id} pensjonsgivendeInntektID: ${duplikat.id}")
+            duplikat.duplikater++
+            pensjonsgivendeInntektRepository.save(duplikat)
+            return false
+        }
+        return true
+    }
+
+    private fun hentPensjonsgivendeInntekt(hendelse: Hendelse, person: Person): PensjonsgivendeInntektResponse =
+        pensjonsgivendeInntektConsumer.hentPensjonsgivendeInntekt(
+            PensjonsgivendeInntektRequest(
+                inntektsaar = hendelse.gjelderPeriode,
+                navPersonident = person.ident
+            )
+        )
+
+    private fun PensjonsgivendeInntektResponse.tilDomain(periode: Periode): PensjonsgivendeInntekt =
+        PensjonsgivendeInntekt(
+            periode = periode,
+            historiskInntekt = this
+        )
 
     private fun SkatteHendelsePubliseringStats.finderFromOptions(options: SkatteHendelsePubliseringOptions): PersonFinder =
         personFinderSelector.find(

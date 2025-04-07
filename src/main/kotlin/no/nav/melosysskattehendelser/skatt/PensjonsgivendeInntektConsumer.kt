@@ -20,6 +20,10 @@ data class PensjonsgivendeInntektResponse(
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class PensjonsgivendeInntekt(
-    val datoForFastsetting: String
+    val skatteordning: String,
+    val datoForFastsetting: String,
+    val pensjonsgivendeInntektAvLoennsinntekt: String?,
+    val pensjonsgivendeInntektAvLoennsinntektBarePensjonsdel: String?,
+    val pensjonsgivendeInntektAvNaeringsinntekt: String?,
+    val pensjonsgivendeInntektAvNaeringsinntektFraFiskeFangstEllerFamiliebarnehage: String?
 )
-

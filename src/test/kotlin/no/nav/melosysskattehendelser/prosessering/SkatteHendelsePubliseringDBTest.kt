@@ -2,6 +2,7 @@ package no.nav.melosysskattehendelser.prosessering
 
 import io.mockk.mockk
 import no.nav.melosysskattehendelser.PostgresTestContainer
+import no.nav.melosysskattehendelser.domain.PensjonsgivendeInntektRepository
 import no.nav.melosysskattehendelser.domain.PersonRepository
 import no.nav.melosysskattehendelser.domain.SkatteHendelserStatusRepository
 import no.nav.melosysskattehendelser.melosys.KafkaConfig
@@ -20,6 +21,7 @@ import org.springframework.test.context.DynamicPropertySource
 class SkatteHendelsePubliseringDBTest(
     @Autowired override var personRepository: PersonRepository,
     @Autowired override var skatteHendelserStatusRepository: SkatteHendelserStatusRepository,
+    @Autowired override var pensjonsgivendeInntektRepository: PensjonsgivendeInntektRepository,
 ) : SkatteHendelsePubliseringTest() {
 
     @TestConfiguration
