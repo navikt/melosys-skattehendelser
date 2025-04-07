@@ -13,13 +13,14 @@ import org.springframework.kafka.core.KafkaTemplate
 @Configuration
 class SkatteHendelserConfig(
     @Value("\${melosys.kafka.producer.topic}") private val topicName: String,
+    @Value("\${app.dry-run-publisering}") private val dryRunPublisering: Boolean,
     private val metrikker: Metrikker
 ) {
 
 
     @Bean
     fun skatteHendelserProducer(kafkaTemplate: KafkaTemplate<String, MelosysSkatteHendelse>) =
-        SkattehendelserProducerKafka(kafkaTemplate, topicName)
+        SkattehendelserProducerKafka(kafkaTemplate, topicName, dryRunPublisering)
 
 
     @Bean
