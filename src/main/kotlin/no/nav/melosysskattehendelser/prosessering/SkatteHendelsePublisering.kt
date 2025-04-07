@@ -109,13 +109,13 @@ class SkatteHendelsePublisering(
     }
 
     fun harNyInntekt(ny: PensjonsgivendeInntektResponse, periode: Periode): Boolean {
-        val eksisterende: List<PensjonsgivendeInntekt> = pensjonsgivendeInntektRepository.findByPeriode(periode)
-        if (eksisterende.isEmpty()) return true
+        val eksisterendeInntekter: List<PensjonsgivendeInntekt> = pensjonsgivendeInntektRepository.findByPeriode(periode)
+        if (eksisterendeInntekter.isEmpty()) return true
 
-        eksisterende.find { it.historiskInntekt == ny }?.let {
-            log.warn("Fant duplikat inntekt for person ${periode.id} pensjonsgivendeInntektID: ${it.id}")
-            it.duplikater++
-            pensjonsgivendeInntektRepository.save(it)
+        eksisterendeInntekter.firstOrNull { it.historiskInntekt == ny }?.let { duplikat ->
+            log.warn("Fant duplikat inntekt for person ${periode.id} pensjonsgivendeInntektID: ${duplikat.id}")
+            duplikat.duplikater++
+            pensjonsgivendeInntektRepository.save(duplikat)
             return false
         }
         return true
