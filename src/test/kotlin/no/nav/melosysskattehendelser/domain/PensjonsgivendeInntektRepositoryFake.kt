@@ -4,13 +4,24 @@ import java.util.*
 
 class PensjonsgivendeInntektRepositoryFake : PensjonsgivendeInntektRepository {
     private val items = mutableMapOf<Long, PensjonsgivendeInntekt>()
+    private var idCounter = 1L
 
-    override fun findByPeriode(periode: Periode): List<PensjonsgivendeInntekt> = items.values.filter { p -> p.periode == periode }
+    override fun findByPeriode(periode: Periode): List<PensjonsgivendeInntekt> =
+        items.values.filter { p -> p.periode == periode }
 
+    @Suppress("UNCHECKED_CAST")
+    override fun <S : PensjonsgivendeInntekt> save(entity: S): S {
+        val id = if (entity.id == 0L) idCounter++ else entity.id
 
-    override fun <S : PensjonsgivendeInntekt?> save(entity: S & Any): S & Any {
-        items[entity.id] = entity
-        return entity
+        val saved = PensjonsgivendeInntekt(
+            id = id,
+            periode = entity.periode,
+            historiskInntekt = entity.historiskInntekt,
+            duplikater = entity.duplikater
+        )
+
+        items[id] = saved
+        return saved as S
     }
 
     override fun <S : PensjonsgivendeInntekt?> saveAll(entities: MutableIterable<S>): MutableIterable<S> {

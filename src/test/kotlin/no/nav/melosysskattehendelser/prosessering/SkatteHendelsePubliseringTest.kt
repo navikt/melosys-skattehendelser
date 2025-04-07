@@ -20,8 +20,9 @@ import no.nav.melosysskattehendelser.melosys.producer.SkattehendelserProducerFak
 import no.nav.melosysskattehendelser.metrics.MeasuredMetricsProvider
 import no.nav.melosysskattehendelser.metrics.Metrikker
 import no.nav.melosysskattehendelser.skatt.Hendelse
-import no.nav.melosysskattehendelser.skatt.PensjonsgivendeInntektConsumer
+import no.nav.melosysskattehendelser.skatt.PensjonsgivendeInntekt
 import no.nav.melosysskattehendelser.skatt.PensjonsgivendeInntektConsumerFake
+import no.nav.melosysskattehendelser.skatt.PensjonsgivendeInntektResponse
 import no.nav.melosysskattehendelser.skatt.SkatteHendelserFetcherFake
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
@@ -36,7 +37,7 @@ open class SkatteHendelsePubliseringTest {
         SkatteHendelserStatusRepositoryFake()
     private val skattehendelserProducer: SkattehendelserProducerFake = SkattehendelserProducerFake()
     private val skatteHendelserFetcher: SkatteHendelserFetcherFake = SkatteHendelserFetcherFake()
-    private val pensjonsgivendeInntektConsumer: PensjonsgivendeInntektConsumer = PensjonsgivendeInntektConsumerFake()
+    private val pensjonsgivendeInntektConsumer = PensjonsgivendeInntektConsumerFake()
 
     private val skatteHendelsePublisering by lazy {
         SkatteHendelsePublisering(
@@ -75,6 +76,7 @@ open class SkatteHendelsePubliseringTest {
 
     @AfterEach
     fun tearDown() {
+        pensjonsgivendeInntektConsumer.reset()
         personRepository.deleteAll()
         skatteHendelserStatusRepository.deleteAll()
         skatteHendelserFetcher.reset()
@@ -83,6 +85,9 @@ open class SkatteHendelsePubliseringTest {
 
     @Test
     fun `skal publisere melding når vi får hendelse med gjelderperide som finnes i personens perioder - 1`() {
+        pensjonsgivendeInntektConsumer.reset().leggTilPensjonsgivendeInntekt(
+            inntektsaar = "2022",
+        )
         skatteHendelserFetcher.leggTilHendelseMedGjelderPeriode("2022")
 
 
@@ -100,6 +105,9 @@ open class SkatteHendelsePubliseringTest {
 
     @Test
     fun `skal publisere melding når vi får hendelse med gjelderperide som finnes i personens perioder - 2`() {
+        pensjonsgivendeInntektConsumer.leggTilPensjonsgivendeInntekt(
+            inntektsaar = "2020",
+        )
         skatteHendelserFetcher.leggTilHendelseMedGjelderPeriode("2023")
 
 
@@ -117,6 +125,9 @@ open class SkatteHendelsePubliseringTest {
 
     @Test
     fun `skal oppdatere sekvensnummer etter publisering`() {
+        pensjonsgivendeInntektConsumer.reset().leggTilPensjonsgivendeInntekt(
+            inntektsaar = "2022",
+        )
         skatteHendelserFetcher.leggTilHendelseMedGjelderPeriode("2022")
 
 
@@ -131,6 +142,9 @@ open class SkatteHendelsePubliseringTest {
 
     @Test
     fun `skal oppdatere brukers sekvensnummer ved publisering`() {
+        pensjonsgivendeInntektConsumer.reset().leggTilPensjonsgivendeInntekt(
+            inntektsaar = "2022",
+        )
         skatteHendelserFetcher.leggTilHendelseMedGjelderPeriode("2022")
 
 
@@ -160,7 +174,41 @@ open class SkatteHendelsePubliseringTest {
     }
 
     @Test
+    fun `skal lagre pensjonsgivende inntekt som er ulik`() {
+        pensjonsgivendeInntektConsumer.reset()
+            .leggTilPensjonsgivendeInntekt(inntektsaar = "2023")
+            .leggTilPensjonsgivendeInntekt(inntektsaar = "2023") { response: PensjonsgivendeInntektResponse ->
+                response.copy(pensjonsgivendeInntekt = response.pensjonsgivendeInntekt.map { inntekt: PensjonsgivendeInntekt ->
+                    inntekt.copy(pensjonsgivendeInntektAvLoennsinntekt = "2001")
+                })
+            }
+
+        skatteHendelserFetcher.hendelser.addAll(
+            (1..2).map
+            {
+                Hendelse(
+                    gjelderPeriode = "2023",
+                    identifikator = "123",
+                    sekvensnummer = it.toLong(),
+                    somAktoerid = false
+                )
+            }
+        )
+
+
+        skatteHendelsePublisering.prosesserSkattHendelser()
+
+
+        skattehendelserProducer.hendelser.shouldHaveSize(2)
+        pensjonsgivendeInntektRepository.findAll().shouldHaveSize(2)
+    }
+
+    @Test
     fun `skal ikke publisere melding når vi får pensjonsgivende inntekt som er lik`() {
+        pensjonsgivendeInntektConsumer.reset()
+            .leggTilPensjonsgivendeInntekt(inntektsaar = "2022")
+            .leggTilPensjonsgivendeInntekt(inntektsaar = "2022")
+
         skatteHendelserFetcher.hendelser.addAll(
             (1..2).map {
                 Hendelse(
@@ -201,6 +249,9 @@ open class SkatteHendelsePubliseringTest {
 
     @Test
     fun `skal få flere treff i sekvensHistorikk ved samme identifikator`() {
+        pensjonsgivendeInntektConsumer.reset()
+            .leggTilPensjonsgivendeInntekt(inntektsaar = "2022")
+            .leggTilPensjonsgivendeInntekt(inntektsaar = "2022")
         skatteHendelserFetcher.hendelser.addAll(
             (1..2).map {
                 Hendelse(

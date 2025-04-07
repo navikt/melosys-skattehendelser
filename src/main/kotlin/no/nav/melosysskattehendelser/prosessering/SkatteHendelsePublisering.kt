@@ -93,6 +93,9 @@ class SkatteHendelsePublisering(
 
     private fun sjekkInntektOgPubliserOmNy(hendelse: Hendelse, person: Person) {
         val inntekt = hentPensjonsgivendeInntekt(hendelse, person)
+        if (inntekt.inntektsaar != hendelse.gjelderPeriode) {
+            log.warn { "inntektsaar ${inntekt.inntektsaar} er ikke lik hendelse.gjelderPeriode ${hendelse.gjelderPeriode}" }
+        }
         val periode = person.perioder.find { it.harTreff(hendelse.gjelderPeriodeSomÅr()) }
             ?: throw IllegalArgumentException("Fant ikke periode for ${hendelse.gjelderPeriodeSomÅr()} for person ${person.ident}")
 
