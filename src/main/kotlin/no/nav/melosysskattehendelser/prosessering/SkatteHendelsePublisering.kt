@@ -91,13 +91,11 @@ class SkatteHendelsePublisering(
             }
         }
 
-    private fun sjekkInntektOgPubliserOmNy(
-        hendelse: Hendelse,
-        person: Person,
-    ) {
+    private fun sjekkInntektOgPubliserOmNy(hendelse: Hendelse, person: Person) {
         val inntekt = hentPensjonsgivendeInntekt(hendelse, person)
         val periode = person.perioder.find { it.harTreff(hendelse.gjelderPeriodeSomÅr()) }
             ?: throw IllegalArgumentException("Fant ikke periode for ${hendelse.gjelderPeriodeSomÅr()} for person ${person.ident}")
+
         if (harNyInntekt(inntekt, periode)) {
             inntekt.tilDomain(periode).also {
                 pensjonsgivendeInntektRepository.save(it)
@@ -111,9 +109,13 @@ class SkatteHendelsePublisering(
         val eksisterende: List<PensjonsgivendeInntekt> = pensjonsgivendeInntektRepository.findByPeriode(periode)
         if (eksisterende.isEmpty()) return true
 
-        return eksisterende.any { it.historiskInntekt.erEndretFra(ny) }.also {
-            log.warn("Fant duplikat inntekt for person ${periode.id}")
+        eksisterende.find { it.historiskInntekt == ny }?.let {
+            log.warn("Fant duplikat inntekt for person ${periode.id} pensjonsgivendeInntektID: ${it.id}")
+            it.duplikater++
+            pensjonsgivendeInntektRepository.save(it)
+            return false
         }
+        return true
     }
 
     private fun hentPensjonsgivendeInntekt(hendelse: Hendelse, person: Person): PensjonsgivendeInntektResponse =

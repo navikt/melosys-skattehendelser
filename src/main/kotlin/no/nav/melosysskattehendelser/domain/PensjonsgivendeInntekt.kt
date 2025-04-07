@@ -17,6 +17,9 @@ class PensjonsgivendeInntekt(
     @JoinColumn(name = "periode_id", nullable = false)
     val periode: Periode,
 
+    @Column(name = "duplikater", nullable = false)
+    var duplikater: Int = 0,
+
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "historisk_inntekt", columnDefinition = "jsonb", nullable = false)
     @Convert(converter = PensjonsgivendeInntektResponseConverter::class)

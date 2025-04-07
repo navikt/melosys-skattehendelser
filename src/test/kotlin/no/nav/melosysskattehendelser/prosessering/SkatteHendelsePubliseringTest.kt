@@ -177,7 +177,9 @@ open class SkatteHendelsePubliseringTest {
 
 
         skattehendelserProducer.hendelser.shouldHaveSize(1)
-        pensjonsgivendeInntektRepository.findAll().shouldHaveSize(1)
+        pensjonsgivendeInntektRepository.findAll().single().run {
+            duplikater shouldBe 1
+        }
     }
 
 
