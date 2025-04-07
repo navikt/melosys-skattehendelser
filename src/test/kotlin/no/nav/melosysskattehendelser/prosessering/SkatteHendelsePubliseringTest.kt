@@ -21,6 +21,7 @@ import no.nav.melosysskattehendelser.metrics.MeasuredMetricsProvider
 import no.nav.melosysskattehendelser.metrics.Metrikker
 import no.nav.melosysskattehendelser.skatt.Hendelse
 import no.nav.melosysskattehendelser.skatt.PensjonsgivendeInntektConsumer
+import no.nav.melosysskattehendelser.skatt.PensjonsgivendeInntektConsumerFake
 import no.nav.melosysskattehendelser.skatt.SkatteHendelserFetcherFake
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
@@ -35,6 +36,7 @@ open class SkatteHendelsePubliseringTest {
         SkatteHendelserStatusRepositoryFake()
     private val skattehendelserProducer: SkattehendelserProducerFake = SkattehendelserProducerFake()
     private val skatteHendelserFetcher: SkatteHendelserFetcherFake = SkatteHendelserFetcherFake()
+    private val pensjonsgivendeInntektConsumer: PensjonsgivendeInntektConsumer = PensjonsgivendeInntektConsumerFake()
 
     private val skatteHendelsePublisering by lazy {
         SkatteHendelsePublisering(
@@ -43,7 +45,7 @@ open class SkatteHendelsePubliseringTest {
             skatteHendelserStatusRepository,
             pensjonsgivendeInntektRepository,
             skattehendelserProducer,
-            mockk<PensjonsgivendeInntektConsumer>(relaxed = true),
+            pensjonsgivendeInntektConsumer,
             Metrikker(),
             mockk<PersonFinderSelector>().apply { every { find(any()) } returns PersonFinderDB(personRepository) },
             mockk<KafkaContainerMonitor>().apply {
@@ -156,6 +158,28 @@ open class SkatteHendelsePubliseringTest {
 
         skattehendelserProducer.hendelser.shouldBeEmpty()
     }
+
+    @Test
+    fun `skal ikke publisere melding når vi får pensjonsgivende inntekt som er lik`() {
+        skatteHendelserFetcher.hendelser.addAll(
+            (1..2).map {
+                Hendelse(
+                    gjelderPeriode = "2023",
+                    identifikator = "123",
+                    sekvensnummer = it.toLong(),
+                    somAktoerid = false
+                )
+            }
+        )
+
+
+        skatteHendelsePublisering.prosesserSkattHendelser()
+
+
+        skattehendelserProducer.hendelser.shouldHaveSize(1)
+        pensjonsgivendeInntektRepository.findAll().shouldHaveSize(1)
+    }
+
 
     @Test
     fun `skal øke antall når hendelse med samme sekvensnummer er kjørt før`() {

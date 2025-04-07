@@ -16,7 +16,6 @@ class PensjonsgivendeInntektResponseConverter :
         mapper.writeValueAsString(attribute)
 
     override fun convertToEntityAttribute(dbData: String): PensjonsgivendeInntektResponse {
-        println(">>> SERIALIZING historiskInntekt")
         return mapper.readValue<PensjonsgivendeInntektResponse>(dbData)
     }
 }

@@ -5,6 +5,9 @@ import java.util.*
 class PensjonsgivendeInntektRepositoryFake : PensjonsgivendeInntektRepository {
     private val items = mutableMapOf<Long, PensjonsgivendeInntekt>()
 
+    override fun findByPeriode(periode: Periode): List<PensjonsgivendeInntekt> = items.values.filter { p -> p.periode == periode }
+
+
     override fun <S : PensjonsgivendeInntekt?> save(entity: S & Any): S & Any {
         items[entity.id] = entity
         return entity
@@ -51,6 +54,4 @@ class PensjonsgivendeInntektRepositoryFake : PensjonsgivendeInntektRepository {
     override fun findById(id: Long): Optional<PensjonsgivendeInntekt> {
         throw UnsupportedOperationException("Not yet implemented")
     }
-
-
 }

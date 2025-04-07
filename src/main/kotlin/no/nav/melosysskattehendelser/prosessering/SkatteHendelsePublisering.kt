@@ -1,6 +1,7 @@
 package no.nav.melosysskattehendelser.prosessering
 
 import mu.KotlinLogging
+import no.nav.melosysskattehendelser.domain.PensjonsgivendeInntekt
 import no.nav.melosysskattehendelser.domain.PensjonsgivendeInntektRepository
 import no.nav.melosysskattehendelser.domain.Periode
 import no.nav.melosysskattehendelser.domain.Person
@@ -74,8 +75,7 @@ class SkatteHendelsePublisering(
                     val sekvensHistorikk = person.hentEllerLagSekvensHistorikk(hendelse.sekvensnummer)
                     if (sekvensHistorikk.erNyHendelse()) {
                         if (!options.dryRun) {
-                            hentOgLagrePensjonsgivendeInntek(hendelse, person)
-                            publiserMelding(hendelse, person)
+                            sjekkInntektOgPubliserOmNy(hendelse, person)
                         }
                     } else {
                         metrikker.duplikatHendelse()
@@ -91,21 +91,41 @@ class SkatteHendelsePublisering(
             }
         }
 
-    private fun hentOgLagrePensjonsgivendeInntek(hendelse: Hendelse, person: Person) {
-        val pensjonsgivendeInntekt = pensjonsgivendeInntektConsumer.hentPensjonsgivendeInntekt(
+    private fun sjekkInntektOgPubliserOmNy(
+        hendelse: Hendelse,
+        person: Person,
+    ) {
+        val inntekt = hentPensjonsgivendeInntekt(hendelse, person)
+        val periode = person.perioder.find { it.harTreff(hendelse.gjelderPeriodeSomÅr()) }
+            ?: throw IllegalArgumentException("Fant ikke periode for ${hendelse.gjelderPeriodeSomÅr()} for person ${person.ident}")
+        if (harNyInntekt(inntekt, periode)) {
+            inntekt.tilDomain(periode).also {
+                pensjonsgivendeInntektRepository.save(it)
+                log.info("Lagrer pensjonsgivende inntekt for person ${person.ident} for sekvensnummer ${hendelse.sekvensnummer}")
+            }
+            publiserMelding(hendelse, person)
+        }
+    }
+
+    fun harNyInntekt(ny: PensjonsgivendeInntektResponse, periode: Periode): Boolean {
+        val eksisterende: List<PensjonsgivendeInntekt> = pensjonsgivendeInntektRepository.findByPeriode(periode)
+        if (eksisterende.isEmpty()) return true
+
+        return eksisterende.any { it.historiskInntekt.erEndretFra(ny) }.also {
+            log.warn("Fant duplikat inntekt for person ${periode.id}")
+        }
+    }
+
+    private fun hentPensjonsgivendeInntekt(hendelse: Hendelse, person: Person): PensjonsgivendeInntektResponse =
+        pensjonsgivendeInntektConsumer.hentPensjonsgivendeInntekt(
             PensjonsgivendeInntektRequest(
                 inntektsaar = hendelse.gjelderPeriode,
                 navPersonident = person.ident
             )
         )
-        val periode = person.perioder.find { it.harTreff(hendelse.gjelderPeriodeSomÅr()) }
-            ?: throw IllegalArgumentException("Fant ikke periode for ${hendelse.gjelderPeriodeSomÅr()} for person ${person.ident}")
-        val entity = pensjonsgivendeInntekt.tilDomain(periode)
-        pensjonsgivendeInntektRepository.save(entity)
-    }
 
-    private fun PensjonsgivendeInntektResponse.tilDomain(periode: Periode): no.nav.melosysskattehendelser.domain.PensjonsgivendeInntekt =
-        no.nav.melosysskattehendelser.domain.PensjonsgivendeInntekt(
+    private fun PensjonsgivendeInntektResponse.tilDomain(periode: Periode): PensjonsgivendeInntekt =
+        PensjonsgivendeInntekt(
             periode = periode,
             historiskInntekt = this
         )
