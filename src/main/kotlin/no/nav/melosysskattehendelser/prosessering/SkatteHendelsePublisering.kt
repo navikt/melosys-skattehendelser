@@ -51,45 +51,40 @@ class SkatteHendelsePublisering(
         prosesserSkattHendelser(options)
     }
 
-    fun prosesserSkattHendelser(options: SkatteHendelsePubliseringOptions = SkatteHendelsePubliseringOptions()) =
-        jobMonitor.execute {
-            val personFinder = finderFromOptions(options)
-            val start = hentStartSekvensNummer()
+    fun prosesserSkattHendelser(
+        options: SkatteHendelsePubliseringOptions = SkatteHendelsePubliseringOptions()
+    ) = jobMonitor.execute {
+        val personFinder = finderFromOptions(options)
+        val start = hentStartSekvensNummer()
 
-            skatteHendelserFetcher.hentHendelser(
-                startSeksvensnummer = start,
-                batchDone = ::oppdaterStatus,
-                reportStats = { stats ->
-                    antallBatcher = stats.antallBatcher
-                    sisteBatchSize = stats.sisteBatchSize
-                }
-            ).takeWhile { !jobMonitor.shouldStop }.forEach { hendelse ->
-                metrikker.hendelseHentet()
-                personFinder.findPersonByIdent(hendelse)?.let { person ->
-                    registerHendelseStats(hendelse, person.ident)
-                    metrikker.personFunnet()
-                    personerFunnet++
-
-                    log.info("Fant person ${person.ident} for sekvensnummer ${hendelse.sekvensnummer}")
-
-                    val sekvensHistorikk = person.hentEllerLagSekvensHistorikk(hendelse.sekvensnummer)
-                    if (sekvensHistorikk.erNyHendelse()) {
-                        if (!options.dryRun) {
-                            sjekkInntektOgPubliserOmNy(hendelse, person)
-                        }
-                    } else {
-                        metrikker.duplikatHendelse()
-                        log.warn("Hendelse med ${hendelse.sekvensnummer} er allerede kjørt ${sekvensHistorikk.antall} ganger for person ${person.ident}")
-                    }
-
-                    if (!options.dryRun) {
-
-                        personRepository.save(person)
-                        oppdaterStatus(hendelse.sekvensnummer + 1)
-                    }
-                } ?: registerHendelseStats(hendelse)
+        skatteHendelserFetcher.hentHendelser(
+            startSeksvensnummer = start,
+            batchDone = ::oppdaterStatus,
+            reportStats = { stats ->
+                antallBatcher = stats.antallBatcher
+                sisteBatchSize = stats.sisteBatchSize
             }
+        ).takeWhile { !jobMonitor.shouldStop }.forEach { hendelse ->
+            metrikker.hendelseHentet()
+            personFinder.findPersonByIdent(hendelse)?.also { person ->
+                registerHendelseStats(hendelse, person.ident)
+                metrikker.personFunnet()
+                personerFunnet++
+
+                log.info("Fant person ${person.ident} for sekvensnummer ${hendelse.sekvensnummer}")
+
+                val sekvensHistorikk = person.hentEllerLagSekvensHistorikk(hendelse.sekvensnummer)
+                if (sekvensHistorikk.erNyHendelse()) {
+                    sjekkInntektOgPubliserOmNy(hendelse, person)
+                } else {
+                    metrikker.duplikatHendelse()
+                    log.warn { "Hendelse med ${hendelse.sekvensnummer} er allerede kjørt ${sekvensHistorikk.antall} ganger for person ${person.ident}" }
+                }
+                personRepository.save(person)
+                oppdaterStatus(hendelse.sekvensnummer + 1)
+            } ?: registerHendelseStats(hendelse)
         }
+    }
 
     private fun sjekkInntektOgPubliserOmNy(hendelse: Hendelse, person: Person) {
         val inntekt = hentPensjonsgivendeInntekt(hendelse, person)
@@ -109,7 +104,7 @@ class SkatteHendelsePublisering(
     }
 
     fun harNyInntekt(ny: PensjonsgivendeInntektResponse, periode: Periode): Boolean {
-        val eksisterendeInntekter: List<PensjonsgivendeInntekt> = pensjonsgivendeInntektRepository.findByPeriode(periode)
+        val eksisterendeInntekter = pensjonsgivendeInntektRepository.findByPeriode(periode)
         if (eksisterendeInntekter.isEmpty()) return true
 
         eksisterendeInntekter.firstOrNull { it.historiskInntekt == ny }?.let { duplikat ->
