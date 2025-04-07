@@ -16,9 +16,7 @@ data class PensjonsgivendeInntektResponse(
     val norskPersonidentifikator: String,
     val inntektsaar: String,
     val pensjonsgivendeInntekt: List<PensjonsgivendeInntekt>,
-) {
-    fun erEndretFra(forrige: PensjonsgivendeInntektResponse): Boolean = this != forrige
-}
+)
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class PensjonsgivendeInntekt(
