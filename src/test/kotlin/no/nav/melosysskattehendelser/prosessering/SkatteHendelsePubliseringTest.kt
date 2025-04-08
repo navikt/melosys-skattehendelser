@@ -125,7 +125,7 @@ open class SkatteHendelsePubliseringTest {
 
     @Test
     fun `skal oppdatere sekvensnummer etter publisering`() {
-        pensjonsgivendeInntektConsumer.reset().leggTilPensjonsgivendeInntekt(
+        pensjonsgivendeInntektConsumer.leggTilPensjonsgivendeInntekt(
             inntektsaar = "2022",
         )
         skatteHendelserFetcher.leggTilHendelseMedGjelderPeriode("2022")
@@ -142,7 +142,7 @@ open class SkatteHendelsePubliseringTest {
 
     @Test
     fun `skal oppdatere brukers sekvensnummer ved publisering`() {
-        pensjonsgivendeInntektConsumer.reset().leggTilPensjonsgivendeInntekt(
+        pensjonsgivendeInntektConsumer.leggTilPensjonsgivendeInntekt(
             inntektsaar = "2022",
         )
         skatteHendelserFetcher.leggTilHendelseMedGjelderPeriode("2022")
@@ -175,7 +175,7 @@ open class SkatteHendelsePubliseringTest {
 
     @Test
     fun `skal lagre pensjonsgivende inntekt som er ulik`() {
-        pensjonsgivendeInntektConsumer.reset()
+        pensjonsgivendeInntektConsumer
             .leggTilPensjonsgivendeInntekt(inntektsaar = "2023")
             .leggTilPensjonsgivendeInntekt(inntektsaar = "2023") { response: PensjonsgivendeInntektResponse ->
                 response.copy(pensjonsgivendeInntekt = response.pensjonsgivendeInntekt.map { inntekt: PensjonsgivendeInntekt ->
@@ -204,21 +204,85 @@ open class SkatteHendelsePubliseringTest {
     }
 
     @Test
+    fun `skal lagre pensjonsgivende inntekt ved slettet og ikke publisere hendelse`() {
+        pensjonsgivendeInntektConsumer
+            .leggTilPensjonsgivendeInntekt(inntektsaar = "2023") { response: PensjonsgivendeInntektResponse ->
+                response.copy(
+                    slettet = true,
+                    pensjonsgivendeInntekt = emptyList()
+                )
+            }
+
+        skatteHendelserFetcher.leggTilHendelseMedGjelderPeriode("2023")
+
+
+        skatteHendelsePublisering.prosesserSkattHendelser()
+
+
+        skattehendelserProducer.hendelser.shouldBeEmpty()
+        pensjonsgivendeInntektRepository.findAll().shouldHaveSize(1)
+    }
+
+    @Test
+    fun `skal hånter 2 slettinger og ikke publisere hendelse`() {
+        pensjonsgivendeInntektConsumer
+            .leggTilPensjonsgivendeInntekt(inntektsaar = "2023") { response: PensjonsgivendeInntektResponse ->
+                response.copy(
+                    slettet = true,
+                    pensjonsgivendeInntekt = emptyList()
+                )
+            }
+            .leggTilPensjonsgivendeInntekt(inntektsaar = "2023") { response: PensjonsgivendeInntektResponse ->
+                response.copy(
+                    slettet = true,
+                    pensjonsgivendeInntekt = emptyList()
+                )
+            }
+
+        skatteHendelserFetcher.leggTilHendelseMedGjelderPeriode(gjelderPeriode = "2023", sekvensnummer = 1)
+        skatteHendelserFetcher.leggTilHendelseMedGjelderPeriode(gjelderPeriode = "2023", sekvensnummer = 2)
+
+
+        skatteHendelsePublisering.prosesserSkattHendelser()
+
+
+        skattehendelserProducer.hendelser.shouldBeEmpty()
+        pensjonsgivendeInntektRepository.findAll().shouldHaveSize(1)
+    }
+
+    @Test
+    fun `skal håntere sletting etter vanlig melding og ikke publisere hendelse`() {
+        pensjonsgivendeInntektConsumer
+            .leggTilPensjonsgivendeInntekt(inntektsaar = "2023")
+            .leggTilPensjonsgivendeInntekt(inntektsaar = "2023") { response: PensjonsgivendeInntektResponse ->
+                response.copy(
+                    slettet = true,
+                    pensjonsgivendeInntekt = emptyList()
+                )
+            }
+        skatteHendelserFetcher.leggTilHendelseMedGjelderPeriode(gjelderPeriode = "2023", sekvensnummer = 1)
+        skatteHendelserFetcher.leggTilHendelseMedGjelderPeriode(gjelderPeriode = "2023", sekvensnummer = 2)
+
+
+        skatteHendelsePublisering.prosesserSkattHendelser()
+
+
+        skattehendelserProducer.hendelser.shouldHaveSize(1)
+        pensjonsgivendeInntektRepository.findAll().onEach {
+            println(it.duplikater)
+            println(it.historiskInntekt)
+        }.shouldHaveSize(2)
+    }
+
+
+    @Test
     fun `skal ikke publisere melding når vi får pensjonsgivende inntekt som er lik`() {
-        pensjonsgivendeInntektConsumer.reset()
+        pensjonsgivendeInntektConsumer
             .leggTilPensjonsgivendeInntekt(inntektsaar = "2022")
             .leggTilPensjonsgivendeInntekt(inntektsaar = "2022")
 
-        skatteHendelserFetcher.hendelser.addAll(
-            (1..2).map {
-                Hendelse(
-                    gjelderPeriode = "2023",
-                    identifikator = "123",
-                    sekvensnummer = it.toLong(),
-                    somAktoerid = false
-                )
-            }
-        )
+        skatteHendelserFetcher.leggTilHendelseMedGjelderPeriode(gjelderPeriode = "2022", sekvensnummer = 1)
+        skatteHendelserFetcher.leggTilHendelseMedGjelderPeriode(gjelderPeriode = "2022", sekvensnummer = 2)
 
 
         skatteHendelsePublisering.prosesserSkattHendelser()
@@ -249,19 +313,12 @@ open class SkatteHendelsePubliseringTest {
 
     @Test
     fun `skal få flere treff i sekvensHistorikk ved samme identifikator`() {
-        pensjonsgivendeInntektConsumer.reset()
+        pensjonsgivendeInntektConsumer
             .leggTilPensjonsgivendeInntekt(inntektsaar = "2022")
             .leggTilPensjonsgivendeInntekt(inntektsaar = "2022")
-        skatteHendelserFetcher.hendelser.addAll(
-            (1..2).map {
-                Hendelse(
-                    gjelderPeriode = "2022",
-                    identifikator = "123",
-                    sekvensnummer = it.toLong(),
-                    somAktoerid = false
-                )
-            }
-        )
+
+        skatteHendelserFetcher.leggTilHendelseMedGjelderPeriode(gjelderPeriode = "2022", sekvensnummer = 1)
+        skatteHendelserFetcher.leggTilHendelseMedGjelderPeriode(gjelderPeriode = "2022", sekvensnummer = 2)
 
 
         skatteHendelsePublisering.prosesserSkattHendelser()
@@ -292,12 +349,15 @@ open class SkatteHendelsePubliseringTest {
         skattehendelserProducer.hendelser.shouldBeEmpty()
     }
 
-    private fun SkatteHendelserFetcherFake.leggTilHendelseMedGjelderPeriode(gjelderPeriode: String) {
+    private fun SkatteHendelserFetcherFake.leggTilHendelseMedGjelderPeriode(
+        gjelderPeriode: String,
+        sekvensnummer: Long = 1
+    ) {
         hendelser.add(
             Hendelse(
                 gjelderPeriode = gjelderPeriode,
                 identifikator = "123",
-                sekvensnummer = 1,
+                sekvensnummer = sekvensnummer,
                 somAktoerid = false,
                 hendelsetype = "ny"
             )

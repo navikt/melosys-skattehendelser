@@ -95,24 +95,26 @@ class SkatteHendelsePublisering(
             ?: throw IllegalArgumentException("Fant ikke periode for ${hendelse.gjelderPeriodeSomÅr()} for person ${person.ident}")
 
         if (harNyInntekt(inntekt, periode)) {
-            inntekt.tilDomain(periode).also {
-                pensjonsgivendeInntektRepository.save(it)
-                log.info("Lagrer pensjonsgivende inntekt for person ${person.ident} for sekvensnummer ${hendelse.sekvensnummer}")
-            }
             publiserMelding(hendelse, person)
         }
     }
 
     fun harNyInntekt(ny: PensjonsgivendeInntektResponse, periode: Periode): Boolean {
         val eksisterendeInntekter = pensjonsgivendeInntektRepository.findByPeriode(periode)
-        if (eksisterendeInntekter.isEmpty()) return true
 
-        eksisterendeInntekter.firstOrNull { it.historiskInntekt == ny }?.let { duplikat ->
-            log.warn("Fant duplikat inntekt for person ${periode.id} pensjonsgivendeInntektID: ${duplikat.id}")
-            duplikat.duplikater++
-            pensjonsgivendeInntektRepository.save(duplikat)
+        eksisterendeInntekter.firstOrNull { it.historiskInntekt == ny }?.let { inntekt ->
+            log.warn("Fant duplikat inntekt for periode ${periode.id} pensjonsgivendeInntektID: ${inntekt.id}")
+            inntekt.duplikater++
+            pensjonsgivendeInntektRepository.save(inntekt)
             return false
         }
+        if (ny.slettet) {
+            log.warn { "pensjonsgivendeInntekt gav 404 - slettet inntekt for periode.id ${periode.id}" }
+            pensjonsgivendeInntektRepository.save(ny.tilDomain(periode))
+            return false
+        }
+        pensjonsgivendeInntektRepository.save(ny.tilDomain(periode))
+        log.info("Lagrer pensjonsgivende inntekt for periode ${periode.id}")
         return true
     }
 
