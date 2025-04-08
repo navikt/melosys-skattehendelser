@@ -25,9 +25,10 @@ class JobConfirmationService(
 
     fun isValid(token: String?): Boolean {
         if (!isProd) return true
-        val timestamp = tokens[token] ?: return false
+        val nonNullToken = token ?: return false
+        val timestamp = tokens[nonNullToken] ?: return false
         val isValid = Instant.now().isBefore(timestamp.plusSeconds(300))
-        if (isValid) tokens.remove(token)
+        if (isValid) tokens.remove(nonNullToken)
         return isValid
     }
 
