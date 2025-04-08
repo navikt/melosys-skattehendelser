@@ -13,6 +13,7 @@ data class PensjonsgivendeInntektRequest(
 )
 
 data class PensjonsgivendeInntektResponse(
+    val slettet: Boolean = false,
     val norskPersonidentifikator: String,
     val inntektsaar: String,
     val pensjonsgivendeInntekt: List<PensjonsgivendeInntekt>,
