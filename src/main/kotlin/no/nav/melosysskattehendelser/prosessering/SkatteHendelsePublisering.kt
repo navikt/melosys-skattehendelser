@@ -103,7 +103,7 @@ class SkatteHendelsePublisering(
         val eksisterendeInntekter = pensjonsgivendeInntektRepository.findByPeriode(periode)
 
         eksisterendeInntekter.firstOrNull { it.historiskInntekt == ny }?.let { inntekt ->
-            log.warn("Fant duplikat inntekt for person ${periode.id} pensjonsgivendeInntektID: ${inntekt.id}")
+            log.warn("Fant duplikat inntekt for periode ${periode.id} pensjonsgivendeInntektID: ${inntekt.id}")
             inntekt.duplikater++
             pensjonsgivendeInntektRepository.save(inntekt)
             return false
