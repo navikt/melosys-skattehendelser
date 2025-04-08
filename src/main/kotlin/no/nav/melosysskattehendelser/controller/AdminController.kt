@@ -10,9 +10,9 @@ import no.nav.melosysskattehendelser.melosys.consumer.KafkaContainerMonitor
 import no.nav.melosysskattehendelser.prosessering.HendelseMedDatoForFastsetting
 import no.nav.melosysskattehendelser.melosys.producer.SkattehendelserProducer
 import no.nav.melosysskattehendelser.melosys.MelosysSkatteHendelse
+import no.nav.melosysskattehendelser.prosessering.JobConfirmationService
 import no.nav.melosysskattehendelser.prosessering.SkatteHendelsePubliseringOptions
 import no.nav.security.token.support.core.api.Unprotected
-import org.springframework.core.env.Environment
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -27,20 +27,29 @@ class AdminController(
     private val personRepository: PersonRepository,
     private val kafkaContainerMonitor: KafkaContainerMonitor,
     private val skattehendelserProducer: SkattehendelserProducer,
-    private val environment: Environment
+    private val jobConfirmationService: JobConfirmationService
 ) {
     @PostMapping("/hendelseprosessering/start")
     fun startHendelseProsessering(
         @RequestBody(required = false) options: SkatteHendelsePubliseringOptions =
-            SkatteHendelsePubliseringOptions.av(environment)
+            SkatteHendelsePubliseringOptions()
     ): ResponseEntity<String> {
+        if (!jobConfirmationService.isValid(options.confirmationCode)) {
+            val newToken = jobConfirmationService.generateToken()
+            return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(jobConfirmationService.confirmationMessage(newToken))
+        }
         log.info("Starter hendelseprosessering. Options: $options")
         if (kafkaContainerMonitor.isKafkaContainerStopped()) {
             return ResponseEntity("Kafka container har stoppet", HttpStatus.SERVICE_UNAVAILABLE)
         }
 
         skatteHendelsePublisering.asynkronProsesseringAvSkattHendelser(options)
-        return ResponseEntity.ok("Hendelseprosessering startet. Options: $options")
+        return ResponseEntity.ok(
+            "✅ Hendelseprosessering startet på cluster:${jobConfirmationService.naisClusterName}.\n" +
+                    "dryRunPublisering:${jobConfirmationService.dryRunPublisering} Options: $options"
+        )
     }
 
     @PostMapping("/hendelseprosessering/stop")
