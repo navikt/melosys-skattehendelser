@@ -1,7 +1,5 @@
 package no.nav.melosysskattehendelser.prosessering
 
-import no.nav.melosysskattehendelser.skatt.Hendelse
-
 data class SkatteHendelsePubliseringStats(
     @Volatile var totaltAntallHendelser: Int = 0,
     @Volatile var personerFunnet: Int = 0,
@@ -12,7 +10,7 @@ data class SkatteHendelsePubliseringStats(
     var periodeFilter: String? = "2024",
     var kunIdentMatch: Boolean = false,
 ) : JobMonitor.Stats {
-    fun registerHendelseStats(hendelse: Hendelse, ident: String? = null) {
+    fun registerHendelseStats() {
         totaltAntallHendelser++
     }
 

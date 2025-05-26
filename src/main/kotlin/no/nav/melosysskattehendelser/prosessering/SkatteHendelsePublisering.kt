@@ -67,7 +67,7 @@ class SkatteHendelsePublisering(
         ).takeWhile { !jobMonitor.shouldStop }.forEach { hendelse ->
             metrikker.hendelseHentet()
             personFinder.findPersonByIdent(hendelse)?.also { person ->
-                registerHendelseStats(hendelse, person.ident)
+                registerHendelseStats()
                 metrikker.personFunnet()
                 personerFunnet++
 
@@ -82,7 +82,7 @@ class SkatteHendelsePublisering(
                 }
                 personRepository.save(person)
                 oppdaterStatus(hendelse.sekvensnummer + 1)
-            } ?: registerHendelseStats(hendelse)
+            } ?: registerHendelseStats()
         }
     }
 
