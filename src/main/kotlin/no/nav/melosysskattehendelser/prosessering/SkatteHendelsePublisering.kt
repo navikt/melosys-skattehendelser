@@ -174,22 +174,6 @@ class SkatteHendelsePublisering(
         return jobMonitor.status()
     }
 
-
-    fun finnHendelser(identifikator: String): List<HendelseMedDatoForFastsetting>? =
-        jobMonitor.stats.identifikatorDuplikatToHendelse[identifikator]?.map {
-            hentDatoForFastsetting(it)
-        }
-
-    private fun hentDatoForFastsetting(hendelse: Hendelse): HendelseMedDatoForFastsetting =
-        HendelseMedDatoForFastsetting(
-            hendelse, pensjonsgivendeInntektConsumer.hentPensjonsgivendeInntekt(
-                PensjonsgivendeInntektRequest(
-                    navPersonident = hendelse.identifikator,
-                    inntektsaar = hendelse.gjelderPeriode,
-                )
-            ).pensjonsgivendeInntekt.map { it.datoForFastsetting }
-        )
-
     private fun oppdaterStatus(sekvensnummer: Long) {
         jobMonitor.stats.sisteSekvensnummer = sekvensnummer
         skatteHendelserStatusRepository.save(SkatteHendelserSekvens(skatteHendelserFetcher.consumerId, sekvensnummer))

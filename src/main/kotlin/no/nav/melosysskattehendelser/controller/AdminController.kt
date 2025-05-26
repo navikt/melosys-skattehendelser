@@ -7,7 +7,6 @@ import no.nav.melosysskattehendelser.domain.Person
 import no.nav.melosysskattehendelser.domain.PersonRepository
 import no.nav.melosysskattehendelser.domain.SekvensHistorikk
 import no.nav.melosysskattehendelser.melosys.consumer.KafkaContainerMonitor
-import no.nav.melosysskattehendelser.prosessering.HendelseMedDatoForFastsetting
 import no.nav.melosysskattehendelser.melosys.producer.SkattehendelserProducer
 import no.nav.melosysskattehendelser.melosys.MelosysSkatteHendelse
 import no.nav.melosysskattehendelser.prosessering.JobConfirmationService
@@ -65,13 +64,6 @@ class AdminController(
         @RequestParam(value = "kunIdentMatch", required = false) kunIdentMatch: Boolean = false
     ) =
         ResponseEntity<Map<String, Any?>>(skatteHendelsePublisering.status(periodeFilter, kunIdentMatch), HttpStatus.OK)
-
-    @GetMapping("/hendelseprosessering/status/hendelser/{identifikator}")
-    fun hendelser(@PathVariable identifikator: String) =
-        ResponseEntity<List<HendelseMedDatoForFastsetting>?>(
-            skatteHendelsePublisering.finnHendelser(identifikator),
-            HttpStatus.OK
-        )
 
     @GetMapping("/person/{id}")
     fun getPerson(@PathVariable id: Long): ResponseEntity<Map<String, Any?>> {
