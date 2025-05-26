@@ -10,10 +10,6 @@ data class SkatteHendelsePubliseringStats(
     var periodeFilter: String? = "2024",
     var kunIdentMatch: Boolean = false,
 ) : JobMonitor.Stats {
-    fun registerHendelseStats() {
-        totaltAntallHendelser++
-    }
-
     override fun reset() {
         totaltAntallHendelser = 0
         personerFunnet = 0

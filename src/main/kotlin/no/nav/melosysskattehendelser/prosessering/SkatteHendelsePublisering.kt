@@ -65,9 +65,9 @@ class SkatteHendelsePublisering(
                 sisteBatchSize = stats.sisteBatchSize
             }
         ).takeWhile { !jobMonitor.shouldStop }.forEach { hendelse ->
+            totaltAntallHendelser++
             metrikker.hendelseHentet()
             personFinder.findPersonByIdent(hendelse)?.also { person ->
-                registerHendelseStats()
                 metrikker.personFunnet()
                 personerFunnet++
 
@@ -82,7 +82,7 @@ class SkatteHendelsePublisering(
                 }
                 personRepository.save(person)
                 oppdaterStatus(hendelse.sekvensnummer + 1)
-            } ?: registerHendelseStats()
+            }
         }
     }
 
