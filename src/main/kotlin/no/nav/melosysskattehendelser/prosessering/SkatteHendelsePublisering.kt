@@ -65,9 +65,9 @@ class SkatteHendelsePublisering(
                 sisteBatchSize = stats.sisteBatchSize
             }
         ).takeWhile { !jobMonitor.shouldStop }.forEach { hendelse ->
+            totaltAntallHendelser++
             metrikker.hendelseHentet()
             personFinder.findPersonByIdent(hendelse)?.also { person ->
-                registerHendelseStats(hendelse, person.ident)
                 metrikker.personFunnet()
                 personerFunnet++
 
@@ -82,7 +82,7 @@ class SkatteHendelsePublisering(
                 }
                 personRepository.save(person)
                 oppdaterStatus(hendelse.sekvensnummer + 1)
-            } ?: registerHendelseStats(hendelse)
+            }
         }
     }
 
@@ -173,22 +173,6 @@ class SkatteHendelsePublisering(
         jobMonitor.stats.kunIdentMatch = kunIdentMatch
         return jobMonitor.status()
     }
-
-
-    fun finnHendelser(identifikator: String): List<HendelseMedDatoForFastsetting>? =
-        jobMonitor.stats.identifikatorDuplikatToHendelse[identifikator]?.map {
-            hentDatoForFastsetting(it)
-        }
-
-    private fun hentDatoForFastsetting(hendelse: Hendelse): HendelseMedDatoForFastsetting =
-        HendelseMedDatoForFastsetting(
-            hendelse, pensjonsgivendeInntektConsumer.hentPensjonsgivendeInntekt(
-                PensjonsgivendeInntektRequest(
-                    navPersonident = hendelse.identifikator,
-                    inntektsaar = hendelse.gjelderPeriode,
-                )
-            ).pensjonsgivendeInntekt.map { it.datoForFastsetting }
-        )
 
     private fun oppdaterStatus(sekvensnummer: Long) {
         jobMonitor.stats.sisteSekvensnummer = sekvensnummer
