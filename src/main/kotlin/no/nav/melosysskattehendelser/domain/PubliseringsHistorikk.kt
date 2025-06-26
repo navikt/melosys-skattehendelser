@@ -4,8 +4,8 @@ import jakarta.persistence.*
 import java.time.LocalDateTime
 
 @Entity
-@Table(name = "PERIODE_HISTORIKK")
-class PeriodeHistorikk(
+@Table(name = "PUBLISERINGS_HISTORIKK")
+class PubliseringsHistorikk(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long = 0,

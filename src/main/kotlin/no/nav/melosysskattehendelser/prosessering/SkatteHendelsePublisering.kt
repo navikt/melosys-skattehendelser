@@ -95,8 +95,8 @@ class SkatteHendelsePublisering(
             ?: throw IllegalArgumentException("Fant ikke periode for ${hendelse.gjelderPeriodeSomÅr()} for person ${person.ident}")
 
         if (harNyInntekt(inntekt, periode)) {
-            periode.lagPeriodeHistorikk(hendelse.sekvensnummer)
             publiserMelding(hendelse, person)
+            periode.lagPubliseringsHistorikk(hendelse.sekvensnummer)
         }
     }
 

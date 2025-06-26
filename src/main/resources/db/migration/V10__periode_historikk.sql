@@ -1,4 +1,4 @@
-CREATE TABLE periode_historikk
+CREATE TABLE publiserings_historikk
 (
     id                 BIGSERIAL PRIMARY KEY,
     periode_id         BIGINT    NOT NULL,

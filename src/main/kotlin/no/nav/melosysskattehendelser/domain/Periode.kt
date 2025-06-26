@@ -22,7 +22,7 @@ class Periode(
     val tom: LocalDate,
 
     @OneToMany(mappedBy = "periode", cascade = [CascadeType.ALL], orphanRemoval = true, fetch = FetchType.EAGER)
-    val periodeHistorikk: MutableList<PeriodeHistorikk> = mutableListOf()
+    val publiseringsHistorikk: MutableList<PubliseringsHistorikk> = mutableListOf()
 
 ) {
     override fun toString(): String {
@@ -31,8 +31,8 @@ class Periode(
 
     fun harTreff(year: Int) = fom.year <= year && tom.year >= year
 
-    fun lagPeriodeHistorikk(sekvensnummer: Long) = PeriodeHistorikk(
+    fun lagPubliseringsHistorikk(sekvensnummer: Long) = PubliseringsHistorikk(
         periode = this,
         sekvensnummer = sekvensnummer
-    ).also { periodeHistorikk.add(it) }
+    ).also { publiseringsHistorikk.add(it) }
 }
