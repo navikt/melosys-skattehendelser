@@ -21,7 +21,6 @@ class PubliseringsHistorikk(
     var sisteHendelseTid: LocalDateTime = LocalDateTime.now()
 ) {
 
-    override fun toString(): String {
-        return "PeriodeHistorikk(id=$id, periode.id=${periode.id}, sisteHendelseTid=$sisteHendelseTid)"
-    }
+    override fun toString(): String =
+        "PubliseringsHistorikk(id=$id, periode=${periode.id}, sekvensnummer=$sekvensnummer, sisteHendelseTid=$sisteHendelseTid)"
 }
