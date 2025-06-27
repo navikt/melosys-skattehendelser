@@ -1,10 +1,12 @@
 package no.nav.melosysskattehendelser.controller
 
 import mu.KotlinLogging
+import no.nav.melosysskattehendelser.domain.PensjonsgivendeInntektRepository
 import no.nav.melosysskattehendelser.prosessering.SkatteHendelsePublisering
 import no.nav.melosysskattehendelser.domain.Periode
 import no.nav.melosysskattehendelser.domain.Person
 import no.nav.melosysskattehendelser.domain.PersonRepository
+import no.nav.melosysskattehendelser.domain.PubliseringsHistorikk
 import no.nav.melosysskattehendelser.domain.SekvensHistorikk
 import no.nav.melosysskattehendelser.melosys.consumer.KafkaContainerMonitor
 import no.nav.melosysskattehendelser.melosys.producer.SkattehendelserProducer
@@ -24,6 +26,7 @@ private val log = KotlinLogging.logger { }
 class AdminController(
     private val skatteHendelsePublisering: SkatteHendelsePublisering,
     private val personRepository: PersonRepository,
+    private val pensjonsgivendeInntektRepository: PensjonsgivendeInntektRepository,
     private val kafkaContainerMonitor: KafkaContainerMonitor,
     private val skattehendelserProducer: SkattehendelserProducer,
     private val jobConfirmationService: JobConfirmationService
@@ -94,17 +97,31 @@ class AdminController(
         "sekvensHistorikk" to this.sekvensHistorikk.map { it.toMap() }
     )
 
-    fun Periode.toMap(): Map<String, Any?> = linkedMapOf(
-        "id" to this.id,
-        "fom" to this.fom,
-        "tom" to this.tom
-    )
+    fun Periode.toMap(): Map<String, Any?> {
+        val pensjonsgivendeInntekterForPeriode = pensjonsgivendeInntektRepository.findByPeriode(this)
+        return linkedMapOf(
+            "id" to this.id,
+            "fom" to this.fom,
+            "tom" to this.tom,
+            "unikPensjonsgivendeInntekt" to pensjonsgivendeInntekterForPeriode.count(),
+            "duplikaterOppdaget" to pensjonsgivendeInntekterForPeriode.sumOf { it.duplikater },
+            "publiseringsHistorikk" to this.publiseringsHistorikk.map { it.toMap() }
+        )
+    }
 
     fun SekvensHistorikk.toMap(): Map<String, Any?> {
         return linkedMapOf(
             "id" to this.id,
             "sekvensnummer" to this.sekvensnummer,
             "antall" to this.antall,
+            "sisteHendelseTid" to this.sisteHendelseTid
+        )
+    }
+
+    fun PubliseringsHistorikk.toMap(): Map<String, Any?> {
+        return linkedMapOf(
+            "id" to this.id,
+            "sekvensnummer" to this.sekvensnummer,
             "sisteHendelseTid" to this.sisteHendelseTid
         )
     }
