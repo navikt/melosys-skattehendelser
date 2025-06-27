@@ -14,6 +14,9 @@ class PubliseringsHistorikk(
     @JoinColumn(name = "periode_id", nullable = false)
     val periode: Periode,
 
+    @Column(name = "inntektsaar", nullable = false)
+    val inntektÅr: String,
+
     @Column(name = "sekvensnummer", nullable = false)
     val sekvensnummer: Long,
 

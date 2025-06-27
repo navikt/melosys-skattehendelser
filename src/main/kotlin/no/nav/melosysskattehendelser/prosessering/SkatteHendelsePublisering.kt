@@ -96,7 +96,7 @@ class SkatteHendelsePublisering(
 
         if (harNyInntekt(inntekt, periode)) {
             publiserMelding(hendelse, person)
-            periode.lagPubliseringsHistorikk(hendelse.sekvensnummer)
+            periode.lagPubliseringsHistorikk(inntekt.inntektsaar, hendelse.sekvensnummer)
         }
     }
 
@@ -177,6 +177,11 @@ class SkatteHendelsePublisering(
 
     private fun oppdaterStatus(sekvensnummer: Long) {
         jobMonitor.stats.sisteSekvensnummer = sekvensnummer
-        skatteHendelserStatusRepository.save(SkatteHendelserSekvens(skatteHendelserFetcher.consumerId, sekvensnummer))
+        skatteHendelserStatusRepository.save(
+            SkatteHendelserSekvens(
+                skatteHendelserFetcher.consumerId,
+                sekvensnummer
+            )
+        )
     }
 }
