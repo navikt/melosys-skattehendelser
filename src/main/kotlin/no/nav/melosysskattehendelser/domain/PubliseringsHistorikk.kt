@@ -15,7 +15,7 @@ class PubliseringsHistorikk(
     val periode: Periode,
 
     @Column(name = "inntektsaar", nullable = false)
-    val inntektÅr: String,
+    val inntektÅr: String? = null,
 
     @Column(name = "sekvensnummer", nullable = false)
     val sekvensnummer: Long,
