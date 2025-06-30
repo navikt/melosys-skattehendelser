@@ -96,6 +96,16 @@ class SkatteHendelsePublisering(
 
         if (harNyInntekt(inntekt, periode)) {
             publiserMelding(hendelse, person)
+            periode.lagPubliseringsHistorikk(inntekt.inntektsaar, hendelse.sekvensnummer)
+            periode.publiseringsHistorikk
+                .count { it.inntektÅr == inntekt.inntektsaar }
+                .takeIf { it > 1 }
+                ?.let { count ->
+                    log.info {
+                        "Person ${person.id} med inntektsÅr: ${inntekt.inntektsaar} har nå flere publiseringer: $count"
+                    }
+                    metrikker.hendelseFlerePublisertPrPeriode()
+                }
         }
     }
 
@@ -176,6 +186,11 @@ class SkatteHendelsePublisering(
 
     private fun oppdaterStatus(sekvensnummer: Long) {
         jobMonitor.stats.sisteSekvensnummer = sekvensnummer
-        skatteHendelserStatusRepository.save(SkatteHendelserSekvens(skatteHendelserFetcher.consumerId, sekvensnummer))
+        skatteHendelserStatusRepository.save(
+            SkatteHendelserSekvens(
+                skatteHendelserFetcher.consumerId,
+                sekvensnummer
+            )
+        )
     }
 }

@@ -204,6 +204,45 @@ open class SkatteHendelsePubliseringTest {
     }
 
     @Test
+    fun `skal lagre publiserings historikk ved ny hendelse`() {
+        pensjonsgivendeInntektConsumer
+            .leggTilPensjonsgivendeInntekt(inntektsaar = "2023")
+            .leggTilPensjonsgivendeInntekt(inntektsaar = "2023") { response: PensjonsgivendeInntektResponse ->
+                response.copy(pensjonsgivendeInntekt = response.pensjonsgivendeInntekt.map { inntekt: PensjonsgivendeInntekt ->
+                    inntekt.copy(pensjonsgivendeInntektAvLoennsinntekt = "2001")
+                })
+            }
+
+        skatteHendelserFetcher.hendelser.addAll(
+            (1..2).map
+            {
+                Hendelse(
+                    gjelderPeriode = "2023",
+                    identifikator = "123",
+                    sekvensnummer = it.toLong(),
+                    somAktoerid = false
+                )
+            }
+        )
+
+
+        skatteHendelsePublisering.prosesserSkattHendelser()
+
+
+        skattehendelserProducer.hendelser.shouldHaveSize(2)
+        pensjonsgivendeInntektRepository.findAll().shouldHaveSize(2)
+        personRepository.findAll()
+            .shouldHaveSize(1)
+            .single()
+            .perioder.shouldHaveSize(1)
+            .single().publiseringsHistorikk
+            .shouldHaveSize(2).toList().run {
+                this[0].sekvensnummer shouldBe 1
+                this[1].sekvensnummer shouldBe 2
+            }
+    }
+
+    @Test
     fun `skal lagre pensjonsgivende inntekt ved slettet og ikke publisere hendelse`() {
         pensjonsgivendeInntektConsumer
             .leggTilPensjonsgivendeInntekt(inntektsaar = "2023") { response: PensjonsgivendeInntektResponse ->

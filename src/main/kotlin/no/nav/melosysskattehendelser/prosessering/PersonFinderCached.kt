@@ -31,5 +31,7 @@ class PersonFinderCached(
     override fun findPersonByIdent(hendelse: Hendelse): Person? =
         cache[hendelse.identifikator]?.takeIf {
             it.harTreffIPeriode(hendelse.gjelderPeriodeSomÅr())
+        }?.let {
+            personRepository.findPersonByIdent(hendelse.identifikator)
         }
 }

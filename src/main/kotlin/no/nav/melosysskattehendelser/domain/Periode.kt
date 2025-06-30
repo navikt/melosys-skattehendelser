@@ -19,11 +19,21 @@ class Periode(
     val fom: LocalDate,
 
     @Column(name = "tom", nullable = false)
-    val tom: LocalDate
+    val tom: LocalDate,
+
+    @OneToMany(mappedBy = "periode", cascade = [CascadeType.ALL], orphanRemoval = true, fetch = FetchType.EAGER)
+    val publiseringsHistorikk: MutableList<PubliseringsHistorikk> = mutableListOf()
+
 ) {
     override fun toString(): String {
         return "Periode(id=$id, fom=$fom, tom=$tom)"
     }
 
     fun harTreff(year: Int) = fom.year <= year && tom.year >= year
+
+    fun lagPubliseringsHistorikk(inntektÅr: String?, sekvensnummer: Long) = PubliseringsHistorikk(
+        periode = this,
+        inntektÅr = inntektÅr,
+        sekvensnummer = sekvensnummer
+    ).also { publiseringsHistorikk.add(it) }
 }
