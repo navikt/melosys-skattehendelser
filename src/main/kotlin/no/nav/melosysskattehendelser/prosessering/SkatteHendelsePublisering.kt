@@ -104,7 +104,7 @@ class SkatteHendelsePublisering(
                     log.info {
                         "Person ${person.id} med inntektsÅr: ${inntekt.inntektsaar} har nå flere publiseringer: $count"
                     }
-                    metrikker.hendelseFlerePublisertPrPeriode()
+                    metrikker.hendelseFlerePublisertPrInntektsÅr()
                 }
         }
     }
