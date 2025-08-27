@@ -66,7 +66,7 @@ Kafka-consumer for vedtakshendelser:
    ```bash
    docker-compose up -d postgres kafka
    # eller
-   make start-all  # i melsoys-docker-compose
+   make start-all  # i melosys-docker-compose
    ```
 
 3. **Bygg og start applikasjonen**:
