@@ -65,6 +65,8 @@ Kafka-consumer for vedtakshendelser:
 2. **Start lokale tjenester**:
    ```bash
    docker-compose up -d postgres kafka
+   # eller
+   make start-all  # i melsoys-docker-compose
    ```
 
 3. **Bygg og start applikasjonen**:
@@ -93,16 +95,17 @@ docker build -t melosys-skattehendelser .
 
 ### Miljøvariabler
 
-| Variabel | Beskrivelse | Standard |
-|----------|-------------|----------|
-| `DB_JDBC_URL` | PostgreSQL connection string | - |
-| `DB_USERNAME` | Database brukernavn | - |
-| `DB_PASSWORD` | Database passord | - |
-| `KAFKA_BROKERS` | Kafka broker URL-er | - |
-| `SIGRUN_REST_URL` | Sigrun API base URL | - |
-| `CRON_JOB_PROSESSER_SKATTE_HENDELSER` | Cron-uttrykk for scheduled job | `0 0 2 * * *` |
-| `SKATT_FETCHER_BATCH_SIZE` | Batch-størrelse for hendelseshenting | `500` |
-| `DRY_RUN_PUBLISERING` | Tørrkjør publisering (for testing) | `false` |
+| Variabel | Beskrivelse                          | Standard      |
+|----------|--------------------------------------|---------------|
+| `DB_JDBC_URL` | PostgreSQL connection string         | -             |
+| `DB_USERNAME` | Database brukernavn                  | -             |
+| `DB_PASSWORD` | Database passord                     | -             |
+| `KAFKA_BROKERS` | Kafka broker URL-er                  | -             |
+| `SIGRUN_REST_URL` | Sigrun API base URL                  | -             |
+| `CRON_JOB_PROSESSER_SKATTE_HENDELSER` | Cron-uttrykk for scheduled job       | `0 0 2 * * *` |
+| `SKATT_FETCHER_BATCH_SIZE` | Batch-størrelse for hendelseshenting | `500`         |
+| `DRY_RUN_PUBLISERING` | Tørrkjør publisering (for testing)   | `false`       |
+| `X-SKATTEHENDELSER-ADMIN-APIKEY` | for tilgang til admin endepunker     | -             |
 
 ### Profiler
 - `local` - Lokal utvikling
@@ -114,6 +117,7 @@ docker build -t melosys-skattehendelser .
 
 ### Admin-endepunkter
 - `GET /admin/status` - Status for hendelsesprosessering
+- `POST /admin/start` - Start hendelsesprosessering
 - `POST /admin/stop` - Stopp pågående prosessering
 - `GET /admin/personer` - Liste over personer i systemet
 
@@ -131,19 +135,13 @@ Applikasjonen deployes til NAIS-plattformen med konfigurasjon i `nais/nais.yml`.
 - `dev-gcp` (Q1/Q2)
 - `prod-gcp` (Produksjon)
 
-### Secrets
-Følgende secrets må konfigureres i NAIS:
-- Database-tilkoblingsdetaljer
-- Kafka-sertifikater
-- Azure AD-konfigurasjon
-- API-nøkler
-
 ## Overvåking og logging
 
 ### Metrics
 - **Micrometer** med Prometheus-eksport
 - **Custom metrics** for hendelsesbehandling
 - **JVM metrics** for ytelsesovervåking
+- grafana-dashboards for visualisering: [melosys-skattehendelser-dashboards](grafana.nav.cloud.nais.io/d/aedqb9of1fzswd/skattehendelser?orgId=1&from=now-7d&to=now&timezone=browser&var-cluster=000000021&var-fss=000000011)
 
 ### Logging
 - **Strukturert logging** med logstash-format
@@ -156,50 +154,7 @@ Alerts konfigureres basert på:
 - Database-tilkoblingsproblemer
 - Kafka-consumer lag
 
-## Bidrag
-
-### Utviklingsretningslinjer
-1. Følg Kotlin coding standards
-2. Skriv tester for ny funksjonalitet
-3. Oppdater dokumentasjon
-4. Bruk feature branches og pull requests
-
-### Commit-meldinger
-Følg conventional commits format:
-```
-type(scope): beskrivelse
-
-feat(kafka): legg til retry-logikk for consumer
-fix(db): løs connection pool leak
-docs(readme): oppdater API-dokumentasjon
-```
-
-## Feilsøking
-
-### Vanlige problemer
-
-**Database-tilkoblingsfeil**:
-- Sjekk at PostgreSQL kjører
-- Verifiser connection string og credentials
-
-**Kafka-tilkoblingsproblemer**:
-- Kontroller broker-URL-er
-- Sjekk sertifikat-konfigurasjon
-
-**Hendelser behandles ikke**:
-- Sjekk cron-job konfigurasjon
-- Verifiser at ShedLock ikke blokkerer
-
-### Logger og debugging
-- Øk log-nivå til `DEBUG` for detaljert logging
-- Bruk `/internal/metrics` for å sjekke tilstand
-- Overvåk Kafka consumer lag
-
 ## Team og kontakt
 
 **Team**: Team Melosys
 **Slack**: #team-melosys
-
-## Lisens
-
-MIT License - se `LICENSE` fil for detaljer.
