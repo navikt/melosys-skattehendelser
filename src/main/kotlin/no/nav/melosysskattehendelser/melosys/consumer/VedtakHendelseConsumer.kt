@@ -1,6 +1,6 @@
 package no.nav.melosysskattehendelser.melosys.consumer
 
-import mu.KotlinLogging
+import io.github.oshai.kotlinlogging.KotlinLogging
 import no.nav.melosysskattehendelser.domain.Person
 import no.nav.melosysskattehendelser.domain.PersonRepository
 import no.nav.melosysskattehendelser.metrics.Metrikker

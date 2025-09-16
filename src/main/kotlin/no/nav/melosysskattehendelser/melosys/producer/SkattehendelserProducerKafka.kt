@@ -1,6 +1,6 @@
 package no.nav.melosysskattehendelser.melosys.producer
 
-import mu.KotlinLogging
+import io.github.oshai.kotlinlogging.KotlinLogging
 import no.nav.melosysskattehendelser.melosys.MelosysSkatteHendelse
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.springframework.kafka.core.KafkaTemplate

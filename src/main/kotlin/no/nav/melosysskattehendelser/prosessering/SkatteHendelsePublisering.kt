@@ -1,6 +1,6 @@
 package no.nav.melosysskattehendelser.prosessering
 
-import mu.KotlinLogging
+import io.github.oshai.kotlinlogging.KotlinLogging
 import no.nav.melosysskattehendelser.domain.PensjonsgivendeInntekt
 import no.nav.melosysskattehendelser.domain.PensjonsgivendeInntektRepository
 import no.nav.melosysskattehendelser.domain.Periode
