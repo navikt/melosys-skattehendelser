@@ -1,6 +1,6 @@
 package no.nav.melosysskattehendelser.skatt
 
-import mu.KotlinLogging
+import io.github.oshai.kotlinlogging.KotlinLogging
 import no.nav.melosysskattehendelser.skatt.SkatteHendelserFetcher.*
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component

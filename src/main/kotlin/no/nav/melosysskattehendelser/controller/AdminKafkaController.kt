@@ -1,6 +1,6 @@
 package no.nav.melosysskattehendelser.controller
 
-import mu.KotlinLogging
+import io.github.oshai.kotlinlogging.KotlinLogging
 import no.nav.melosysskattehendelser.melosys.MelosysSkatteHendelse
 import no.nav.melosysskattehendelser.melosys.producer.SkattehendelserProducer
 import no.nav.security.token.support.core.api.Unprotected

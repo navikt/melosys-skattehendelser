@@ -9,7 +9,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.web.reactive.function.client.WebClient
 import reactor.core.publisher.Mono
 
-private val log = mu.KotlinLogging.logger {}
+private val log = io.github.oshai.kotlinlogging.KotlinLogging.logger {}
 
 open class SigrunPensjonsgivendeInntektConsumer(private val webClient: WebClient) : PensjonsgivendeInntektConsumer {
     @Measured

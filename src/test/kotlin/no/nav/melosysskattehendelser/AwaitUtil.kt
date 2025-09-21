@@ -2,7 +2,7 @@ package no.nav.melosysskattehendelser
 
 import ch.qos.logback.classic.Level
 import ch.qos.logback.classic.spi.ILoggingEvent
-import mu.KotlinLogging
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.awaitility.core.ConditionFactory
 
 private val log = KotlinLogging.logger { }

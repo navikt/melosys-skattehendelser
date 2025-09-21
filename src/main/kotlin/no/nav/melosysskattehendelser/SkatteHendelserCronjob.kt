@@ -1,6 +1,6 @@
 package no.nav.melosysskattehendelser
 
-import mu.KotlinLogging
+import io.github.oshai.kotlinlogging.KotlinLogging
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock
 import no.nav.melosysskattehendelser.prosessering.SkatteHendelsePublisering
 import org.springframework.scheduling.annotation.Scheduled

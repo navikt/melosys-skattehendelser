@@ -1,11 +1,11 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    id("org.springframework.boot") version "3.3.5"
-    id("io.spring.dependency-management") version "1.1.4"
-    kotlin("jvm") version "1.9.23"
-    kotlin("plugin.spring") version "1.9.23"
-    kotlin("plugin.jpa") version "1.9.23"
+    id("org.springframework.boot") version "3.5.0"
+    id("io.spring.dependency-management") version "1.1.7"
+    kotlin("jvm") version "2.2.20"
+    kotlin("plugin.spring") version "2.2.20"
+    kotlin("plugin.jpa") version "2.2.20"
 }
 
 group = "no.nav.melosys"
@@ -25,17 +25,17 @@ allOpen {
 }
 
 object dependencyVersions {
-    const val kotestVersion = "5.5.4"
-    const val logstashLogbackEncoder = "8.0"
-    const val kotlinLogging = "3.0.5"
-    const val wiremock = "3.0.1"
-    const val awaitility = "4.2.0"
-    const val mockk = "1.12.5"
+    const val kotestVersion = "5.9.1"
+    const val logstashLogbackEncoder = "8.1"
+    const val kotlinLogging = "7.0.13"
+    const val wiremock = "3.13.1"
+    const val awaitility = "4.3.0"
+    const val mockk = "1.13.16"
     const val tokenSupport = "3.2.0"
-    const val shedlockVersion = "4.4.0"
-    const val shedlockProvicerJdbcVersion = "4.43.0"
+    const val shedlockVersion = "6.10.0"
+    const val shedlockProvicerJdbcVersion = "6.10.0"
     const val janino = "3.1.12"
-    const val micrometerVersion = "1.10.5"
+    const val micrometerVersion = "1.15.1"
     const val micrometerJvmExtrasVersion = "0.2.2"
 }
 
@@ -65,7 +65,7 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.springframework.kafka:spring-kafka")
     implementation("net.logstash.logback:logstash-logback-encoder:${dependencyVersions.logstashLogbackEncoder}")
-    implementation("io.github.microutils:kotlin-logging-jvm:${dependencyVersions.kotlinLogging}")
+    implementation("io.github.oshai:kotlin-logging-jvm:${dependencyVersions.kotlinLogging}")
     implementation("no.nav.security:token-validation-spring:${dependencyVersions.tokenSupport}")
     implementation("no.nav.security:token-client-spring:${dependencyVersions.tokenSupport}")
     implementation("net.javacrumbs.shedlock:shedlock-spring:${dependencyVersions.shedlockVersion}")
@@ -81,16 +81,16 @@ dependencies {
     testImplementation("org.testcontainers:postgresql")
     testImplementation("io.kotest:kotest-assertions-json-jvm:${dependencyVersions.kotestVersion}")
     testImplementation("io.kotest:kotest-assertions-core-jvm:${dependencyVersions.kotestVersion}")
-    testImplementation("com.github.tomakehurst:wiremock-standalone:${dependencyVersions.wiremock}")
+    testImplementation("org.wiremock:wiremock-standalone:${dependencyVersions.wiremock}")
     testImplementation("org.awaitility:awaitility-kotlin:${dependencyVersions.awaitility}")
     testImplementation("io.mockk:mockk:${dependencyVersions.mockk}")
     testImplementation("no.nav.security:token-validation-spring-test:${dependencyVersions.tokenSupport}")
 }
 
 tasks.withType<KotlinCompile> {
-    kotlinOptions {
-        freeCompilerArgs += "-Xjsr305=strict"
-        jvmTarget = "17"
+    compilerOptions {
+        freeCompilerArgs.add("-Xjsr305=strict")
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
     }
 }
 
