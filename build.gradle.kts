@@ -37,6 +37,7 @@ object dependencyVersions {
     const val janino = "3.1.12"
     const val micrometerVersion = "1.15.1"
     const val micrometerJvmExtrasVersion = "0.2.2"
+    const val springdocVersion = "2.2.0"
 }
 
 val osName = System.getProperty("os.name").lowercase()
@@ -71,6 +72,7 @@ dependencies {
     implementation("net.javacrumbs.shedlock:shedlock-spring:${dependencyVersions.shedlockVersion}")
     implementation("net.javacrumbs.shedlock:shedlock-provider-jdbc-template:${dependencyVersions.shedlockProvicerJdbcVersion}")
     implementation("org.codehaus.janino:janino:${dependencyVersions.janino}")
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:${dependencyVersions.springdocVersion}")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.boot:spring-boot-testcontainers")

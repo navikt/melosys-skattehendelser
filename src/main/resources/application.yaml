@@ -76,3 +76,7 @@ management:
   metrics:
     enable:
       cache: true
+
+springdoc:
+  api-docs:
+    path: /api-docs/admin
