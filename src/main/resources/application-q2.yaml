@@ -9,15 +9,13 @@ spring:
     locations: classpath:db/migration
     enabled: true
 
-no.nav.security.jwt.client.registration:
-  sigrun:
-    token-endpoint-url: https://login.microsoftonline.com/966ac572-f5b7-4bbe-aa88-c76419c0f851/oauth2/v2.0/token
+# Azure AD JWT configuration - AZURE_APP_WELL_KNOWN_URL injiseres automatisk av NAIS
+AZURE_OPENID_CONFIG_TOKEN_ENDPOINT: https://login.microsoftonline.com/966ac572-f5b7-4bbe-aa88-c76419c0f851/oauth2/v2.0/token
 
 CLUSTER_SIGRUN: dev-fss
 APP_NAME_SIGRUN: sigrun-q2
 KAFKA_BROKERS: localhost:29092
 KAFKA_VEDTAK_TOPIC: teammelosys.melosys-hendelser-local
 KAFKA_SKATTEHENDELSE_TOPIC: teammelosys.skattehendelser.v1-local
-AZURE_APP_CLIENT_ID: 1e140b30-6daf-4383-aab5-bba972467d32
 SIGRUN_REST_URL: https://sigrun-q2.dev.adeo.no
 ADMIN_API_KEY: dummy

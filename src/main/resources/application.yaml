@@ -54,15 +54,21 @@ skatt:
     batch-size: ${SKATT_FETCHER_BATCH_SIZE:500}
     start-dato: ${SKATT_START_DATO:2023-01-01}
 
-no.nav.security.jwt.client.registration:
-  sigrun:
-    token-endpoint-url: ${AZURE_OPENID_CONFIG_TOKEN_ENDPOINT}
-    grant-type: client_credentials
-    scope: api://${CLUSTER_SIGRUN}.team-inntekt.${APP_NAME_SIGRUN}/.default
-    authentication:
-      client-id: ${AZURE_APP_CLIENT_ID}
-      client-secret: ${AZURE_APP_CLIENT_SECRET}
-      client-auth-method: client_secret_basic
+no.nav.security.jwt:
+  client:
+    registration:
+      sigrun:
+        token-endpoint-url: ${AZURE_OPENID_CONFIG_TOKEN_ENDPOINT}
+        grant-type: client_credentials
+        scope: api://${CLUSTER_SIGRUN}.team-inntekt.${APP_NAME_SIGRUN}/.default
+        authentication:
+          client-id: ${AZURE_APP_CLIENT_ID}
+          client-secret: ${AZURE_APP_CLIENT_SECRET}
+          client-auth-method: client_secret_basic
+  issuer:
+    aad:
+      discovery-url: ${AZURE_APP_WELL_KNOWN_URL}
+      accepted-audience: ${AZURE_APP_CLIENT_ID}
 
 management:
   endpoints:
@@ -76,3 +82,11 @@ management:
   metrics:
     enable:
       cache: true
+
+springdoc:
+  api-docs:
+    path: /api-docs/admin
+  group-configs:
+    - group: admin
+      paths-to-match: /admin/**,/api/admin/**
+      display-name: Melosys-skattehendelser Admin API

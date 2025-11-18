@@ -11,6 +11,7 @@
   "kafka_topic_name_hendelse": "teammelosys.melosys-hendelser.v1-q1",
   "cluster_sigrun": "dev-fss",
   "app_name_sigrun": "sigrun-q4",
+  "app_name_melosys_console": "melosys-console-q2",
   "sigrun_host": "team-inntekt-proxy.dev-fss-pub.nais.io",
   "sigrun_rest_url": "https://team-inntekt-proxy.dev-fss-pub.nais.io/proxy/sigrun-ske"
 }

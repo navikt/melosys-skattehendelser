@@ -11,13 +11,14 @@ spring:
 sigrun:
   rest:
     url: http://localhost:8083/sigrun
-no.nav.security.jwt.client.registration:
-  sigrun:
-    token-endpoint-url: http://host.docker.internal:8082/isso/oauth2/v2.0/token
-    scope: melosys-skattehendleser-localhost
-    authentication:
-      client-id: lol
-      client-secret: lol
+
+# JWT Configuration for local development
+AZURE_APP_WELL_KNOWN_URL: http://host.docker.internal:8082/isso/.well-known/openid-configuration
+AZURE_APP_CLIENT_ID: melosys-localhost
+AZURE_APP_CLIENT_SECRET: lol
+AZURE_OPENID_CONFIG_TOKEN_ENDPOINT: http://host.docker.internal:8082/isso/oauth2/v2.0/token
+CLUSTER_SIGRUN: dev-gcp
+APP_NAME_SIGRUN: sigrun-local
 
 KAFKA_VEDTAK_TOPIC: teammelosys.melosys-hendelser-local
 KAFKA_SKATTEHENDELSE_TOPIC: teammelosys.skattehendelser.v1-local

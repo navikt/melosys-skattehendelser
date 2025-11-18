@@ -6,6 +6,7 @@ import no.nav.melosysskattehendelser.domain.PensjonsgivendeInntektRepository
 import no.nav.melosysskattehendelser.domain.PersonRepository
 import no.nav.melosysskattehendelser.domain.SkatteHendelserStatusRepository
 import no.nav.melosysskattehendelser.melosys.KafkaConfig
+import no.nav.security.token.support.spring.test.EnableMockOAuth2Server
 import org.junit.jupiter.api.TestInstance
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -17,6 +18,7 @@ import org.springframework.test.context.DynamicPropertySource
 
 @ActiveProfiles("test")
 @SpringBootTest
+@EnableMockOAuth2Server
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class SkatteHendelsePubliseringDBTest(
     @Autowired override var personRepository: PersonRepository,
