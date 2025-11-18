@@ -48,6 +48,9 @@ spec:
       external:
         - host: "melosys-unleash-api.nav.cloud.nais.io"
         - host: {{sigrun_host}}
+    inbound:
+        - application: {{app_name_melosys_console}}
+
   observability:
     logging:
       destinations:
