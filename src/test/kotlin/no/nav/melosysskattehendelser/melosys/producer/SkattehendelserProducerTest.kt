@@ -6,6 +6,7 @@ import io.kotest.matchers.nulls.shouldNotBeNull
 import no.nav.melosysskattehendelser.PostgresTestContainerBase
 import no.nav.melosysskattehendelser.melosys.KafkaTestConsumer
 import no.nav.melosysskattehendelser.melosys.MelosysSkatteHendelse
+import no.nav.security.token.support.spring.test.EnableMockOAuth2Server
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -23,6 +24,7 @@ import java.util.concurrent.TimeUnit
     count = 1, controlledShutdown = true, partitions = 1,
     topics = ["teammelosys.skattehendelser.v1"],
 )
+@EnableMockOAuth2Server
 @Import(KafkaTestConsumer::class)
 class SkattehendelserProducerTest(
     @Autowired private val kafkaTestConsumer: KafkaTestConsumer,

@@ -15,6 +15,7 @@ import no.nav.melosysskattehendelser.domain.Person
 import no.nav.melosysskattehendelser.domain.PersonRepository
 import no.nav.melosysskattehendelser.melosys.KafkaOffsetChecker
 import no.nav.melosysskattehendelser.melosys.KafkaTestProducer
+import no.nav.security.token.support.spring.test.EnableMockOAuth2Server
 import org.awaitility.kotlin.await
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
@@ -33,6 +34,7 @@ import java.util.concurrent.TimeUnit
 @SpringBootTest
 @DirtiesContext
 @EmbeddedKafka(count = 1, controlledShutdown = true, partitions = 1)
+@EnableMockOAuth2Server
 @Import(KafkaTestProducer::class, KafkaOffsetChecker::class, PersonTestService::class)
 class VedtakHendelseConsumerTest(
     @Autowired private val kafkaTemplate: KafkaTemplate<String, String>,

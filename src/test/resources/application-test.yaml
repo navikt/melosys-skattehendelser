@@ -24,5 +24,5 @@ KAFKA_VEDTAK_TOPIC: teammelosys.melosys-hendelser-test
 KAFKA_SKATTEHENDELSE_TOPIC: teammelosys.melosys-skattehendelser-test
 SIGRUN_REST_URL: not-used
 ADMIN_API_KEY: dummy
-AZURE_APP_WELL_KNOWN_URL: http://localhost:8082/isso/.well-known/openid-configuration
+AZURE_APP_WELL_KNOWN_URL: http://localhost:${mock-oauth2-server.port}/aad/.well-known/openid-configuration
 
