@@ -13,7 +13,7 @@ import no.nav.melosysskattehendelser.melosys.producer.SkattehendelserProducer
 import no.nav.melosysskattehendelser.melosys.MelosysSkatteHendelse
 import no.nav.melosysskattehendelser.prosessering.JobConfirmationService
 import no.nav.melosysskattehendelser.prosessering.SkatteHendelsePubliseringOptions
-import no.nav.security.token.support.core.api.Unprotected
+import no.nav.security.token.support.core.api.Protected
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.*
 private val log = KotlinLogging.logger { }
 
 @RestController
-@Unprotected
+@Protected
 @RequestMapping("/admin")
 class AdminController(
     private val skatteHendelsePublisering: SkatteHendelsePublisering,
@@ -42,7 +42,7 @@ class AdminController(
                 .status(HttpStatus.BAD_REQUEST)
                 .body(jobConfirmationService.confirmationMessage(newToken))
         }
-        log.info("Starter hendelseprosessering. Options: $options")
+        log.info { "Starter hendelseprosessering. Options: $options" }
         if (kafkaContainerMonitor.isKafkaContainerStopped()) {
             return ResponseEntity("Kafka container har stoppet", HttpStatus.SERVICE_UNAVAILABLE)
         }
@@ -56,7 +56,7 @@ class AdminController(
 
     @PostMapping("/hendelseprosessering/stop")
     fun stopHendelseProsessering(): ResponseEntity<String> {
-        log.info("Stopper hendelseprosessering")
+        log.info { "Stopper hendelseprosessering" }
         skatteHendelsePublisering.stopProsesseringAvSkattHendelser()
         return ResponseEntity.ok("Hendelseprosessering stoppet")
     }
