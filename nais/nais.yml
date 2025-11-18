@@ -49,6 +49,7 @@ spec:
         - host: "melosys-unleash-api.nav.cloud.nais.io"
         - host: {{sigrun_host}}
     inbound:
+      rules:
         - application: {{app_name_melosys_console}}
 
   observability:
