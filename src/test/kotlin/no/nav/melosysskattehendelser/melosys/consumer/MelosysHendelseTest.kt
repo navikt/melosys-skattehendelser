@@ -226,5 +226,5 @@ class MelosysHendelseTest {
     }
 
 
-    private fun Any.toJson(): String = objectMapper.valueToTree<JsonNode?>(this).toPrettyString()
+    private fun Any.toJson(): String = objectMapper.valueToTree<JsonNode>(this).toPrettyString()
 }

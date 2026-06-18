@@ -38,7 +38,7 @@ open class VedtakHendelseConsumer(
             ?: return logAndIgnore("Ignorerer melding av type ${consumerRecord.value().melding.javaClass.simpleName}")
 
         return vedtakHendelseMelding.takeIf { it.sakstype == Sakstyper.FTRL }
-            ?.also { log.info("Mottatt vedtakshendelse sakstype: ${it.sakstype}, sakstema: ${it.sakstema}") }
+            ?.also { log.info { "Mottatt vedtakshendelse sakstype: ${it.sakstype}, sakstema: ${it.sakstema}" } }
             ?.takeIf { it.medlemskapsperioder.any { periode -> periode.erGyldig() } }
             ?: logAndIgnore("Ingen gyldige medlemskapsperioder i melding, så lager ikke bruker i databasen")
     }
@@ -53,9 +53,9 @@ open class VedtakHendelseConsumer(
 
         vedtakHendelseMelding.medlemskapsperioder
             .filter { it.erGyldig() }
-            .filterNot { person.harPeriode(it) { log.info("perioden $it finnes allerede på person med id:${person.id}") } }
+            .filterNot { person.harPeriode(it) { log.info { "perioden $it finnes allerede på person med id:${person.id}" } } }
             .forEach {
-                log.info("legger til $it på person med id: ${person.id}")
+                log.info { "legger til $it på person med id: ${person.id}" }
                 metrikker.vedtakMottattOgPeriodeLagtTil()
                 person.leggTilPeriode(it)
             }
@@ -64,7 +64,7 @@ open class VedtakHendelseConsumer(
 
     private fun hentEllerLagPerson(vedtakHendelseMelding: VedtakHendelseMelding): Person =
         vedtakHendelseRepository.findPersonByIdent(vedtakHendelseMelding.folkeregisterIdent)?.also {
-            log.info("person med ident(${vedtakHendelseMelding.folkeregisterIdent}) finnes allerede")
+            log.info { "person med ident(${vedtakHendelseMelding.folkeregisterIdent}) finnes allerede" }
         } ?: run {
             metrikker.vedtakMottattOgPersonLagtTil()
             Person(ident = vedtakHendelseMelding.folkeregisterIdent)

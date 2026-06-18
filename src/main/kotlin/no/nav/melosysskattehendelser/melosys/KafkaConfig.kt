@@ -69,7 +69,7 @@ class KafkaConfig(
             try {
                 objectMapper.readValue<MelosysHendelse>(data ?: throw KafkaException("No data to deserialize, JSON is null"))
             } catch (e: Exception) {
-                log.error("Failed to deserialize message on topic $topic: ${data?.let { String(it) } ?: "null data"}", e)
+                log.error(e) { "Failed to deserialize message on topic $topic: ${data?.let { String(it) } ?: "null data"}" }
                 throw e
             }
         }
