@@ -71,7 +71,7 @@ class SkatteHendelsePublisering(
                 metrikker.personFunnet()
                 personerFunnet++
 
-                log.info("Fant person ${person.ident} for sekvensnummer ${hendelse.sekvensnummer}")
+                log.info { "Fant person ${person.ident} for sekvensnummer ${hendelse.sekvensnummer}" }
 
                 val sekvensHistorikk = person.hentEllerLagSekvensHistorikk(hendelse.sekvensnummer)
                 if (sekvensHistorikk.erNyHendelse()) {
@@ -113,7 +113,7 @@ class SkatteHendelsePublisering(
         val eksisterendeInntekter = pensjonsgivendeInntektRepository.findByPeriode(periode)
 
         eksisterendeInntekter.firstOrNull { it.historiskInntekt == ny }?.let { inntekt ->
-            log.warn("Fant duplikat inntekt for periode ${periode.id} pensjonsgivendeInntektID: ${inntekt.id}")
+            log.warn { "Fant duplikat inntekt for periode ${periode.id} pensjonsgivendeInntektID: ${inntekt.id}" }
             inntekt.duplikater++
             pensjonsgivendeInntektRepository.save(inntekt)
             return false
@@ -124,7 +124,7 @@ class SkatteHendelsePublisering(
             return false
         }
         pensjonsgivendeInntektRepository.save(ny.tilDomain(periode))
-        log.info("Lagrer pensjonsgivende inntekt for periode ${periode.id}")
+        log.info { "Lagrer pensjonsgivende inntekt for periode ${periode.id}" }
         return true
     }
 
@@ -148,7 +148,7 @@ class SkatteHendelsePublisering(
         ).also {
             if (options.useCache) {
                 personCacheSize = (it as PersonFinderCached).refresh()
-                log.info("Bruker cached person finder, cache size: $personCacheSize")
+                log.info { "Bruker cached person finder, cache size: $personCacheSize" }
             }
         }
 
@@ -174,7 +174,7 @@ class SkatteHendelsePublisering(
     }
 
     fun stopProsesseringAvSkattHendelser() {
-        log.info("Stopper prosessering av skattehendelser!")
+        log.info { "Stopper prosessering av skattehendelser!" }
         jobMonitor.stop()
     }
 
