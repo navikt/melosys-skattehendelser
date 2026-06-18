@@ -20,7 +20,7 @@ object AwaitUtil {
                 return logEvents.firstOrNull { it.level == Level.ERROR }
             } catch (e: ConcurrentModificationException) {
                 // Siden dette gjelder test er det raskere og prøve på nytt, en å synkronisere
-                log.warn("ConcurrentModification during find last log message, retrying $i", e)
+                log.warn(e) { "ConcurrentModification during find last log message, retrying $i" }
             }
         }
         return logEvents.firstOrNull { it.level == Level.ERROR }

@@ -16,7 +16,7 @@ class KafkaTestConsumer {
 
     @KafkaListener(topics = ["\${melosys.kafka.producer.topic}"])
     fun receive(consumerRecord: ConsumerRecord<*, *>) {
-        log.info("received payload='{}'", consumerRecord.toString())
+        log.info { "received payload='${consumerRecord}'" }
         payload = consumerRecord.value().toString()
         latch.countDown()
     }

@@ -15,7 +15,7 @@ class SkatteHendelserFetcherAPI(
     @Value("\${skatt.fetcher.start-dato}") private val startDato: LocalDate
 ) : SkatteHendelserFetcher {
     init {
-        log.info("batchSize er satt til $batchSize, startDato er satt til $startDato")
+        log.info { "batchSize er satt til $batchSize, startDato er satt til $startDato" }
     }
 
     override fun hentHendelser(
@@ -44,7 +44,7 @@ class SkatteHendelserFetcherAPI(
                 sisteBatchSize = hendelseListe.size,
             ).applyReport(reportStats)
         }
-        log.info("totalt antall hendelser prosessert: $totaltAntallHendelser seksvensnummerFra er nå: $seksvensnummerFra")
+        log.info { "totalt antall hendelser prosessert: $totaltAntallHendelser seksvensnummerFra er nå: $seksvensnummerFra" }
     }
 
     private fun hentSkatteHendelser(seksvensnummerFra: Long) = skatteHendelseConsumer.hentHendelseListe(
@@ -60,6 +60,6 @@ class SkatteHendelserFetcherAPI(
 
     override val startSekvensnummer: Long
         get() = skatteHendelseConsumer.getStartSekvensnummer(startDato).also {
-            log.info("Start sekvensnummer:$it fra $startDato hentet for ${skatteHendelseConsumer.getConsumerId()}")
+            log.info { "Start sekvensnummer:$it fra $startDato hentet for ${skatteHendelseConsumer.getConsumerId()}" }
         }
 }
