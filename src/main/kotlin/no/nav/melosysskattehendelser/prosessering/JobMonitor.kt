@@ -44,11 +44,11 @@ class JobMonitor<T : JobMonitor.Stats>(
 
     fun execute(block: T.() -> Unit) {
         if (isRunning) {
-            log.warn("Job '$jobName' is already running.")
+            log.warn { "Job '$jobName' is already running." }
             return
         }
         if (!canStart()) {
-            log.warn("'$jobName' will not start. reason: $canNotStartMessage")
+            log.warn { "'$jobName' will not start. reason: $canNotStartMessage" }
             return
         }
         isRunning = true
@@ -67,10 +67,10 @@ class JobMonitor<T : JobMonitor.Stats>(
             isRunning = false
             shouldStop = false
             stoppedAt = LocalDateTime.now()
-            log.info(
+            log.info {
                 "Job '$jobName' completed. Runtime: ${startedAt.durationUntil(stoppedAt)}" +
                         "\nStats: ${status().toJson()}"
-            )
+            }
         }
     }
 
@@ -84,7 +84,7 @@ class JobMonitor<T : JobMonitor.Stats>(
     }
 
     fun stop() {
-        log.info("Stopping job '$jobName' stats: ${status().toJson()}")
+        log.info { "Stopping job '$jobName' stats: ${status().toJson()}" }
         shouldStop = true
     }
 

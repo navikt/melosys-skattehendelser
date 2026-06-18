@@ -17,7 +17,7 @@ class SkattehendelserProducerKafka(
 ) : SkattehendelserProducer {
 
     init {
-        log.info("dryRunPublisering er satt til $dryRunPublisering")
+        log.info { "dryRunPublisering er satt til $dryRunPublisering" }
     }
 
     override fun publiserMelding(hendelse: MelosysSkatteHendelse) {
@@ -25,7 +25,7 @@ class SkattehendelserProducerKafka(
 
         try {
             if (dryRunPublisering) {
-                log.info("Dry run: sending melding til topic $topicName med hendelse: $hendelse")
+                log.info { "Dry run: sending melding til topic $topicName med hendelse: $hendelse" }
                 return
             }
             kafkaTemplate.send(hendelseRecord)[15L, TimeUnit.SECONDS]
