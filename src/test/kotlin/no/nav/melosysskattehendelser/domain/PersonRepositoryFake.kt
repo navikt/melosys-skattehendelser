@@ -11,12 +11,12 @@ class PersonRepositoryFake : PersonRepository {
     override fun findPersonById(id: Long): Person? =
         items.values.find { it.id == id }
 
-    override fun <S : Person?> save(entity: S & Any): S & Any {
+    override fun <S : Person> save(entity: S): S {
         items[entity.id] = entity
         return entity
     }
 
-    override fun <S : Person?> saveAll(entities: MutableIterable<S>): MutableIterable<S> {
+    override fun <S : Person> saveAll(entities: MutableIterable<S>): MutableIterable<S> {
         throw UnsupportedOperationException("Not yet implemented")
     }
 

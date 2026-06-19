@@ -1,9 +1,8 @@
 package no.nav.melosysskattehendelser.melosys.consumer
 
-import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
+import tools.jackson.databind.JsonNode
+import tools.jackson.module.kotlin.jacksonObjectMapper
+import tools.jackson.module.kotlin.readValue
 import io.kotest.assertions.json.shouldEqualJson
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
@@ -12,7 +11,7 @@ import java.time.LocalDate
 
 
 class MelosysHendelseTest {
-    val objectMapper = jacksonObjectMapper().registerModules(JavaTimeModule())
+    val objectMapper = jacksonObjectMapper()
 
     @Test
     fun `serialize tom hendelse`() {
@@ -54,8 +53,8 @@ class MelosysHendelseTest {
                     "sakstype": "FTRL",
                     "sakstema": "TRYGDEAVGIFT",
                     "medlemskapsperioder": [{
-                      "fom": [2021, 1, 1],
-                      "tom": [2022, 1, 1],
+                      "fom": "2021-01-01",
+                      "tom": "2022-01-01",
                       "innvilgelsesResultat": "INNVILGET"
                     }]                    
                 }
