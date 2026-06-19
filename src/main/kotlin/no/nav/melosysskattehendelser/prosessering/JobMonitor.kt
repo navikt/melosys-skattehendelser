@@ -1,8 +1,7 @@
 package no.nav.melosysskattehendelser.prosessering
 
-import com.fasterxml.jackson.databind.SerializationFeature
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import tools.jackson.databind.cfg.DateTimeFeature
+import tools.jackson.module.kotlin.jacksonMapperBuilder
 import io.github.oshai.kotlinlogging.KotlinLogging
 import no.nav.melosysskattehendelser.metrics.MeasuredMetricsProvider
 import java.time.Duration
@@ -106,9 +105,9 @@ class JobMonitor<T : JobMonitor.Stats>(
             "exceptions" to exceptions
         )
 
-    private fun Any.toJson() = jacksonObjectMapper()
-        .configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false)
-        .registerModule(JavaTimeModule())
+    private fun Any.toJson() = jacksonMapperBuilder()
+        .configure(DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS, false)
+        .build()
         .writerWithDefaultPrettyPrinter()
         .writeValueAsString(this)
 

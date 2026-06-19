@@ -24,7 +24,7 @@ class PensjonsgivendeInntektRepositoryFake : PensjonsgivendeInntektRepository {
         return saved as S
     }
 
-    override fun <S : PensjonsgivendeInntekt?> saveAll(entities: MutableIterable<S>): MutableIterable<S> {
+    override fun <S : PensjonsgivendeInntekt> saveAll(entities: MutableIterable<S>): MutableIterable<S> {
         throw UnsupportedOperationException("Not yet implemented")
     }
 

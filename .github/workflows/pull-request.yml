@@ -12,8 +12,7 @@ jobs:
       checks: write
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      PASSWORD: ${{ secrets.READER_TOKEN }}
-      REGISTRY: ghcr.io
+      READER_TOKEN: ${{ secrets.READER_TOKEN }}
 
     steps:
       - name: Checkout

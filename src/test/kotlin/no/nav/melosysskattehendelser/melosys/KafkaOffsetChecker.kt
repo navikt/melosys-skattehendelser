@@ -4,7 +4,7 @@ import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.common.TopicPartition
 import org.springframework.beans.factory.annotation.Value
-import org.springframework.boot.autoconfigure.kafka.KafkaProperties
+import org.springframework.boot.kafka.autoconfigure.KafkaProperties
 
 
 class KafkaOffsetChecker(
@@ -14,7 +14,7 @@ class KafkaOffsetChecker(
 ) {
     private val topicPartition = TopicPartition(topic, 0)
     private var consumer: KafkaConsumer<String, String> = KafkaConsumer<String, String>(
-        kafkaProperties.buildConsumerProperties(null) + mapOf(
+        kafkaProperties.buildConsumerProperties() + mapOf(
             ConsumerConfig.GROUP_ID_CONFIG to groupId
         )
     ).apply { assign(listOf(topicPartition)) }

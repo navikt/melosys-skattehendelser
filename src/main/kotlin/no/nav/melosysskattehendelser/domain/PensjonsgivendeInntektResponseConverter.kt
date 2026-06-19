@@ -1,7 +1,7 @@
 package no.nav.melosysskattehendelser.domain
 
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
+import tools.jackson.module.kotlin.jacksonObjectMapper
+import tools.jackson.module.kotlin.readValue
 import jakarta.persistence.AttributeConverter
 import jakarta.persistence.Converter
 import no.nav.melosysskattehendelser.skatt.PensjonsgivendeInntektResponse
