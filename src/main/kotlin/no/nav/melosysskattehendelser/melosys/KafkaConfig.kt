@@ -1,7 +1,8 @@
 package no.nav.melosysskattehendelser.melosys
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
+import tools.jackson.databind.ObjectMapper
+import tools.jackson.databind.json.JsonMapper
+import tools.jackson.module.kotlin.readValue
 import io.github.oshai.kotlinlogging.KotlinLogging
 import no.nav.melosysskattehendelser.melosys.consumer.MelosysHendelse
 import org.apache.kafka.clients.CommonClientConfigs
@@ -13,7 +14,7 @@ import org.apache.kafka.common.serialization.StringDeserializer
 import org.apache.kafka.common.serialization.StringSerializer
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
-import org.springframework.boot.autoconfigure.kafka.KafkaProperties
+import org.springframework.boot.kafka.autoconfigure.KafkaProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.core.env.Environment
@@ -25,8 +26,8 @@ import org.springframework.kafka.core.KafkaTemplate
 import org.springframework.kafka.core.ProducerFactory
 import org.springframework.kafka.listener.CommonContainerStoppingErrorHandler
 import org.springframework.kafka.listener.ContainerProperties
-import org.springframework.kafka.support.serializer.JsonDeserializer
-import org.springframework.kafka.support.serializer.JsonSerializer
+import org.springframework.kafka.support.serializer.JacksonJsonDeserializer
+import org.springframework.kafka.support.serializer.JacksonJsonSerializer
 
 private val log = KotlinLogging.logger { }
 
@@ -40,10 +41,10 @@ class KafkaConfig(
 ) {
 
     @Bean
-    fun melosysSkatteHendelseKafkaTemplate(objectMapper: ObjectMapper?): KafkaTemplate<String, MelosysSkatteHendelse> {
+    fun melosysSkatteHendelseKafkaTemplate(objectMapper: JsonMapper): KafkaTemplate<String, MelosysSkatteHendelse> {
         val config: Map<String, Any> = producerConfig()
         val producerFactory: ProducerFactory<String, MelosysSkatteHendelse> =
-            DefaultKafkaProducerFactory(config, StringSerializer(), JsonSerializer(objectMapper))
+            DefaultKafkaProducerFactory(config, StringSerializer(), JacksonJsonSerializer(objectMapper))
         return KafkaTemplate(producerFactory)
     }
 
@@ -56,10 +57,12 @@ class KafkaConfig(
         ConcurrentKafkaListenerContainerFactory<String, MelosysHendelse>().apply {
             setCommonErrorHandler(CommonContainerStoppingErrorHandler())
 
-            consumerFactory = DefaultKafkaConsumerFactory(
-                kafkaProperties.buildConsumerProperties(null) + consumerConfig(groupId),
-                StringDeserializer(),
-                errorLoggingDeserializer(objectMapper)
+            setConsumerFactory(
+                DefaultKafkaConsumerFactory(
+                    kafkaProperties.buildConsumerProperties() + consumerConfig(groupId),
+                    StringDeserializer(),
+                    errorLoggingDeserializer(objectMapper)
+                )
             )
             containerProperties.ackMode = ContainerProperties.AckMode.RECORD
         }
@@ -87,7 +90,7 @@ class KafkaConfig(
         ConsumerConfig.AUTO_OFFSET_RESET_CONFIG to "earliest",
         ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG to 15000,
         ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG to StringDeserializer::class.java,
-        ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG to JsonDeserializer::class.java,
+        ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG to JacksonJsonDeserializer::class.java,
         ConsumerConfig.MAX_POLL_RECORDS_CONFIG to 1
     ) + securityConfig()
 

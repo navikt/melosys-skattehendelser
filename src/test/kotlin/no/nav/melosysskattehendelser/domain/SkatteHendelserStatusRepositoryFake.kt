@@ -9,12 +9,12 @@ class SkatteHendelserStatusRepositoryFake : SkatteHendelserStatusRepository {
         items.clear()
     }
 
-    override fun <S : SkatteHendelserSekvens?> save(entity: S & Any): S & Any {
+    override fun <S : SkatteHendelserSekvens> save(entity: S): S {
         items[entity.consumerId] = entity
         return entity
     }
 
-    override fun <S : SkatteHendelserSekvens?> saveAll(entities: MutableIterable<S>): MutableIterable<S> {
+    override fun <S : SkatteHendelserSekvens> saveAll(entities: MutableIterable<S>): MutableIterable<S> {
         throw UnsupportedOperationException("Not yet implemented")
     }
 
