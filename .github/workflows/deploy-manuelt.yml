@@ -15,6 +15,7 @@ permissions:
 env:
   IMAGE: europe-north1-docker.pkg.dev/nais-management-233d/teammelosys/melosys-skattehendelser:${{ github.sha }}
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  READER_TOKEN: ${{ secrets.READER_TOKEN }}
 
 jobs:
   check_docker_image_exists:
