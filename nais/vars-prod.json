@@ -12,7 +12,7 @@
   "cluster_sigrun": "prod-fss",
   "app_name_sigrun": "sigrun",
   "app_name_melosys_console": "melosys-console",
-  "sigrun_host": "team-inntekt-proxy.prod-fss-pub.nais.io",
-  "sigrun_rest_url": "https://team-inntekt-proxy.prod-fss-pub.nais.io/proxy/sigrun"
+  "sigrun_host": "sigrun.prod-fss-pub.nais.io",
+  "sigrun_rest_url": "https://sigrun.prod-fss-pub.nais.io"
 
 }
