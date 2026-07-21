@@ -28,3 +28,4 @@ jobs:
           blackout-periods: 'Sat,Sun,Dec 24-Jan 2'
           semver-filter: 'patch,minor'
           merge-method: 'squash'
+          auto-approve: 'true'
