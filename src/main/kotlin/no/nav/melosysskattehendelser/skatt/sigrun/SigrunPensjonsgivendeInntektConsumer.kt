@@ -20,18 +20,30 @@ open class SigrunPensjonsgivendeInntektConsumer(private val webClient: WebClient
             .header("Nav-Personident", request.navPersonident)
             .header("inntektsaar", request.inntektsaar)
             .exchangeToMono { response ->
-                if (response.statusCode() == HttpStatus.NOT_FOUND) {
-                    log.warn { "PensjonsgivendeInntekt api status: 404 NOT_FOUND" }
-                    Mono.just(
-                        PensjonsgivendeInntektResponse(
-                            slettet = true,
-                            norskPersonidentifikator = request.navPersonident,
-                            inntektsaar = request.inntektsaar,
-                            pensjonsgivendeInntekt = emptyList()
+                val status = response.statusCode()
+                when {
+                    status == HttpStatus.NOT_FOUND -> {
+                        log.warn { "PensjonsgivendeInntekt api status: 404 NOT_FOUND" }
+                        Mono.just(
+                            PensjonsgivendeInntektResponse(
+                                slettet = true,
+                                norskPersonidentifikator = request.navPersonident,
+                                inntektsaar = request.inntektsaar,
+                                pensjonsgivendeInntekt = emptyList()
+                            )
                         )
-                    )
-                } else {
-                    response.bodyToMono(PensjonsgivendeInntektResponse::class.java)
+                    }
+
+                    status.isError -> response.createException().flatMap { Mono.error(it) }
+
+                    else -> response.bodyToMono(PensjonsgivendeInntektResponse::class.java)
+                        .switchIfEmpty(
+                            Mono.error(
+                                IllegalStateException(
+                                    "Ingen body - kunne ikke hente PensjonsgivendeInntektResponse, status: $status"
+                                )
+                            )
+                        )
                 }
             }
             .block() ?: throw IllegalStateException("Ingen body - kunne ikke hente PensjonsgivendeInntektResponse")

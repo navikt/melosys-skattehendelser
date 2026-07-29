@@ -4,8 +4,10 @@ import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.MappingBuilder
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldContain
 import no.nav.melosysskattehendelser.skatt.PensjonsgivendeInntektRequest
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Test
@@ -13,6 +15,7 @@ import org.junit.jupiter.api.TestInstance
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.web.reactive.function.client.WebClient
+import org.springframework.web.reactive.function.client.WebClientResponseException
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class SigrunPensjonsgivendeInntektConsumerTest {
@@ -34,7 +37,7 @@ class SigrunPensjonsgivendeInntektConsumerTest {
     @Test
     fun `skal hente inntekt`() {
         wireMockServer.stubFor(
-            createGetRequest()
+            createGetRequest("26468141638")
                 .willReturn(
                     WireMock.aResponse()
                         .withStatus(200)
@@ -79,7 +82,7 @@ class SigrunPensjonsgivendeInntektConsumerTest {
     @Test
     fun `skal håntere 404`() {
         wireMockServer.stubFor(
-            createGetRequest()
+            createGetRequest("26468141637")
                 .willReturn(
                     WireMock.aResponse()
                         .withStatus(404)
@@ -90,7 +93,7 @@ class SigrunPensjonsgivendeInntektConsumerTest {
         val inntekt = sigrunPensjonsgivendeInntektConsumer.hentPensjonsgivendeInntekt(
             PensjonsgivendeInntektRequest(
                 inntektsaar = "2024",
-                navPersonident = "26468141638"
+                navPersonident = "26468141637"
             )
         )
 
@@ -98,6 +101,60 @@ class SigrunPensjonsgivendeInntektConsumerTest {
 
     }
 
-    private fun createGetRequest(): MappingBuilder =
+    @Test
+    fun `skal kaste feil med statuskode nar 2xx svar mangler body`() {
+        wireMockServer.stubFor(
+            createGetRequest("26468141639")
+                .willReturn(
+                    WireMock.aResponse()
+                        .withStatus(204)
+                )
+        )
+
+        shouldThrow<IllegalStateException> {
+            sigrunPensjonsgivendeInntektConsumer.hentPensjonsgivendeInntekt(
+                PensjonsgivendeInntektRequest(inntektsaar = "2024", navPersonident = "26468141639")
+            )
+        }.message shouldContain "204"
+    }
+
+    @Test
+    fun `skal kaste feil med statuskode nar api svarer 500 uten body`() {
+        wireMockServer.stubFor(
+            createGetRequest("26468141640")
+                .willReturn(
+                    WireMock.aResponse()
+                        .withStatus(500)
+                )
+        )
+
+        shouldThrow<WebClientResponseException> {
+            sigrunPensjonsgivendeInntektConsumer.hentPensjonsgivendeInntekt(
+                PensjonsgivendeInntektRequest(inntektsaar = "2024", navPersonident = "26468141640")
+            )
+        }.statusCode.value() shouldBe 500
+    }
+
+    @Test
+    fun `skal ikke tolke feilmelding-body fra 500 som tom inntekt`() {
+        wireMockServer.stubFor(
+            createGetRequest("26468141641")
+                .willReturn(
+                    WireMock.aResponse()
+                        .withStatus(500)
+                        .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                        .withBody("""{"melding":"Intern feil i Sigrun"}""")
+                )
+        )
+
+        shouldThrow<WebClientResponseException> {
+            sigrunPensjonsgivendeInntektConsumer.hentPensjonsgivendeInntekt(
+                PensjonsgivendeInntektRequest(inntektsaar = "2024", navPersonident = "26468141641")
+            )
+        }.statusCode.value() shouldBe 500
+    }
+
+    private fun createGetRequest(navPersonident: String): MappingBuilder =
         WireMock.get(WireMock.urlPathEqualTo("/api/v1/pensjonsgivendeinntektforfolketrygden"))
+            .withHeader("Nav-Personident", WireMock.equalTo(navPersonident))
 }
