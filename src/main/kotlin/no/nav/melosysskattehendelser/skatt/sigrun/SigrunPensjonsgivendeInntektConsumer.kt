@@ -6,6 +6,7 @@ import no.nav.melosysskattehendelser.skatt.PensjonsgivendeInntektRequest
 import no.nav.melosysskattehendelser.skatt.PensjonsgivendeInntektResponse
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.http.HttpStatus
+import org.springframework.web.reactive.function.client.ClientResponse
 import org.springframework.web.reactive.function.client.WebClient
 import reactor.core.publisher.Mono
 
@@ -34,7 +35,18 @@ open class SigrunPensjonsgivendeInntektConsumer(private val webClient: WebClient
                         )
                     }
 
-                    status.isError -> response.createException().flatMap { Mono.error(it) }
+                    status.isError -> response.createException().flatMap { exception ->
+                        log.error {
+                            "PensjonsgivendeInntekt api feilet - status: $status" +
+                                ", inntektsaar: ${request.inntektsaar}" +
+                                ", Nav-Call-Id: ${response.requestHeader("Nav-Call-Id")}" +
+                                ", rettighetspakke: ${response.requestHeader("rettighetspakke")}" +
+                                ", Nav-Consumer-Id: ${response.requestHeader("Nav-Consumer-Id")}" +
+                                ", responseHeaders: ${response.headers().asHttpHeaders()}" +
+                                ", body: ${exception.responseBodyAsString}"
+                        }
+                        Mono.error(exception)
+                    }
 
                     else -> response.bodyToMono(PensjonsgivendeInntektResponse::class.java)
                         .switchIfEmpty(
@@ -49,3 +61,11 @@ open class SigrunPensjonsgivendeInntektConsumer(private val webClient: WebClient
             .block() ?: throw IllegalStateException("Ingen body - kunne ikke hente PensjonsgivendeInntektResponse")
     }
 }
+
+/**
+ * Leser en header fra det utgående kallet. Kun headere uten personopplysninger skal logges,
+ * derfor hentes de eksplisitt én og én i stedet for å dumpe alle (Authorization og
+ * Nav-Personident må aldri havne i loggen).
+ */
+private fun ClientResponse.requestHeader(name: String): String? =
+    request().headers.getFirst(name)

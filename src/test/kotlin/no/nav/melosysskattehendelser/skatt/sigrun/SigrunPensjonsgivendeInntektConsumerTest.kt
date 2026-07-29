@@ -1,5 +1,9 @@
 package no.nav.melosysskattehendelser.skatt.sigrun
 
+import ch.qos.logback.classic.Level
+import ch.qos.logback.classic.Logger
+import ch.qos.logback.classic.spi.ILoggingEvent
+import ch.qos.logback.core.read.ListAppender
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.MappingBuilder
 import com.github.tomakehurst.wiremock.client.WireMock
@@ -8,14 +12,19 @@ import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
+import io.kotest.matchers.string.shouldNotContain
 import no.nav.melosysskattehendelser.skatt.PensjonsgivendeInntektRequest
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
+import org.slf4j.LoggerFactory
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
+import org.springframework.web.reactive.function.client.ClientRequest
+import org.springframework.web.reactive.function.client.ExchangeFilterFunction
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.WebClientResponseException
+import reactor.core.publisher.Mono
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class SigrunPensjonsgivendeInntektConsumerTest {
@@ -152,6 +161,48 @@ class SigrunPensjonsgivendeInntektConsumerTest {
                 PensjonsgivendeInntektRequest(inntektsaar = "2024", navPersonident = "26468141641")
             )
         }.statusCode.value() shouldBe 500
+    }
+
+    @Test
+    fun `skal logge statuskode, body og Nav-Call-Id ved 403 uten å lekke personident`() {
+        wireMockServer.stubFor(
+            createGetRequest("26468141642")
+                .willReturn(
+                    WireMock.aResponse()
+                        .withStatus(403)
+                        .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                        .withBody("""{"melding":"Mangler tilgang til rettighetspakke navtrygdeavgift"}""")
+                )
+        )
+        val consumerMedCallId = SigrunPensjonsgivendeInntektConsumer(
+            WebClient.builder()
+                .baseUrl("http://localhost:${wireMockServer.port()}")
+                .filter(ExchangeFilterFunction.ofRequestProcessor { request ->
+                    Mono.just(ClientRequest.from(request).header("Nav-Call-Id", "CallId_test_123").build())
+                })
+                .build()
+        )
+
+        val logg = ListAppender<ILoggingEvent>().apply { start() }
+        val logger = LoggerFactory.getLogger("no.nav.melosysskattehendelser.skatt.sigrun") as Logger
+        logger.addAppender(logg)
+
+        try {
+            shouldThrow<WebClientResponseException> {
+                consumerMedCallId.hentPensjonsgivendeInntekt(
+                    PensjonsgivendeInntektRequest(inntektsaar = "2024", navPersonident = "26468141642")
+                )
+            }.statusCode.value() shouldBe 403
+        } finally {
+            logger.detachAppender(logg)
+        }
+
+        val melding = logg.list.single { it.level == Level.ERROR }.formattedMessage
+        melding shouldContain "403"
+        melding shouldContain "Mangler tilgang til rettighetspakke navtrygdeavgift"
+        melding shouldContain "CallId_test_123"
+        melding shouldContain "inntektsaar: 2024"
+        melding shouldNotContain "26468141642"
     }
 
     private fun createGetRequest(navPersonident: String): MappingBuilder =
