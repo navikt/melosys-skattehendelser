@@ -27,7 +27,7 @@ Tjeneste for behandling av skattehendelser i Melosys-systemet.
 - **Database**: PostgreSQL med Flyway-migrasjoner
 - **Meldingskø**: Apache Kafka
 - **Bygging**: Gradle med Kotlin DSL
-- **JVM**: Java 17
+- **JVM**: Java 21
 
 ### Sentrale komponenter
 
@@ -50,7 +50,7 @@ Kafka-consumer for vedtakshendelser:
 ## Utvikling
 
 ### Forutsetninger
-- Java 17 eller nyere
+- Java 21 eller nyere
 - Docker (for lokal PostgreSQL og Kafka)
 - Gradle 8.x
 
