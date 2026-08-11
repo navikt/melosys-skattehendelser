@@ -3,9 +3,9 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 plugins {
     id("org.springframework.boot") version "4.1.0"
     id("io.spring.dependency-management") version "1.1.7"
-    kotlin("jvm") version "2.4.0"
-    kotlin("plugin.spring") version "2.4.0"
-    kotlin("plugin.jpa") version "2.4.0"
+    kotlin("jvm") version "2.4.10"
+    kotlin("plugin.spring") version "2.4.10"
+    kotlin("plugin.jpa") version "2.4.10"
 }
 
 group = "no.nav.melosys"
@@ -35,19 +35,19 @@ allOpen {
 }
 
 object dependencyVersions {
-    const val kotestVersion = "6.2.0"
+    const val kotestVersion = "6.2.3"
     const val logstashLogbackEncoder = "9.0"
     const val kotlinLogging = "8.0.4"
     const val wiremock = "3.13.2"
     const val awaitility = "4.3.0"
     const val mockk = "1.14.11"
-    const val tokenSupport = "6.0.10"
+    const val tokenSupport = "6.0.11"
     const val shedlockVersion = "7.7.0"
     const val shedlockProvicerJdbcVersion = "7.7.0"
     const val janino = "3.1.12"
     const val micrometerVersion = "1.17.0"
     const val micrometerJvmExtrasVersion = "0.3.0"
-    const val springdocVersion = "3.0.3"
+    const val springdocVersion = "3.1.0"
 }
 
 val osName = System.getProperty("os.name").lowercase()
