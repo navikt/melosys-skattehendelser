@@ -1,10 +1,10 @@
 package no.nav.melosysskattehendelser
 
 import org.springframework.test.context.DynamicPropertyRegistry
-import org.testcontainers.containers.PostgreSQLContainer
+import org.testcontainers.postgresql.PostgreSQLContainer
 
 object PostgresTestContainer {
-    private val container: PostgreSQLContainer<*> = PostgreSQLContainer("postgres:15.2")
+    private val container = PostgreSQLContainer("postgres:15.2")
     private const val USE_CONTAINER = true // easy way to switch to run against local docker
 
     init {
