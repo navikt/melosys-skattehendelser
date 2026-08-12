@@ -68,7 +68,7 @@ no.nav.security.jwt:
   issuer:
     aad:
       discovery-url: ${AZURE_APP_WELL_KNOWN_URL}
-      accepted-audience: ${AZURE_APP_CLIENT_ID}
+      accepted-audience: ${AZURE_APP_ACCEPTED_AUDIENCE:${AZURE_APP_CLIENT_ID}}
 
 management:
   endpoints:
