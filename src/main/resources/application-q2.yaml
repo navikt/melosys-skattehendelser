@@ -9,8 +9,19 @@ spring:
     locations: classpath:db/migration
     enabled: true
 
-# Azure AD JWT configuration - AZURE_APP_WELL_KNOWN_URL injiseres automatisk av NAIS
+# Azure AD. I NAIS injiseres disse automatisk (default-profilen brukes der).
+# Denne profilen kjøres kun lokalt, så verdiene må stå her.
+# Innkommende JWT valideres mot lokal mock-oauth2 (via mock-oauth2-login-proxy på 8082).
+AZURE_APP_WELL_KNOWN_URL: http://host.docker.internal:8082/isso/.well-known/openid-configuration
+# Audience for innkommende token. Egen variabel slik at AZURE_APP_CLIENT_ID kan settes til
+# ekte Azure-app (for utgående Sigrun-kall) uten at lokale admin-kall slutter å virke.
+AZURE_APP_ACCEPTED_AUDIENCE: melosys-localhost
+
+# Utgående token til ekte Sigrun i q2. Sett AZURE_APP_CLIENT_ID/SECRET som miljøvariabler
+# (miljøvariabler overstyrer denne fila) hvis du faktisk skal kalle sigrun-q2.
 AZURE_OPENID_CONFIG_TOKEN_ENDPOINT: https://login.microsoftonline.com/966ac572-f5b7-4bbe-aa88-c76419c0f851/oauth2/v2.0/token
+AZURE_APP_CLIENT_ID: melosys-localhost
+AZURE_APP_CLIENT_SECRET: lol
 
 CLUSTER_SIGRUN: dev-fss
 APP_NAME_SIGRUN: sigrun-q2

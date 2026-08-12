@@ -14,6 +14,9 @@ sigrun:
 
 # JWT Configuration for local development
 AZURE_APP_WELL_KNOWN_URL: http://host.docker.internal:8082/isso/.well-known/openid-configuration
+# Audience for innkommende token. Egen variabel slik at AZURE_APP_CLIENT_ID kan settes til
+# ekte Azure-app (for utgaende Sigrun-kall) uten at lokale admin-kall slutter a virke.
+AZURE_APP_ACCEPTED_AUDIENCE: melosys-localhost
 AZURE_APP_CLIENT_ID: melosys-localhost
 AZURE_APP_CLIENT_SECRET: lol
 AZURE_OPENID_CONFIG_TOKEN_ENDPOINT: http://host.docker.internal:8082/isso/oauth2/v2.0/token

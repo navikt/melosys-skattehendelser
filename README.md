@@ -62,17 +62,72 @@ Kafka-consumer for vedtakshendelser:
    cd melosys-skattehendelser
    ```
 
-2. **Start lokale tjenester**:
+2. **Start lokale tjenester** (kjøres i `melosys-docker-compose`):
    ```bash
-   docker-compose up -d postgres kafka
-   # eller
-   make start-all  # i melosys-docker-compose
+   docker compose up -d postgres kafka mock-oauth2-server mock-oauth2-login-proxy melosys-mock
    ```
+
+   Alle fem trengs. `mock-oauth2-server` publiserer ikke port 8082 til host –
+   det er `mock-oauth2-login-proxy` som gjør det. Uten den feiler oppstart med
+   `MetaDataNotAvailableException: Could not retrieve metadata from url:
+   http://host.docker.internal:8082/isso/.well-known/openid-configuration`.
 
 3. **Bygg og start applikasjonen**:
    ```bash
    ./gradlew bootRun --args='--spring.profiles.active=local'
    ```
+
+   Applikasjonen kjører på port **8089**. Helsesjekk: `http://localhost:8089/internal/health`.
+
+   **Profiler:** `local`, `q2` og `ske` er de kjørbare profilene (`test` finnes også,
+   men brukes kun av testkjøring). Alle tre kjøres lokalt (mot lokal Postgres/Kafka og
+   lokal mock-oauth2); `q2` og `ske` peker Sigrun mot henholdsvis sigrun-q2 og sigrun-ske.
+   I NAIS brukes default-profilen, der alle `AZURE_*`-variabler injiseres av plattformen.
+
+   Profilnavn kombineres ikke med bindestrek – `local-q2` er ett enkelt (ikke-eksisterende)
+   profilnavn, ikke «local + q2». Da lastes kun `application.yaml`, og oppstart feiler med
+   en uløst placeholder (f.eks. `Could not resolve placeholder 'SIGRUN_REST_URL'`).
+
+   Bruk `q2` eller `ske` **alene** – ikke `local,q2`. `application-local.yaml` setter
+   `sigrun.rest.url` direkte, mens q2/ske setter `SIGRUN_REST_URL` som `application.yaml`
+   interpolerer. Den direkte verdien vinner uansett profilrekkefølge, så `local,q2` henter
+   et ekte Azure-token for sigrun-q2 og kaller deretter den lokale mocken.
+
+   Skal du kalle ekte Sigrun i q2/ske, sett `AZURE_APP_CLIENT_ID` og `AZURE_APP_CLIENT_SECRET`
+   som miljøvariabler – de overstyrer profilfila. Verdiene må være den ekte Azure-appen til
+   melosys-skattehendelser (den som har tilgangsrolle på `api://dev-fss.team-inntekt.sigrun-q2`);
+   `melosys-localhost` finnes kun i lokal mock-oauth2 og gir
+   `AADSTS501051: Application 'melosys-localhost' is not assigned to a role`.
+   Spør i teamkanalen, eller hent dem fra dev-clusteret – pass på at konteksten er `dev-gcp`,
+   ikke prod:
+   ```bash
+   kubectl --context dev-gcp -n teammelosys exec deploy/melosys-skattehendelser \
+     -- printenv AZURE_APP_CLIENT_ID AZURE_APP_CLIENT_SECRET
+   ```
+
+   Innkommende JWT valideres mot `AZURE_APP_ACCEPTED_AUDIENCE` (defaulter til
+   `AZURE_APP_CLIENT_ID` når den ikke er satt, slik NAIS forventer). Lokalt står den til
+   `melosys-localhost` i profilfilene, så admin-kall under fortsetter å virke selv når
+   `AZURE_APP_CLIENT_ID` overstyres med ekte Azure-app.
+
+   Pass på at du **ikke** har `AZURE_APP_WELL_KNOWN_URL` satt til en ikke-URL (f.eks. `dummy`)
+   i run-konfigurasjonen; det gir samme bindingsfeil.
+
+4. **Kall admin-endepunkter lokalt** – krever både JWT og API-nøkkel:
+   ```bash
+   TOKEN=$(curl -s -X POST http://host.docker.internal:8082/isso/token \
+     -d grant_type=client_credentials -d client_id=melosys-localhost \
+     -d client_secret=lol -d scope=melosys-localhost | jq -r .access_token)
+
+   curl -H "Authorization: Bearer $TOKEN" \
+        -H "X-SKATTEHENDELSER-ADMIN-APIKEY: dummy" \
+        http://localhost:8089/admin/hendelseprosessering/status
+   ```
+
+   Merk: token må hentes fra `/isso/token`, ikke `/isso/oauth2/v2.0/token` –
+   sistnevnte gir en issuer som ikke matcher discovery-dokumentet, og gir 401.
+   `scope` må matche `AZURE_APP_ACCEPTED_AUDIENCE`; ellers får du
+   `JWT audience rejected: [melosys-localhost]` i loggen og 401 fra endepunktet.
 
 ### Testing
 
