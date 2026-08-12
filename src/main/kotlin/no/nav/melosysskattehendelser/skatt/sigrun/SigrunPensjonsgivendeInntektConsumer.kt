@@ -35,7 +35,11 @@ open class SigrunPensjonsgivendeInntektConsumer(private val webClient: WebClient
                         )
                     }
 
-                    status.isError -> response.createException().flatMap { exception ->
+                    // Alt som ikke er 2xx behandles som feil. Med status.isError ville en 3xx
+                    // (f.eks. redirect til innlogging fra gatewayen) havnet i else-grenen og
+                    // blitt rapportert som "Ingen body" - nettopp den intetsigende meldingen
+                    // denne håndteringen finnes for å unngå.
+                    !status.is2xxSuccessful -> response.createException().flatMap { exception ->
                         log.error {
                             "PensjonsgivendeInntekt api feilet - status: $status" +
                                 ", inntektsaar: ${request.inntektsaar}" +
@@ -49,6 +53,18 @@ open class SigrunPensjonsgivendeInntektConsumer(private val webClient: WebClient
                     }
 
                     else -> response.bodyToMono(PensjonsgivendeInntektResponse::class.java)
+                        // Et 2xx-svar med en body som ikke er en PensjonsgivendeInntektResponse
+                        // deserialiseres stille til et objekt med bare nullfelt og tom inntektsliste.
+                        // Det tolkes nedstrøms som en gyldig endring og publiseres. Samme feilklasse
+                        // som feilsvarene over, bare på 2xx, så den må fanges her.
+                        .flatMap { body ->
+                            if (body.norskPersonidentifikator == null) Mono.error(
+                                IllegalStateException(
+                                    "Uventet body fra PensjonsgivendeInntekt api - " +
+                                        "norskPersonidentifikator mangler, status: $status"
+                                )
+                            ) else Mono.just(body)
+                        }
                         .switchIfEmpty(
                             Mono.error(
                                 IllegalStateException(

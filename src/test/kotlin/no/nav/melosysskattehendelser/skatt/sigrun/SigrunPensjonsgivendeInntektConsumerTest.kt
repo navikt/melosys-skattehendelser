@@ -261,6 +261,43 @@ class SigrunPensjonsgivendeInntektConsumerTest {
         melding.length shouldBeLessThan 1000
     }
 
+    @Test
+    fun `skal behandle 3xx som feil og ikke som manglende body`() {
+        wireMockServer.stubFor(
+            createGetRequest("26468141645")
+                .willReturn(
+                    WireMock.aResponse()
+                        .withStatus(302)
+                        .withHeader(HttpHeaders.LOCATION, "https://login.microsoftonline.com/")
+                )
+        )
+
+        shouldThrow<WebClientResponseException> {
+            sigrunPensjonsgivendeInntektConsumer.hentPensjonsgivendeInntekt(
+                PensjonsgivendeInntektRequest(inntektsaar = "2024", navPersonident = "26468141645")
+            )
+        }.statusCode.value() shouldBe 302
+    }
+
+    @Test
+    fun `skal ikke tolke uventet body fra 200 som tom inntekt`() {
+        wireMockServer.stubFor(
+            createGetRequest("26468141646")
+                .willReturn(
+                    WireMock.aResponse()
+                        .withStatus(200)
+                        .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                        .withBody("""{"melding":"Noe helt annet enn en inntektsrespons"}""")
+                )
+        )
+
+        shouldThrow<IllegalStateException> {
+            sigrunPensjonsgivendeInntektConsumer.hentPensjonsgivendeInntekt(
+                PensjonsgivendeInntektRequest(inntektsaar = "2024", navPersonident = "26468141646")
+            )
+        }.message shouldContain "norskPersonidentifikator mangler"
+    }
+
     private fun fangErrorLogg(block: () -> Unit): String {
         val logg = ListAppender<ILoggingEvent>().apply { start() }
         val logger = LoggerFactory.getLogger("no.nav.melosysskattehendelser.skatt.sigrun") as Logger
