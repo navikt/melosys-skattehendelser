@@ -41,3 +41,25 @@ out/
 
 ##
 .DS_Store
+
+### Lokale analyse- og kjøringsartefakter ###
+# Uttrekk og kjøringsresultater fra miljøer med reelle persondata skal aldri i
+# git. Reglene er endelsesbaserte i repo-roten framfor navnebaserte: navnebaserte
+# regler dekker bare filnavn noen allerede har brukt, og et nytt navn slipper rett
+# gjennom. Ingen sporet fil i roten bruker disse endelsene.
+#
+# NB: .gitignore er en bekvemmelighet, ikke en kontroll - `git add -f` går rundt
+# den. Varig sikring mot persondata i git er hook/CI-skanning, ikke ignore-regler.
+/prod*/
+/anon*/
+/analyse-*/
+/*.json
+/*.ndjson
+/*.csv
+/*.txt
+/*.xlsx
+/*.zip
+/*.html
+/*.md
+!/README.md
+!/AGENTS.md
