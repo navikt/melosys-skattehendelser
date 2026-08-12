@@ -42,8 +42,8 @@ open class SigrunPensjonsgivendeInntektConsumer(private val webClient: WebClient
                                 ", Nav-Call-Id: ${response.requestHeader("Nav-Call-Id")}" +
                                 ", rettighetspakke: ${response.requestHeader("rettighetspakke")}" +
                                 ", Nav-Consumer-Id: ${response.requestHeader("Nav-Consumer-Id")}" +
-                                ", responseHeaders: ${response.headers().asHttpHeaders()}" +
-                                ", body: ${exception.responseBodyAsString}"
+                                ", responseHeaders: ${response.loggbareResponseHeadere()}" +
+                                ", body: ${exception.responseBodyAsString.maskertOgAvkortet()}"
                         }
                         Mono.error(exception)
                     }
@@ -69,3 +69,32 @@ open class SigrunPensjonsgivendeInntektConsumer(private val webClient: WebClient
  */
 private fun ClientResponse.requestHeader(name: String): String? =
     request().headers.getFirst(name)
+
+/**
+ * Response-headere fra Sigrun er utenfor vår kontroll - vi vet ikke hva Sigrun eller proxyen
+ * foran den sender tilbake (ekko av ident, Set-Cookie fra en gateway, ...). Derfor logges kun
+ * en allow-liste, av samme grunn som request-headerne over hentes én og én.
+ */
+private val LOGGBARE_RESPONSE_HEADERE = listOf("Nav-Call-Id", "x-request-id", "Retry-After", "Content-Type")
+
+private fun ClientResponse.loggbareResponseHeadere(): String =
+    headers().asHttpHeaders()
+        .let { headere -> LOGGBARE_RESPONSE_HEADERE.mapNotNull { navn -> headere.getFirst(navn)?.let { "$navn=$it" } } }
+        .joinToString(prefix = "[", postfix = "]")
+
+private const val MAKS_BODY_LENGDE = 500
+
+/**
+ * Sifferserier på 11-13 tegn - fødselsnummer, d-nummer og aktørid. Samme intensjon som
+ * masken i logback.xml, men den er kun aktiv i prod-clusteret; her gjelder den i alle miljøer.
+ */
+private val PERSONIDENTIFIKATOR = Regex("""(^|\W)\d{11,13}(?=$|\W)""")
+
+/**
+ * Feilbodyen fra Sigrun er fritekst vi ikke eier og kan inneholde personidentifikatorer
+ * (typisk "Ugyldig personidentifikator: <fnr>"), så den maskeres før logging. Den avkortes
+ * også: svarer proxyen med en HTML-feilside blir bodyen titusenvis av tegn på én loggslinje.
+ */
+private fun String.maskertOgAvkortet(): String =
+    PERSONIDENTIFIKATOR.replace(take(MAKS_BODY_LENGDE)) { "${it.groupValues[1]}***********" }
+        .let { if (length > MAKS_BODY_LENGDE) "$it...[avkortet, $length tegn totalt]" else it }

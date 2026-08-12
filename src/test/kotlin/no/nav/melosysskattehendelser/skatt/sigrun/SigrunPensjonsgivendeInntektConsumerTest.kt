@@ -10,6 +10,7 @@ import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.collections.shouldHaveSize
+import io.kotest.matchers.ints.shouldBeLessThan
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldNotContain
@@ -164,7 +165,7 @@ class SigrunPensjonsgivendeInntektConsumerTest {
     }
 
     @Test
-    fun `skal logge statuskode, body og Nav-Call-Id ved 403 uten å lekke personident`() {
+    fun `skal logge statuskode, body og Nav-Call-Id ved 403`() {
         wireMockServer.stubFor(
             createGetRequest("26468141642")
                 .willReturn(
@@ -202,7 +203,74 @@ class SigrunPensjonsgivendeInntektConsumerTest {
         melding shouldContain "Mangler tilgang til rettighetspakke navtrygdeavgift"
         melding shouldContain "CallId_test_123"
         melding shouldContain "inntektsaar: 2024"
-        melding shouldNotContain "26468141642"
+    }
+
+    @Test
+    fun `skal maskere personident i body og utelate ukjente response-headere`() {
+        val navPersonident = "26468141643"
+        wireMockServer.stubFor(
+            createGetRequest(navPersonident)
+                .willReturn(
+                    WireMock.aResponse()
+                        .withStatus(400)
+                        .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                        .withHeader("Nav-Personident", navPersonident)
+                        .withHeader("Set-Cookie", "session=hemmelig-token-abc123")
+                        .withBody("""{"melding":"Ugyldig personidentifikator: $navPersonident for inntektsaar 2024"}""")
+                )
+        )
+
+        val melding = fangErrorLogg {
+            shouldThrow<WebClientResponseException> {
+                sigrunPensjonsgivendeInntektConsumer.hentPensjonsgivendeInntekt(
+                    PensjonsgivendeInntektRequest(inntektsaar = "2024", navPersonident = navPersonident)
+                )
+            }.statusCode.value() shouldBe 400
+        }
+
+        melding shouldContain "400"
+        melding shouldContain "Ugyldig personidentifikator"
+        melding shouldContain "***********"
+        melding shouldNotContain navPersonident
+        melding shouldNotContain "hemmelig-token-abc123"
+    }
+
+    @Test
+    fun `skal avkorte lang feilbody`() {
+        val navPersonident = "26468141644"
+        val langBody = "<html>" + "x".repeat(20_000) + "</html>"
+        wireMockServer.stubFor(
+            createGetRequest(navPersonident)
+                .willReturn(
+                    WireMock.aResponse()
+                        .withStatus(502)
+                        .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.TEXT_HTML_VALUE)
+                        .withBody(langBody)
+                )
+        )
+
+        val melding = fangErrorLogg {
+            shouldThrow<WebClientResponseException> {
+                sigrunPensjonsgivendeInntektConsumer.hentPensjonsgivendeInntekt(
+                    PensjonsgivendeInntektRequest(inntektsaar = "2024", navPersonident = navPersonident)
+                )
+            }.statusCode.value() shouldBe 502
+        }
+
+        melding shouldContain "avkortet, ${langBody.length} tegn totalt"
+        melding.length shouldBeLessThan 1000
+    }
+
+    private fun fangErrorLogg(block: () -> Unit): String {
+        val logg = ListAppender<ILoggingEvent>().apply { start() }
+        val logger = LoggerFactory.getLogger("no.nav.melosysskattehendelser.skatt.sigrun") as Logger
+        logger.addAppender(logg)
+        try {
+            block()
+        } finally {
+            logger.detachAppender(logg)
+        }
+        return logg.list.single { it.level == Level.ERROR }.formattedMessage
     }
 
     private fun createGetRequest(navPersonident: String): MappingBuilder =
