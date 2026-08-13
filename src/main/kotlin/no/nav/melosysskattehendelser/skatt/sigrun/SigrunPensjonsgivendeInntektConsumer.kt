@@ -6,20 +6,40 @@ import no.nav.melosysskattehendelser.skatt.PensjonsgivendeInntektRequest
 import no.nav.melosysskattehendelser.skatt.PensjonsgivendeInntektResponse
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.http.HttpStatus
+import org.springframework.http.MediaType
 import org.springframework.web.reactive.function.client.ClientResponse
 import org.springframework.web.reactive.function.client.WebClient
 import reactor.core.publisher.Mono
 
 private val log = io.github.oshai.kotlinlogging.KotlinLogging.logger {}
 
+/**
+ * Sigrun fjernet GET-varianten av dette endepunktet fordi den krevde personidentifikator i
+ * headeren Nav-Personident. Etter fjerningen svarte GET 403 insufficient_scope, ikke 404/405,
+ * så feilen så ut som et tilgangsproblem. POST tar de samme parametrene i body - inkludert
+ * rettighetspakke, som tidligere var en default-header på WebClienten.
+ */
+private const val RETTIGHETSPAKKE = "navtrygdeavgift"
+
+private data class PensjonsgivendeInntektForFolketrygdenRequest(
+    val personident: String,
+    val inntektsaar: String,
+    val rettighetspakke: String = RETTIGHETSPAKKE,
+)
+
 open class SigrunPensjonsgivendeInntektConsumer(private val webClient: WebClient) : PensjonsgivendeInntektConsumer {
     @Measured
     @Cacheable(value = ["pensjonsgivendeInntekt"], key = "#request.navPersonident + '-' + #request.inntektsaar")
     override fun hentPensjonsgivendeInntekt(request: PensjonsgivendeInntektRequest): PensjonsgivendeInntektResponse {
-        return webClient.get()
+        return webClient.post()
             .uri("/api/v1/pensjonsgivendeinntektforfolketrygden")
-            .header("Nav-Personident", request.navPersonident)
-            .header("inntektsaar", request.inntektsaar)
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(
+                PensjonsgivendeInntektForFolketrygdenRequest(
+                    personident = request.navPersonident,
+                    inntektsaar = request.inntektsaar
+                )
+            )
             .exchangeToMono { response ->
                 val status = response.statusCode()
                 when {
@@ -44,7 +64,7 @@ open class SigrunPensjonsgivendeInntektConsumer(private val webClient: WebClient
                             "PensjonsgivendeInntekt api feilet - status: $status" +
                                 ", inntektsaar: ${request.inntektsaar}" +
                                 ", Nav-Call-Id: ${response.requestHeader("Nav-Call-Id")}" +
-                                ", rettighetspakke: ${response.requestHeader("rettighetspakke")}" +
+                                ", rettighetspakke: $RETTIGHETSPAKKE" +
                                 ", Nav-Consumer-Id: ${response.requestHeader("Nav-Consumer-Id")}" +
                                 ", responseHeaders: ${response.loggbareResponseHeadere()}" +
                                 ", body: ${exception.responseBodyAsString.maskertOgAvkortet()}"

@@ -47,7 +47,7 @@ class SigrunPensjonsgivendeInntektConsumerTest {
     @Test
     fun `skal hente inntekt`() {
         wireMockServer.stubFor(
-            createGetRequest("26468141638")
+            createPostRequest("26468141638")
                 .willReturn(
                     WireMock.aResponse()
                         .withStatus(200)
@@ -90,9 +90,54 @@ class SigrunPensjonsgivendeInntektConsumerTest {
     }
 
     @Test
+    fun `skal sende personident, inntektsaar og rettighetspakke i body - ikke i header`() {
+        val navPersonident = "26468141647"
+        wireMockServer.stubFor(
+            createPostRequest(navPersonident)
+                .willReturn(
+                    WireMock.aResponse()
+                        .withStatus(200)
+                        .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                        .withBody(
+                            """
+                                {
+                                    "norskPersonidentifikator": "$navPersonident",
+                                    "inntektsaar": "2024",
+                                    "pensjonsgivendeInntekt": []
+                                }
+                            """.trimIndent()
+                        )
+                )
+        )
+
+        sigrunPensjonsgivendeInntektConsumer.hentPensjonsgivendeInntekt(
+            PensjonsgivendeInntektRequest(inntektsaar = "2024", navPersonident = navPersonident)
+        )
+
+        wireMockServer.verify(
+            WireMock.postRequestedFor(WireMock.urlPathEqualTo("/api/v1/pensjonsgivendeinntektforfolketrygden"))
+                .withHeader(HttpHeaders.CONTENT_TYPE, WireMock.containing(MediaType.APPLICATION_JSON_VALUE))
+                // Sigrun fjernet GET-varianten nettopp fordi identen lå i headeren - den skal ikke sendes lenger.
+                .withoutHeader("Nav-Personident")
+                .withoutHeader("rettighetspakke")
+                .withRequestBody(
+                    WireMock.equalToJson(
+                        """
+                            {
+                                "personident": "$navPersonident",
+                                "inntektsaar": "2024",
+                                "rettighetspakke": "navtrygdeavgift"
+                            }
+                        """.trimIndent()
+                    )
+                )
+        )
+    }
+
+    @Test
     fun `skal håntere 404`() {
         wireMockServer.stubFor(
-            createGetRequest("26468141637")
+            createPostRequest("26468141637")
                 .willReturn(
                     WireMock.aResponse()
                         .withStatus(404)
@@ -114,7 +159,7 @@ class SigrunPensjonsgivendeInntektConsumerTest {
     @Test
     fun `skal kaste feil med statuskode nar 2xx svar mangler body`() {
         wireMockServer.stubFor(
-            createGetRequest("26468141639")
+            createPostRequest("26468141639")
                 .willReturn(
                     WireMock.aResponse()
                         .withStatus(204)
@@ -131,7 +176,7 @@ class SigrunPensjonsgivendeInntektConsumerTest {
     @Test
     fun `skal kaste feil med statuskode nar api svarer 500 uten body`() {
         wireMockServer.stubFor(
-            createGetRequest("26468141640")
+            createPostRequest("26468141640")
                 .willReturn(
                     WireMock.aResponse()
                         .withStatus(500)
@@ -148,7 +193,7 @@ class SigrunPensjonsgivendeInntektConsumerTest {
     @Test
     fun `skal ikke tolke feilmelding-body fra 500 som tom inntekt`() {
         wireMockServer.stubFor(
-            createGetRequest("26468141641")
+            createPostRequest("26468141641")
                 .willReturn(
                     WireMock.aResponse()
                         .withStatus(500)
@@ -167,7 +212,7 @@ class SigrunPensjonsgivendeInntektConsumerTest {
     @Test
     fun `skal logge statuskode, body og Nav-Call-Id ved 403`() {
         wireMockServer.stubFor(
-            createGetRequest("26468141642")
+            createPostRequest("26468141642")
                 .willReturn(
                     WireMock.aResponse()
                         .withStatus(403)
@@ -209,7 +254,7 @@ class SigrunPensjonsgivendeInntektConsumerTest {
     fun `skal maskere personident i body og utelate ukjente response-headere`() {
         val navPersonident = "26468141643"
         wireMockServer.stubFor(
-            createGetRequest(navPersonident)
+            createPostRequest(navPersonident)
                 .willReturn(
                     WireMock.aResponse()
                         .withStatus(400)
@@ -240,7 +285,7 @@ class SigrunPensjonsgivendeInntektConsumerTest {
         val navPersonident = "26468141644"
         val langBody = "<html>" + "x".repeat(20_000) + "</html>"
         wireMockServer.stubFor(
-            createGetRequest(navPersonident)
+            createPostRequest(navPersonident)
                 .willReturn(
                     WireMock.aResponse()
                         .withStatus(502)
@@ -264,7 +309,7 @@ class SigrunPensjonsgivendeInntektConsumerTest {
     @Test
     fun `skal behandle 3xx som feil og ikke som manglende body`() {
         wireMockServer.stubFor(
-            createGetRequest("26468141645")
+            createPostRequest("26468141645")
                 .willReturn(
                     WireMock.aResponse()
                         .withStatus(302)
@@ -282,7 +327,7 @@ class SigrunPensjonsgivendeInntektConsumerTest {
     @Test
     fun `skal ikke tolke uventet body fra 200 som tom inntekt`() {
         wireMockServer.stubFor(
-            createGetRequest("26468141646")
+            createPostRequest("26468141646")
                 .willReturn(
                     WireMock.aResponse()
                         .withStatus(200)
@@ -310,7 +355,7 @@ class SigrunPensjonsgivendeInntektConsumerTest {
         return logg.list.single { it.level == Level.ERROR }.formattedMessage
     }
 
-    private fun createGetRequest(navPersonident: String): MappingBuilder =
-        WireMock.get(WireMock.urlPathEqualTo("/api/v1/pensjonsgivendeinntektforfolketrygden"))
-            .withHeader("Nav-Personident", WireMock.equalTo(navPersonident))
+    private fun createPostRequest(navPersonident: String): MappingBuilder =
+        WireMock.post(WireMock.urlPathEqualTo("/api/v1/pensjonsgivendeinntektforfolketrygden"))
+            .withRequestBody(WireMock.matchingJsonPath("$.personident", WireMock.equalTo(navPersonident)))
 }
