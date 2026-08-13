@@ -117,7 +117,7 @@ class SigrunPensjonsgivendeInntektConsumerTest {
         wireMockServer.verify(
             WireMock.postRequestedFor(WireMock.urlPathEqualTo("/api/v1/pensjonsgivendeinntektforfolketrygden"))
                 .withHeader(HttpHeaders.CONTENT_TYPE, WireMock.containing(MediaType.APPLICATION_JSON_VALUE))
-                // Sigrun fjernet GET-varianten nettopp fordi identen lå i headeren - den skal ikke sendes lenger.
+                // Personident i header er ikke tillatt (personvern) - derfor negativ assert.
                 .withoutHeader("Nav-Personident")
                 .withoutHeader("rettighetspakke")
                 .withRequestBody(

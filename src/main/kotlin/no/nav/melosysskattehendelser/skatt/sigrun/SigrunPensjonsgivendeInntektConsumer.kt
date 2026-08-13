@@ -13,14 +13,12 @@ import reactor.core.publisher.Mono
 
 private val log = io.github.oshai.kotlinlogging.KotlinLogging.logger {}
 
-/**
- * Sigrun fjernet GET-varianten av dette endepunktet fordi den krevde personidentifikator i
- * headeren Nav-Personident. Etter fjerningen svarte GET 403 insufficient_scope, ikke 404/405,
- * så feilen så ut som et tilgangsproblem. POST tar de samme parametrene i body - inkludert
- * rettighetspakke, som tidligere var en default-header på WebClienten.
- */
 private const val RETTIGHETSPAKKE = "navtrygdeavgift"
 
+/**
+ * Feltnavnene er Sigrun sine (personident, ikke navPersonident). Rettighetspakke leses
+ * kun fra bodyen - den har ingen effekt som header.
+ */
 private data class PensjonsgivendeInntektForFolketrygdenRequest(
     val personident: String,
     val inntektsaar: String,
