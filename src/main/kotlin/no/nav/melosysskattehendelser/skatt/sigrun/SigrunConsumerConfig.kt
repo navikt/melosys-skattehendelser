@@ -46,7 +46,6 @@ class SigrunConsumerConfig(@Value("\${sigrun.rest.url}") private val url: String
             .defaultHeaders {
                 it.add(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
                 it.add("Nav-Consumer-Id", CONSUMER_ID)
-                it.add("rettighetspakke", RETTIGHETSPAKKE)
             }
             .build()
     )
@@ -67,6 +66,5 @@ class SigrunConsumerConfig(@Value("\${sigrun.rest.url}") private val url: String
 
     companion object {
         private const val CONSUMER_ID = "melosys-skattehendelser"
-        private const val RETTIGHETSPAKKE = "navtrygdeavgift"
     }
 }

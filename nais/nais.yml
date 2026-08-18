@@ -62,7 +62,7 @@ spec:
     path: /internal/prometheus
   resources:
     requests:
-      cpu: 15m
+      cpu: 50m
       memory: 736Mi
     limits:
       memory: 768Mi
