@@ -33,7 +33,7 @@ class ShutdownHandler(
 
     override fun stop(callback: Runnable) {
         try {
-            logger.info("Graceful shutdown initiated")
+            logger.info { "Graceful shutdown initiated" }
             stop()
         } finally {
             callback.run()
