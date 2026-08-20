@@ -12,6 +12,6 @@
   "cluster_sigrun": "dev-fss",
   "app_name_sigrun": "sigrun-q2",
   "app_name_melosys_console": "melosys-console-q2",
-  "sigrun_host": "team-inntekt-proxy.dev-fss-pub.nais.io",
-  "sigrun_rest_url": "https://team-inntekt-proxy.dev-fss-pub.nais.io/proxy/sigrun-q2"
+  "sigrun_host": "sigrun-q2.dev-fss-pub.nais.io",
+  "sigrun_rest_url": "https://sigrun-q2.dev-fss-pub.nais.io"
 }
