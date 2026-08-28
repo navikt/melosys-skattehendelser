@@ -23,7 +23,7 @@ class PersonFinderCached(
         newData.forEach { person ->
             cache[person.ident] = person
         }
-        log.info("Person cache refreshed with ${cache.size} entries")
+        log.info { "Person cache refreshed with ${cache.size} entries" }
         return cache.size
     }
 

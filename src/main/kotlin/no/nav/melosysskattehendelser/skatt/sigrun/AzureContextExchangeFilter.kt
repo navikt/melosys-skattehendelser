@@ -19,7 +19,8 @@ class AzureContextExchangeFilter(
             ?: throw RuntimeException("Fant ikke OAuth2-config for $CLIENT_NAME")
 
     private val systemToken: String
-        get() = "Bearer " + oAuth2AccessTokenService.getAccessToken(clientPropertiesForSystem).accessToken
+        get() = "Bearer " + (oAuth2AccessTokenService.getAccessToken(clientPropertiesForSystem).access_token
+            ?: throw IllegalStateException("Fikk ikke tilgang-token fra OAuth2-tjeneste"))
 
     override fun filter(request: ClientRequest, next: ExchangeFunction): Mono<ClientResponse> = next.exchange(
         withClientRequestBuilder(ClientRequest.from(request)).build()
