@@ -22,6 +22,10 @@ spring:
     caffeine:
       spec: maximumSize=500,expireAfterWrite=15m
 
+logging:
+  level:
+    org.hibernate.orm.connections.pooling: WARN
+
 melosys:
   kafka:
     brokers: ${KAFKA_BROKERS}
