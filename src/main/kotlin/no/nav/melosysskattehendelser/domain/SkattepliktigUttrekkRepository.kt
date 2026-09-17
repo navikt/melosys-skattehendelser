@@ -27,7 +27,7 @@ class SkattepliktigUttrekkRepository(private val jdbcTemplate: NamedParameterJdb
     fun hentPubliserte(aar: Int, aarFilter: AarFilter, publisertEtter: LocalDateTime?): List<SkattepliktigUttrekk> {
         val aarBetingelse = when (aarFilter) {
             AarFilter.FOM_AAR -> "EXTRACT(YEAR FROM pe.fom) = :aar"
-            AarFilter.INNTEKTSAAR -> "ph.inntektsaar = :aarTekst"
+            AarFilter.INNTEKTSAAR -> "ph.inntektsaar = CAST(:aar AS VARCHAR)"
         }
         val sql = """
             SELECT p.ident                                                       AS identifikator,
@@ -46,7 +46,6 @@ class SkattepliktigUttrekkRepository(private val jdbcTemplate: NamedParameterJdb
 
         val parametere = MapSqlParameterSource()
             .addValue("aar", aar)
-            .addValue("aarTekst", aar.toString())
             .addValue("publisertEtter", publisertEtter)
 
         return jdbcTemplate.query(sql, parametere) { rs, _ ->
