@@ -84,8 +84,6 @@ spec:
       value: {{app_name_sigrun}}
     - name: SIGRUN_REST_URL
       value: {{sigrun_rest_url}}
-    - name: M2M_SKATTEPLIKTIGE_TILLATTE_KLIENTER
-      value: {{cluster_melosys_api}}:teammelosys:{{app_name_melosys_api}}
 
   envFrom:
     - secret: {{app_name}}

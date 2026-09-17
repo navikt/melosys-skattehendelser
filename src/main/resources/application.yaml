@@ -50,10 +50,6 @@ cron:
 admin:
   api-key: ${ADMIN_API_KEY}
 
-m2m:
-  skattepliktige:
-    tillatte-klienter: ${M2M_SKATTEPLIKTIGE_TILLATTE_KLIENTER:}
-
 app:
   dry-run-publisering: ${DRY_RUN_PUBLISERING:false}
 

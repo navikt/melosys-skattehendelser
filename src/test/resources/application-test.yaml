@@ -29,4 +29,3 @@ ADMIN_API_KEY: dummy
 AZURE_APP_WELL_KNOWN_URL: http://localhost:${mock-oauth2-server.port}/aad/.well-known/openid-configuration
 
 AZURE_APP_ACCEPTED_AUDIENCE: skattehendelser-test
-M2M_SKATTEPLIKTIGE_TILLATTE_KLIENTER: dev-fss:teammelosys:melosys

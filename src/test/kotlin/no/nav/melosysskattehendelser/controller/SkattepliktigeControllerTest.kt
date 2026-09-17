@@ -32,7 +32,7 @@ import java.time.LocalDateTime
 @ActiveProfiles("test")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @EnableMockOAuth2Server
-class M2MSkattepliktigeControllerTest(
+class SkattepliktigeControllerTest(
     @Autowired private val personRepository: PersonRepository,
     @Autowired private val mockOAuth2Server: MockOAuth2Server,
     @Autowired private val objectMapper: ObjectMapper,
@@ -62,7 +62,7 @@ class M2MSkattepliktigeControllerTest(
 
     @Test
     fun `FOM_AAR gir personer med periode som starter i året, med historikk fra alle publiseringer`() {
-        val respons = hent("gjelderAar=2025", token(APP, TILLATT_KLIENT))
+        val respons = hent("gjelderAar=2025", token())
 
         respons.statusCode() shouldBe 200
         val body = objectMapper.readTree(respons.body())
@@ -77,7 +77,7 @@ class M2MSkattepliktigeControllerTest(
 
     @Test
     fun `INNTEKTSAAR gir personer med publisering for inntektsåret, også når perioden startet året før`() {
-        val respons = hent("gjelderAar=2025&aarFilter=INNTEKTSAAR", token(APP, TILLATT_KLIENT))
+        val respons = hent("gjelderAar=2025&aarFilter=INNTEKTSAAR", token())
 
         respons.statusCode() shouldBe 200
         objectMapper.readTree(respons.body())["skattepliktige"].values().map { it["identifikator"].asString() } shouldBe
@@ -86,21 +86,11 @@ class M2MSkattepliktigeControllerTest(
 
     @Test
     fun `publisertEtter tar bare med personer med nyere publisering`() {
-        val respons = hent("gjelderAar=2025&aarFilter=INNTEKTSAAR&publisertEtter=2026-09-08T00:00:00", token(APP, TILLATT_KLIENT))
+        val respons = hent("gjelderAar=2025&aarFilter=INNTEKTSAAR&publisertEtter=2026-09-08T00:00:00", token())
 
         respons.statusCode() shouldBe 200
         objectMapper.readTree(respons.body())["skattepliktige"].values().map { it["identifikator"].asString() } shouldBe
             listOf("22222222222")
-    }
-
-    @Test
-    fun `avviser brukertoken fra tillatt klient`() {
-        hent("gjelderAar=2025", token(idtyp = null, azpName = TILLATT_KLIENT)).statusCode() shouldBe 403
-    }
-
-    @Test
-    fun `avviser apptoken fra annen klient`() {
-        hent("gjelderAar=2025", token(APP, "dev-gcp:teammelosys:annen-app")).statusCode() shouldBe 403
     }
 
     @Test
@@ -123,7 +113,7 @@ class M2MSkattepliktigeControllerTest(
         personRepository.save(person)
     }
 
-    private fun token(idtyp: String?, azpName: String): String =
+    private fun token(): String =
         mockOAuth2Server.issueToken(
             "aad",
             "melosys",
@@ -131,23 +121,15 @@ class M2MSkattepliktigeControllerTest(
                 issuerId = "aad",
                 subject = "melosys",
                 audience = listOf("skattehendelser-test"),
-                claims = buildMap {
-                    put("azp_name", azpName)
-                    idtyp?.let { put("idtyp", it) }
-                },
+                claims = mapOf("azp_name" to "dev-fss:teammelosys:melosys"),
             )
         ).serialize()
 
     private fun hent(query: String, token: String?): HttpResponse<String> {
-        val request = HttpRequest.newBuilder(URI("http://localhost:$port/m2m/api/skattepliktige?$query"))
+        val request = HttpRequest.newBuilder(URI("http://localhost:$port/api/admin/skattepliktige?$query"))
             .apply { token?.let { header("Authorization", "Bearer $it") } }
             .GET()
             .build()
         return httpClient.send(request, HttpResponse.BodyHandlers.ofString())
-    }
-
-    companion object {
-        private const val APP = "app"
-        private const val TILLATT_KLIENT = "dev-fss:teammelosys:melosys"
     }
 }
