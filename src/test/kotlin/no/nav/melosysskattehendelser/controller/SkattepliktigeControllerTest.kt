@@ -50,9 +50,9 @@ class SkattepliktigeControllerTest(
     @BeforeEach
     fun setUp() {
         personRepository.deleteAll()
-        lagrePerson("11111111111", fom = LocalDate.of(2025, 1, 1), inntektsaar = "2025", tid = LocalDateTime.of(2026, 5, 1, 2, 0))
-        lagrePerson("22222222222", fom = LocalDate.of(2024, 6, 1), inntektsaar = "2025", tid = LocalDateTime.of(2026, 9, 10, 2, 0))
-        lagrePerson("33333333333", fom = LocalDate.of(2025, 3, 1), inntektsaar = null, tid = null)
+        lagrePerson("11111111111", fom = LocalDate.of(2025, 1, 1), inntektsår = "2025", tid = LocalDateTime.of(2026, 5, 1, 2, 0))
+        lagrePerson("22222222222", fom = LocalDate.of(2024, 6, 1), inntektsår = "2025", tid = LocalDateTime.of(2026, 9, 10, 2, 0))
+        lagrePerson("33333333333", fom = LocalDate.of(2025, 3, 1), inntektsår = null, tid = null)
     }
 
     @AfterEach
@@ -98,16 +98,16 @@ class SkattepliktigeControllerTest(
         hent("gjelderAar=2025", token = null).statusCode() shouldBe 401
     }
 
-    private fun lagrePerson(ident: String, fom: LocalDate, inntektsaar: String?, tid: LocalDateTime?) {
+    private fun lagrePerson(ident: String, fom: LocalDate, inntektsår: String?, tid: LocalDateTime?) {
         val person = Person(ident = ident)
         val periode = Periode(person = person, fom = fom, tom = fom.plusYears(1))
         person.perioder.add(periode)
-        if (inntektsaar != null && tid != null) {
+        if (inntektsår != null && tid != null) {
             periode.publiseringsHistorikk.add(
                 PubliseringsHistorikk(periode = periode, inntektÅr = "2024", sekvensnummer = ident.take(4).toLong(), sisteHendelseTid = tid.minusMonths(1))
             )
             periode.publiseringsHistorikk.add(
-                PubliseringsHistorikk(periode = periode, inntektÅr = inntektsaar, sekvensnummer = ident.take(5).toLong(), sisteHendelseTid = tid)
+                PubliseringsHistorikk(periode = periode, inntektÅr = inntektsår, sekvensnummer = ident.take(5).toLong(), sisteHendelseTid = tid)
             )
         }
         personRepository.save(person)

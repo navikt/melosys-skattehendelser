@@ -5,7 +5,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Repository
 import java.time.LocalDateTime
 
-enum class AarFilter {
+enum class ÅrFilter {
     /** Året perioden starter i. Standard. */
     FOM_AAR,
 
@@ -24,10 +24,10 @@ data class SkattepliktigUttrekk(
 @Repository
 class SkattepliktigUttrekkRepository(private val jdbcTemplate: NamedParameterJdbcTemplate) {
 
-    fun hentPubliserte(aar: Int, aarFilter: AarFilter, publisertEtter: LocalDateTime?): List<SkattepliktigUttrekk> {
-        val aarBetingelse = when (aarFilter) {
-            AarFilter.FOM_AAR -> "EXTRACT(YEAR FROM pe.fom) = :aar"
-            AarFilter.INNTEKTSAAR -> "ph.inntektsaar = CAST(:aar AS VARCHAR)"
+    fun hentPubliserte(år: Int, årFilter: ÅrFilter, publisertEtter: LocalDateTime?): List<SkattepliktigUttrekk> {
+        val årBetingelse = when (årFilter) {
+            ÅrFilter.FOM_AAR -> "EXTRACT(YEAR FROM pe.fom) = :aar"
+            ÅrFilter.INNTEKTSAAR -> "ph.inntektsaar = CAST(:aar AS VARCHAR)"
         }
         val sql = """
             SELECT p.ident                                                       AS identifikator,
@@ -37,7 +37,7 @@ class SkattepliktigUttrekkRepository(private val jdbcTemplate: NamedParameterJdb
             FROM person p
                      JOIN periode pe ON pe.person_id = p.id
                      JOIN publiserings_historikk ph ON ph.periode_id = pe.id
-            WHERE $aarBetingelse
+            WHERE $årBetingelse
             GROUP BY p.ident
             HAVING CAST(:publisertEtter AS TIMESTAMP) IS NULL
                 OR MAX(ph.siste_hendelse_tid) > CAST(:publisertEtter AS TIMESTAMP)
@@ -45,12 +45,12 @@ class SkattepliktigUttrekkRepository(private val jdbcTemplate: NamedParameterJdb
         """.trimIndent()
 
         val parametere = MapSqlParameterSource()
-            .addValue("aar", aar)
+            .addValue("aar", år)
             .addValue("publisertEtter", publisertEtter)
 
         return jdbcTemplate.query(sql, parametere) { rs, _ ->
             SkattepliktigUttrekk(
-                gjelderPeriode = aar.toString(),
+                gjelderPeriode = år.toString(),
                 identifikator = rs.getString("identifikator"),
                 sisteHendelseTid = rs.getTimestamp("siste_hendelse_tid").toLocalDateTime(),
                 inntektsaar = rs.getString("inntektsaar")?.split(",").orEmpty(),

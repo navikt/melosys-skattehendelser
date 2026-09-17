@@ -6,7 +6,7 @@ import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.tags.Tag
-import no.nav.melosysskattehendelser.domain.AarFilter
+import no.nav.melosysskattehendelser.domain.ÅrFilter
 import no.nav.melosysskattehendelser.domain.SkattepliktigUttrekk
 import no.nav.melosysskattehendelser.domain.SkattepliktigUttrekkRepository
 import no.nav.security.token.support.core.api.Protected
@@ -43,19 +43,19 @@ class SkattepliktigeController(
     )
     fun hentSkattepliktige(
         @Parameter(description = "Året uttrekket gjelder, for eksempel 2025")
-        @RequestParam gjelderAar: Int,
+        @RequestParam("gjelderAar") gjelderÅr: Int,
         @Parameter(description = "FOM_AAR: året perioden starter i (standard). INNTEKTSAAR: inntektsåret publiseringen gjaldt.")
-        @RequestParam(defaultValue = "FOM_AAR") aarFilter: AarFilter,
+        @RequestParam("aarFilter", defaultValue = "FOM_AAR") årFilter: ÅrFilter,
         @Parameter(description = "Ta bare med personer med siste publisering etter dette tidspunktet, for eksempel 2026-09-08T00:00:00")
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) publisertEtter: LocalDateTime?,
     ): ResponseEntity<SkattepliktigeRespons> {
-        val skattepliktige = skattepliktigUttrekkRepository.hentPubliserte(gjelderAar, aarFilter, publisertEtter)
+        val skattepliktige = skattepliktigUttrekkRepository.hentPubliserte(gjelderÅr, årFilter, publisertEtter)
         log.info {
-            "Uttrekk av skattepliktige: klient=${klient()}, gjelderAar=$gjelderAar, aarFilter=$aarFilter, " +
+            "Uttrekk av skattepliktige: klient=${klient()}, gjelderÅr=$gjelderÅr, årFilter=$årFilter, " +
                 "publisertEtter=$publisertEtter, antall=${skattepliktige.size}"
         }
         return ResponseEntity.ok(
-            SkattepliktigeRespons(gjelderAar, aarFilter, publisertEtter, skattepliktige.size, skattepliktige)
+            SkattepliktigeRespons(gjelderÅr, årFilter, publisertEtter, skattepliktige.size, skattepliktige)
         )
     }
 
@@ -65,7 +65,7 @@ class SkattepliktigeController(
 
 data class SkattepliktigeRespons(
     val gjelderAar: Int,
-    val aarFilter: AarFilter,
+    val aarFilter: ÅrFilter,
     val publisertEtter: LocalDateTime?,
     val antall: Int,
     val skattepliktige: List<SkattepliktigUttrekk>,
