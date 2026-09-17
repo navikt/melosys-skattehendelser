@@ -50,9 +50,23 @@ class SkattepliktigeControllerTest(
     @BeforeEach
     fun setUp() {
         personRepository.deleteAll()
-        lagrePerson("11111111111", fom = LocalDate.of(2025, 1, 1), inntektsår = "2025", tid = LocalDateTime.of(2026, 5, 1, 2, 0))
-        lagrePerson("22222222222", fom = LocalDate.of(2024, 6, 1), inntektsår = "2025", tid = LocalDateTime.of(2026, 9, 10, 2, 0))
-        lagrePerson("33333333333", fom = LocalDate.of(2025, 3, 1), inntektsår = null, tid = null)
+        lagrePerson(
+            "11111111111",
+            periode(
+                LocalDate.of(2025, 1, 1),
+                "2024" to LocalDateTime.of(2026, 4, 1, 2, 0),
+                "2025" to LocalDateTime.of(2026, 5, 1, 2, 0),
+                "2025" to LocalDateTime.of(2026, 3, 1, 2, 0),
+            ),
+        )
+        lagrePerson("22222222222", periode(LocalDate.of(2024, 6, 1), "2025" to LocalDateTime.of(2026, 9, 10, 2, 0)))
+        lagrePerson("33333333333", periode(LocalDate.of(2025, 3, 1)))
+        lagrePerson("44444444444", periode(LocalDate.of(2023, 1, 1), "2023" to LocalDateTime.of(2026, 9, 12, 2, 0)))
+        lagrePerson(
+            "55555555555",
+            periode(LocalDate.of(2025, 1, 1), "2025" to LocalDateTime.of(2026, 6, 1, 2, 0)),
+            periode(LocalDate.of(2025, 7, 1), "2025" to LocalDateTime.of(2026, 7, 1, 2, 0)),
+        )
     }
 
     @AfterEach
@@ -61,18 +75,19 @@ class SkattepliktigeControllerTest(
     }
 
     @Test
-    fun `FOM_AAR gir personer med periode som starter i året, med historikk fra alle publiseringer`() {
+    fun `FOM_AAR gir én rad per person med periode som starter i året, med publiseringene under disse periodene`() {
         val respons = hent("gjelderAar=2025", token())
 
         respons.statusCode() shouldBe 200
         val body = objectMapper.readTree(respons.body())
-        body["antall"].asInt() shouldBe 1
+        body["antall"].asInt() shouldBe 2
+        body["skattepliktige"].values().map { it["identifikator"].asString() } shouldBe listOf("11111111111", "55555555555")
         val rad = body["skattepliktige"][0]
         rad["gjelderPeriode"].asString() shouldBe "2025"
-        rad["identifikator"].asString() shouldBe "11111111111"
         rad["inntektsaar"].values().map(JsonNode::asString) shouldBe listOf("2024", "2025")
-        rad["antallPubliseringer"].asInt() shouldBe 2
+        rad["antallPubliseringer"].asInt() shouldBe 3
         rad["sisteHendelseTid"].asString() shouldBe "2026-05-01T02:00:00"
+        body["skattepliktige"][1]["antallPubliseringer"].asInt() shouldBe 2
     }
 
     @Test
@@ -81,7 +96,7 @@ class SkattepliktigeControllerTest(
 
         respons.statusCode() shouldBe 200
         objectMapper.readTree(respons.body())["skattepliktige"].values().map { it["identifikator"].asString() } shouldBe
-            listOf("11111111111", "22222222222")
+            listOf("11111111111", "22222222222", "55555555555")
     }
 
     @Test
@@ -98,17 +113,23 @@ class SkattepliktigeControllerTest(
         hent("gjelderAar=2025", token = null).statusCode() shouldBe 401
     }
 
-    private fun lagrePerson(ident: String, fom: LocalDate, inntektsår: String?, tid: LocalDateTime?) {
+    private data class PeriodeMedPubliseringer(val fom: LocalDate, val publiseringer: List<Pair<String, LocalDateTime>>)
+
+    private fun periode(fom: LocalDate, vararg publiseringer: Pair<String, LocalDateTime>) =
+        PeriodeMedPubliseringer(fom, publiseringer.toList())
+
+    private var sekvensnummer = 0L
+
+    private fun lagrePerson(ident: String, vararg perioder: PeriodeMedPubliseringer) {
         val person = Person(ident = ident)
-        val periode = Periode(person = person, fom = fom, tom = fom.plusYears(1))
-        person.perioder.add(periode)
-        if (inntektsår != null && tid != null) {
-            periode.publiseringsHistorikk.add(
-                PubliseringsHistorikk(periode = periode, inntektÅr = "2024", sekvensnummer = ident.take(4).toLong(), sisteHendelseTid = tid.minusMonths(1))
-            )
-            periode.publiseringsHistorikk.add(
-                PubliseringsHistorikk(periode = periode, inntektÅr = inntektsår, sekvensnummer = ident.take(5).toLong(), sisteHendelseTid = tid)
-            )
+        perioder.forEach { (fom, publiseringer) ->
+            val periode = Periode(person = person, fom = fom, tom = fom.plusYears(1))
+            publiseringer.forEach { (inntektsår, tid) ->
+                periode.publiseringsHistorikk.add(
+                    PubliseringsHistorikk(periode = periode, inntektÅr = inntektsår, sekvensnummer = ++sekvensnummer, sisteHendelseTid = tid)
+                )
+            }
+            person.perioder.add(periode)
         }
         personRepository.save(person)
     }

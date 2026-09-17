@@ -46,7 +46,7 @@ class SkattepliktigeController(
         @RequestParam("gjelderAar") gjelderÅr: Int,
         @Parameter(description = "FOM_AAR: året perioden starter i (standard). INNTEKTSAAR: inntektsåret publiseringen gjaldt.")
         @RequestParam("aarFilter", defaultValue = "FOM_AAR") årFilter: ÅrFilter,
-        @Parameter(description = "Ta bare med personer med siste publisering etter dette tidspunktet, for eksempel 2026-09-08T00:00:00")
+        @Parameter(description = "Ta bare med personer med siste publisering etter dette tidspunktet (norsk tid, uten tidssone), for eksempel 2026-09-08T00:00:00")
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) publisertEtter: LocalDateTime?,
     ): ResponseEntity<SkattepliktigeRespons> {
         val skattepliktige = skattepliktigUttrekkRepository.hentPubliserte(gjelderÅr, årFilter, publisertEtter)
