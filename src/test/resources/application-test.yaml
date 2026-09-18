@@ -28,3 +28,4 @@ SIGRUN_REST_URL: not-used
 ADMIN_API_KEY: dummy
 AZURE_APP_WELL_KNOWN_URL: http://localhost:${mock-oauth2-server.port}/aad/.well-known/openid-configuration
 
+AZURE_APP_ACCEPTED_AUDIENCE: skattehendelser-test

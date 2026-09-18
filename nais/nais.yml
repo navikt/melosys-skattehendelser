@@ -51,6 +51,9 @@ spec:
     inbound:
       rules:
         - application: {{app_name_melosys_console}}
+        - application: {{app_name_melosys_api}}
+          namespace: teammelosys
+          cluster: {{cluster_melosys_api}}
 
   observability:
     logging:
