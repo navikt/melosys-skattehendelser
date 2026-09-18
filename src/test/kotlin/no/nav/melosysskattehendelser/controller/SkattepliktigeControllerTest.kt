@@ -50,7 +50,7 @@ class SkattepliktigeControllerTest(
     @BeforeEach
     fun setUp() {
         personRepository.deleteAll()
-        lagrePerson(
+        personId1 = lagrePerson(
             "11111111111",
             periode(
                 LocalDate.of(2025, 1, 1),
@@ -62,7 +62,7 @@ class SkattepliktigeControllerTest(
         lagrePerson("22222222222", periode(LocalDate.of(2024, 6, 1), "2025" to LocalDateTime.of(2026, 9, 10, 2, 0)))
         lagrePerson("33333333333", periode(LocalDate.of(2025, 3, 1)))
         lagrePerson("44444444444", periode(LocalDate.of(2023, 1, 1), "2023" to LocalDateTime.of(2026, 9, 12, 2, 0)))
-        lagrePerson(
+        personId5 = lagrePerson(
             "55555555555",
             periode(LocalDate.of(2025, 1, 1), "2025" to LocalDateTime.of(2026, 6, 1, 2, 0)),
             periode(LocalDate.of(2025, 7, 1), "2025" to LocalDateTime.of(2026, 7, 1, 2, 0)),
@@ -82,6 +82,7 @@ class SkattepliktigeControllerTest(
         val body = objectMapper.readTree(respons.body())
         body["antall"].asInt() shouldBe 2
         body["skattepliktige"].values().map { it["identifikator"].asString() } shouldBe listOf("11111111111", "55555555555")
+        body["skattepliktige"].values().map { it["personId"]?.asLong() } shouldBe listOf(personId1, personId5)
         val rad = body["skattepliktige"][0]
         rad["gjelderPeriode"].asString() shouldBe "2025"
         rad["inntektsaar"].values().map(JsonNode::asString) shouldBe listOf("2024", "2025")
@@ -120,7 +121,10 @@ class SkattepliktigeControllerTest(
 
     private var sekvensnummer = 0L
 
-    private fun lagrePerson(ident: String, vararg perioder: PeriodeMedPubliseringer) {
+    private var personId1 = 0L
+    private var personId5 = 0L
+
+    private fun lagrePerson(ident: String, vararg perioder: PeriodeMedPubliseringer): Long {
         val person = Person(ident = ident)
         perioder.forEach { (fom, publiseringer) ->
             val periode = Periode(person = person, fom = fom, tom = fom.plusYears(1))
@@ -131,7 +135,7 @@ class SkattepliktigeControllerTest(
             }
             person.perioder.add(periode)
         }
-        personRepository.save(person)
+        return personRepository.save(person).id
     }
 
     private fun token(): String =

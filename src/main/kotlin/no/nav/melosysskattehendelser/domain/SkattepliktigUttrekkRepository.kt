@@ -16,6 +16,8 @@ enum class ÅrFilter {
 data class SkattepliktigUttrekk(
     val gjelderPeriode: String,
     val identifikator: String,
+    /** Id-en til personen her, for oppslag i `/admin/person/{id}` uten å bruke fødselsnummer. */
+    val personId: Long,
     val sisteHendelseTid: LocalDateTime,
     val inntektsaar: List<String>,
     val antallPubliseringer: Int,
@@ -30,7 +32,8 @@ class SkattepliktigUttrekkRepository(private val jdbcTemplate: NamedParameterJdb
             ÅrFilter.INNTEKTSAAR -> "ph.inntektsaar = CAST(:aar AS VARCHAR)"
         }
         val sql = """
-            SELECT p.ident                                                       AS identifikator,
+            SELECT p.id                                                          AS person_id,
+                   p.ident                                                       AS identifikator,
                    MAX(ph.siste_hendelse_tid)                                    AS siste_hendelse_tid,
                    STRING_AGG(DISTINCT ph.inntektsaar, ',' ORDER BY ph.inntektsaar) AS inntektsaar,
                    COUNT(*)                                                      AS antall_publiseringer
@@ -38,7 +41,7 @@ class SkattepliktigUttrekkRepository(private val jdbcTemplate: NamedParameterJdb
                      JOIN periode pe ON pe.person_id = p.id
                      JOIN publiserings_historikk ph ON ph.periode_id = pe.id
             WHERE $årBetingelse
-            GROUP BY p.ident
+            GROUP BY p.id, p.ident
             HAVING CAST(:publisertEtter AS TIMESTAMP) IS NULL
                 OR MAX(ph.siste_hendelse_tid) > CAST(:publisertEtter AS TIMESTAMP)
             ORDER BY p.ident
@@ -52,6 +55,7 @@ class SkattepliktigUttrekkRepository(private val jdbcTemplate: NamedParameterJdb
             SkattepliktigUttrekk(
                 gjelderPeriode = år.toString(),
                 identifikator = rs.getString("identifikator"),
+                personId = rs.getLong("person_id"),
                 sisteHendelseTid = rs.getTimestamp("siste_hendelse_tid").toLocalDateTime(),
                 inntektsaar = rs.getString("inntektsaar")?.split(",").orEmpty(),
                 antallPubliseringer = rs.getInt("antall_publiseringer"),
