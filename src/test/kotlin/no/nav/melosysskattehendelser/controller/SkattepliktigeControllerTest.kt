@@ -124,12 +124,14 @@ class SkattepliktigeControllerTest(
     }
 
     @Test
-    fun `godtar publisertEtter slik melosys-api sender det, uten sekunder`() {
-        val respons = hent("gjelderAar=2025&aarFilter=INNTEKTSAAR&publisertEtter=2026-09-08T00:00", token())
+    fun `godtar publisertEtter slik melosys-api sender det, uten sekunder og med brøkdeler`() {
+        listOf("2026-09-08T00:00", "2026-09-08T00:00:00.123456").forEach { tidspunkt ->
+            val respons = hent("gjelderAar=2025&aarFilter=INNTEKTSAAR&publisertEtter=$tidspunkt", token())
 
-        respons.statusCode() shouldBe 200
-        objectMapper.readTree(respons.body())["skattepliktige"].values().map { it["identifikator"].asString() } shouldBe
-            listOf("22222222222")
+            respons.statusCode() shouldBe 200
+            objectMapper.readTree(respons.body())["skattepliktige"].values().map { it["identifikator"].asString() } shouldBe
+                listOf("22222222222")
+        }
     }
 
     @Test
@@ -140,6 +142,7 @@ class SkattepliktigeControllerTest(
     @Test
     fun `avviser token fra klient som ikke har tilgang`() {
         hent("gjelderAar=2025", token(azpName = "dev-gcp:teammelosys:melosys-console")).statusCode() shouldBe 403
+        hent("gjelderAar=2025", token(azpName = "prod-fss:annetteam:melosys")).statusCode() shouldBe 403
     }
 
     @Test
