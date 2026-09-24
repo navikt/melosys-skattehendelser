@@ -110,8 +110,41 @@ class SkattepliktigeControllerTest(
     }
 
     @Test
+    fun `publisertEtter er strengt etter - publisering på selve tidspunktet er ikke med`() {
+        val respons = hent("gjelderAar=2025&aarFilter=INNTEKTSAAR&publisertEtter=2026-09-10T02:00:00", token())
+
+        respons.statusCode() shouldBe 200
+        objectMapper.readTree(respons.body())["antall"].asInt() shouldBe 0
+    }
+
+    @Test
+    fun `avviser publisertEtter med tidssone`() {
+        hent("gjelderAar=2025&publisertEtter=2026-09-10T01:30:00Z", token()).statusCode() shouldBe 400
+        hent("gjelderAar=2025&publisertEtter=2026-09-10T01:30:00%2B02:00", token()).statusCode() shouldBe 400
+    }
+
+    @Test
+    fun `godtar publisertEtter slik melosys-api sender det, uten sekunder`() {
+        val respons = hent("gjelderAar=2025&aarFilter=INNTEKTSAAR&publisertEtter=2026-09-08T00:00", token())
+
+        respons.statusCode() shouldBe 200
+        objectMapper.readTree(respons.body())["skattepliktige"].values().map { it["identifikator"].asString() } shouldBe
+            listOf("22222222222")
+    }
+
+    @Test
     fun `avviser kall uten token`() {
         hent("gjelderAar=2025", token = null).statusCode() shouldBe 401
+    }
+
+    @Test
+    fun `avviser token fra klient som ikke har tilgang`() {
+        hent("gjelderAar=2025", token(azpName = "dev-gcp:teammelosys:melosys-console")).statusCode() shouldBe 403
+    }
+
+    @Test
+    fun `avviser brukertoken uten azp_name`() {
+        hent("gjelderAar=2025", token(azpName = null)).statusCode() shouldBe 403
     }
 
     private data class PeriodeMedPubliseringer(val fom: LocalDate, val publiseringer: List<Pair<String, LocalDateTime>>)
@@ -138,7 +171,7 @@ class SkattepliktigeControllerTest(
         return personRepository.save(person).id
     }
 
-    private fun token(): String =
+    private fun token(azpName: String? = "dev-fss:teammelosys:melosys"): String =
         mockOAuth2Server.issueToken(
             "aad",
             "melosys",
@@ -146,7 +179,7 @@ class SkattepliktigeControllerTest(
                 issuerId = "aad",
                 subject = "melosys",
                 audience = listOf("skattehendelser-test"),
-                claims = mapOf("azp_name" to "dev-fss:teammelosys:melosys"),
+                claims = azpName?.let { mapOf("azp_name" to it) } ?: mapOf("NAVident" to "Z999999"),
             )
         ).serialize()
 
