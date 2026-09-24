@@ -141,8 +141,16 @@ class SkattepliktigeControllerTest(
 
     @Test
     fun `avviser token fra klient som ikke har tilgang`() {
-        hent("gjelderAar=2025", token(azpName = "dev-gcp:teammelosys:melosys-console")).statusCode() shouldBe 403
+        hent("gjelderAar=2025", token(azpName = "dev-gcp:teammelosys:melosys-web")).statusCode() shouldBe 403
         hent("gjelderAar=2025", token(azpName = "prod-fss:annetteam:melosys")).statusCode() shouldBe 403
+    }
+
+    @Test
+    fun `godtar brukertoken fra melosys-console`() {
+        val respons = hent("gjelderAar=2025", token(azpName = "dev-gcp:teammelosys:melosys-console-q2", navIdent = "Z999999"))
+
+        respons.statusCode() shouldBe 200
+        objectMapper.readTree(respons.body())["antall"].asInt() shouldBe 2
     }
 
     @Test
@@ -174,7 +182,7 @@ class SkattepliktigeControllerTest(
         return personRepository.save(person).id
     }
 
-    private fun token(azpName: String? = "dev-fss:teammelosys:melosys"): String =
+    private fun token(azpName: String? = "dev-fss:teammelosys:melosys", navIdent: String? = null): String =
         mockOAuth2Server.issueToken(
             "aad",
             "melosys",
@@ -182,7 +190,10 @@ class SkattepliktigeControllerTest(
                 issuerId = "aad",
                 subject = "melosys",
                 audience = listOf("skattehendelser-test"),
-                claims = azpName?.let { mapOf("azp_name" to it) } ?: mapOf("NAVident" to "Z999999"),
+                claims = listOfNotNull(
+                    azpName?.let { "azp_name" to it },
+                    (navIdent ?: "Z999999".takeIf { azpName == null })?.let { "NAVident" to it },
+                ).toMap(),
             )
         ).serialize()
 
