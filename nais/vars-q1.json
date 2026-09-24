@@ -12,6 +12,8 @@
   "cluster_sigrun": "dev-fss",
   "app_name_sigrun": "sigrun-q4",
   "app_name_melosys_console": "melosys-console-q2",
+  "app_name_melosys_api": "melosys-q1",
+  "cluster_melosys_api": "dev-fss",
   "sigrun_host": "sigrun-ske.dev-fss-pub.nais.io",
   "sigrun_rest_url": "https://sigrun-ske.dev-fss-pub.nais.io"
 }
