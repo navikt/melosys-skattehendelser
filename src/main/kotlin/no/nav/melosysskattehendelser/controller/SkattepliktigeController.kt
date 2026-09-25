@@ -55,24 +55,24 @@ class SkattepliktigeController(
         @Parameter(description = "Ta bare med personer med siste publisering etter dette tidspunktet (norsk tid, uten tidssone), for eksempel 2026-09-08T00:00:00")
         @RequestParam("publisertEtter", required = false) publisertEtterTekst: String?,
     ): ResponseEntity<SkattepliktigeRespons> {
-        val klient = klient()
+        val claims = tokenValidationContextHolder.getTokenValidationContext().getClaims("aad")
+        val klient = claims.getStringClaim("azp_name")
+        // Brukertoken (OBO via melosys-console) har NAVident; systemtoken har det ikke.
+        val navIdent = claims.getStringClaim("NAVident")
         if (klient !in tillatteKlienter) {
-            log.warn { "Uttrekk av skattepliktige avvist for klient=$klient" }
+            log.warn { "Uttrekk av skattepliktige avvist for klient=$klient, navIdent=$navIdent" }
             throw ResponseStatusException(HttpStatus.FORBIDDEN, "Klienten har ikke tilgang")
         }
         val publisertEtter = publisertEtterTekst?.let(::tilNorskTid)
         val skattepliktige = skattepliktigUttrekkRepository.hentPubliserte(gjelderÅr, årFilter, publisertEtter)
         log.info {
-            "Uttrekk av skattepliktige: klient=$klient, gjelderÅr=$gjelderÅr, årFilter=$årFilter, " +
+            "Uttrekk av skattepliktige: klient=$klient, navIdent=$navIdent, gjelderÅr=$gjelderÅr, årFilter=$årFilter, " +
                 "publisertEtter=$publisertEtter, antall=${skattepliktige.size}"
         }
         return ResponseEntity.ok(
             SkattepliktigeRespons(gjelderÅr, årFilter, publisertEtter, skattepliktige.size, skattepliktige)
         )
     }
-
-    private fun klient(): String? =
-        tokenValidationContextHolder.getTokenValidationContext().getClaims("aad").getStringClaim("azp_name")
 
     // ISO_LOCAL_DATE_TIME avviser tidssone; @DateTimeFormat(ISO.DATE_TIME) forkaster den stille.
     private fun tilNorskTid(tekst: String): LocalDateTime =
