@@ -1,7 +1,9 @@
 package no.nav.melosysskattehendelser.controller
 
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldContain
 import io.mockk.mockk
+import no.nav.melosysskattehendelser.LoggingTestUtils.withLogCapture
 import no.nav.melosysskattehendelser.PostgresTestContainerBase
 import no.nav.melosysskattehendelser.domain.Periode
 import no.nav.melosysskattehendelser.domain.Person
@@ -142,7 +144,31 @@ class SkattepliktigeControllerTest(
     @Test
     fun `avviser token fra klient som ikke har tilgang`() {
         hent("gjelderAar=2025", token(azpName = "dev-gcp:teammelosys:melosys-console")).statusCode() shouldBe 403
+        hent("gjelderAar=2025", token(azpName = "dev-gcp:teammelosys:melosys-web")).statusCode() shouldBe 403
         hent("gjelderAar=2025", token(azpName = "prod-fss:annetteam:melosys")).statusCode() shouldBe 403
+    }
+
+    @Test
+    fun `godtar brukertoken fra melosys-console og logger hvem som hentet`() {
+        val (respons, meldinger) = withLogCapture { logg ->
+            hent("gjelderAar=2025", token(azpName = "dev-gcp:teammelosys:melosys-console-q2", navIdent = "Z123456")) to
+                logg.map { it.formattedMessage }
+        }
+
+        respons.statusCode() shouldBe 200
+        objectMapper.readTree(respons.body())["antall"].asInt() shouldBe 2
+        meldinger.single { it.startsWith("Uttrekk av skattepliktige:") } shouldContain
+            "klient=dev-gcp:teammelosys:melosys-console-q2, navIdent=Z123456,"
+    }
+
+    @Test
+    fun `logger navIdent når brukertoken avvises`() {
+        val meldinger = withLogCapture { logg ->
+            hent("gjelderAar=2025", token(azpName = null)).statusCode() shouldBe 403
+            logg.map { it.formattedMessage }
+        }
+
+        meldinger.single { it.startsWith("Uttrekk av skattepliktige avvist") } shouldContain "navIdent=Z999999"
     }
 
     @Test
@@ -174,7 +200,7 @@ class SkattepliktigeControllerTest(
         return personRepository.save(person).id
     }
 
-    private fun token(azpName: String? = "dev-fss:teammelosys:melosys"): String =
+    private fun token(azpName: String? = "dev-fss:teammelosys:melosys", navIdent: String? = null): String =
         mockOAuth2Server.issueToken(
             "aad",
             "melosys",
@@ -182,7 +208,10 @@ class SkattepliktigeControllerTest(
                 issuerId = "aad",
                 subject = "melosys",
                 audience = listOf("skattehendelser-test"),
-                claims = azpName?.let { mapOf("azp_name" to it) } ?: mapOf("NAVident" to "Z999999"),
+                claims = listOfNotNull(
+                    azpName?.let { "azp_name" to it },
+                    (navIdent ?: "Z999999".takeIf { azpName == null })?.let { "NAVident" to it },
+                ).toMap(),
             )
         ).serialize()
 

@@ -85,7 +85,7 @@ spec:
     - name: SIGRUN_REST_URL
       value: {{sigrun_rest_url}}
     - name: SKATTEPLIKTIGE_TILLATTE_KLIENTER
-      value: "{{cluster_melosys_api}}:teammelosys:{{app_name_melosys_api}}"
+      value: "{{cluster_melosys_api}}:teammelosys:{{app_name_melosys_api}},{{cluster_melosys_console}}:teammelosys:{{app_name_melosys_console}}"
 
   envFrom:
     - secret: {{app_name}}
