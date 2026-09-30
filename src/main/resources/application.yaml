@@ -49,6 +49,8 @@ cron:
 
 admin:
   api-key: ${ADMIN_API_KEY}
+  # Personkall til /admin/** krever denne gruppen i tokenet. I Nais: melosys-innlogging-vakt.
+  driftsgruppe: ${GROUP_MELOSYS_INNLOGGING_VAKT}
 
 # azp_name for klienter som får hente skattepliktige, kommaseparert
 skattepliktige:

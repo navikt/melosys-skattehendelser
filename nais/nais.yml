@@ -43,6 +43,7 @@ spec:
       claims:
         groups:
           - id: {{group_melosys_innlogging}}
+          - id: {{group_melosys_innlogging_vakt}}
   accessPolicy:
     outbound:
       external:
@@ -86,6 +87,8 @@ spec:
       value: {{sigrun_rest_url}}
     - name: SKATTEPLIKTIGE_TILLATTE_KLIENTER
       value: "{{cluster_melosys_api}}:teammelosys:{{app_name_melosys_api}}"
+    - name: GROUP_MELOSYS_INNLOGGING_VAKT
+      value: "{{group_melosys_innlogging_vakt}}"
 
   envFrom:
     - secret: {{app_name}}
