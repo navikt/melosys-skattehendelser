@@ -1,7 +1,6 @@
 package no.nav.melosysskattehendelser.controller
 
 import io.kotest.matchers.shouldBe
-import io.kotest.matchers.string.shouldContain
 import io.mockk.mockk
 import no.nav.melosysskattehendelser.PostgresTestContainerBase
 import no.nav.melosysskattehendelser.melosys.KafkaConfig
@@ -28,7 +27,7 @@ class AdminControllerTilgangsstyringTest(
     @Autowired private val mockOAuth2Server: MockOAuth2Server,
     @LocalServerPort private val port: Int,
     @Value("\${admin.api-key}") private val apiNøkkel: String,
-    @Value("\${admin.driftsgruppe}") private val driftsgruppe: String,
+    @Value("\${admin.driftsgruppe}") private val driftsgruppeId: String,
 ) : PostgresTestContainerBase() {
 
     @TestConfiguration
@@ -41,7 +40,7 @@ class AdminControllerTilgangsstyringTest(
 
     @Test
     fun `personkall med driftsgruppe og nøkkel får tilgang`() {
-        hentPersoner(personToken(grupper = listOf(driftsgruppe))).statusCode() shouldBe 200
+        hentPersoner(personToken(grupper = listOf(driftsgruppeId))).statusCode() shouldBe 200
     }
 
     @Test
@@ -49,7 +48,7 @@ class AdminControllerTilgangsstyringTest(
         val respons = hentPersoner(personToken(grupper = listOf(ANNEN_GRUPPE)))
 
         respons.statusCode() shouldBe 403
-        respons.body() shouldContain AdminTilgangInterceptor.MANGLER_DRIFTSGRUPPE
+        respons.body() shouldBe AdminTilgangInterceptor.MANGLER_DRIFTSGRUPPE
     }
 
     @Test
@@ -69,7 +68,7 @@ class AdminControllerTilgangsstyringTest(
 
     @Test
     fun `nøkkelen kreves fortsatt for personkall med driftsgruppe`() {
-        val token = personToken(grupper = listOf(driftsgruppe))
+        val token = personToken(grupper = listOf(driftsgruppeId))
 
         hentPersoner(token, nøkkel = "feil-nøkkel").statusCode() shouldBe 401
         hentPersoner(token, nøkkel = null).statusCode() shouldBe 401
@@ -87,7 +86,7 @@ class AdminControllerTilgangsstyringTest(
 
     @Test
     fun `token med feil audience avvises`() {
-        val token = token(mapOf("groups" to listOf(driftsgruppe)), audience = "annen-app")
+        val token = token(mapOf("groups" to listOf(driftsgruppeId)), audience = "annen-app")
 
         hentPersoner(token).statusCode() shouldBe 401
     }

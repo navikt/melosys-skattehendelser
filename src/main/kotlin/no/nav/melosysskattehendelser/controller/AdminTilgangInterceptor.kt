@@ -6,7 +6,6 @@ import jakarta.servlet.http.HttpServletResponse
 import no.nav.security.token.support.core.context.TokenValidationContextHolder
 import no.nav.security.token.support.core.jwt.JwtTokenClaims
 import org.springframework.beans.factory.annotation.Value
-import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Component
 import org.springframework.web.servlet.HandlerInterceptor
@@ -20,20 +19,22 @@ class AdminTilgangInterceptor(
 ) : HandlerInterceptor {
 
     override fun preHandle(request: HttpServletRequest, response: HttpServletResponse, handler: Any): Boolean {
-        // Uten gyldig token svarer @Protected 401
-        val claims = tokenValidationContextHolder.getTokenValidationContext().getJwtToken(ISSUER)?.jwtTokenClaims
-            ?: return true
+        val claims = claimsFraGyldigToken()
 
+        if (claims == null) return true   // @Protected svarer 401
         if (erMaskinkall(claims)) return true
         if (erMedlemAvDriftsgruppe(claims)) return true
 
         log.warn { "Admin-kall avvist: personkall uten driftsgruppe (${request.method})" }
         // Skrives direkte: Spring Boot tar ikke med meldingen fra ResponseStatusException i svaret
-        response.status = HttpStatus.FORBIDDEN.value()
+        response.status = 403
         response.contentType = MediaType.TEXT_PLAIN_VALUE
         response.writer.write(MANGLER_DRIFTSGRUPPE)
         return false
     }
+
+    private fun claimsFraGyldigToken() =
+        tokenValidationContextHolder.getTokenValidationContext().getJwtToken(ISSUER)?.jwtTokenClaims
 
     // Entra setter idtyp = app bare i maskintoken. Mangler den, regnes kallet som personkall.
     private fun erMaskinkall(claims: JwtTokenClaims) = claims.getStringClaim("idtyp") == IDTYP_MASKIN

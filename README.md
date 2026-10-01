@@ -163,7 +163,7 @@ docker build -t melosys-skattehendelser .
 | `SKATT_FETCHER_BATCH_SIZE` | Batch-størrelse for hendelseshenting | `500`         |
 | `DRY_RUN_PUBLISERING` | Tørrkjør publisering (for testing)   | `false`       |
 | `X-SKATTEHENDELSER-ADMIN-APIKEY` | for tilgang til admin endepunker     | -             |
-| `GROUP_MELOSYS_INNLOGGING_VAKT` | Driftsgruppen personkall til admin-endepunkter må ha | -             |
+| `GROUP_MELOSYS_INNLOGGING_VAKT` | Gruppe-ID som kreves for personkall til admin-endepunkter | -             |
 
 ### Profiler
 - `local` - Lokal utvikling
