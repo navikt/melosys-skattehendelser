@@ -13,6 +13,7 @@
   "cluster_sigrun": "prod-fss",
   "app_name_sigrun": "sigrun",
   "app_name_melosys_console": "melosys-console",
+  "melosys_console_client_id": "7fe72335-687b-438c-be47-3bc81590a05d",
   "app_name_melosys_api": "melosys",
   "cluster_melosys_api": "prod-fss",
   "sigrun_host": "sigrun.prod-fss-pub.nais.io",

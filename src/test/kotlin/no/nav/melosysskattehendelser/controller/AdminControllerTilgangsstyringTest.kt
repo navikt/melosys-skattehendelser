@@ -26,8 +26,8 @@ import java.net.http.HttpResponse
 class AdminControllerTilgangsstyringTest(
     @Autowired private val mockOAuth2Server: MockOAuth2Server,
     @LocalServerPort private val port: Int,
-    @Value("\${admin.api-key}") private val apiNøkkel: String,
     @Value("\${admin.driftsgruppe}") private val driftsgruppeId: String,
+    @Value("\${admin.console-klient-id}") private val consoleKlientId: String,
 ) : PostgresTestContainerBase() {
 
     @TestConfiguration
@@ -39,12 +39,33 @@ class AdminControllerTilgangsstyringTest(
     private val httpClient = HttpClient.newHttpClient()
 
     @Test
-    fun `personkall med driftsgruppe og nøkkel får tilgang`() {
+    fun `personkall fra Console med driftsgruppe får tilgang`() {
         hentPersoner(personToken(grupper = listOf(driftsgruppeId))).statusCode() shouldBe 200
     }
 
     @Test
-    fun `personkall uten driftsgruppe avvises med forklaring, selv med riktig nøkkel`() {
+    fun `maskinkall fra Console får tilgang`() {
+        hentPersoner(maskinToken()).statusCode() shouldBe 200
+    }
+
+    @Test
+    fun `personkall fra annen klient avvises, selv med driftsgruppe`() {
+        val respons = hentPersoner(personToken(grupper = listOf(driftsgruppeId), klientId = ANNEN_KLIENT))
+
+        respons.statusCode() shouldBe 403
+        respons.body() shouldBe AdminTilgangInterceptor.UKJENT_KLIENT
+    }
+
+    @Test
+    fun `maskinkall fra annen klient avvises`() {
+        val respons = hentPersoner(maskinToken(klientId = ANNEN_KLIENT))
+
+        respons.statusCode() shouldBe 403
+        respons.body() shouldBe AdminTilgangInterceptor.UKJENT_KLIENT
+    }
+
+    @Test
+    fun `personkall uten driftsgruppe avvises med forklaring`() {
         val respons = hentPersoner(personToken(grupper = listOf(ANNEN_GRUPPE)))
 
         respons.statusCode() shouldBe 403
@@ -62,21 +83,12 @@ class AdminControllerTilgangsstyringTest(
     }
 
     @Test
-    fun `maskinkall slipper gjennom gruppesjekken`() {
-        hentPersoner(maskinToken()).statusCode() shouldBe 200
-    }
+    fun `nøkkelheader påvirker ikke svaret`() {
+        val fraConsole = personToken(grupper = listOf(driftsgruppeId))
+        val fraAnnenKlient = personToken(grupper = listOf(driftsgruppeId), klientId = ANNEN_KLIENT)
 
-    @Test
-    fun `nøkkelen kreves fortsatt for personkall med driftsgruppe`() {
-        val token = personToken(grupper = listOf(driftsgruppeId))
-
-        hentPersoner(token, nøkkel = "feil-nøkkel").statusCode() shouldBe 401
-        hentPersoner(token, nøkkel = null).statusCode() shouldBe 401
-    }
-
-    @Test
-    fun `nøkkelen kreves fortsatt for maskinkall`() {
-        hentPersoner(maskinToken(), nøkkel = null).statusCode() shouldBe 401
+        hentPersoner(fraConsole, nøkkel = "feil-nøkkel").statusCode() shouldBe 200
+        hentPersoner(fraAnnenKlient, nøkkel = "tidligere-riktig-nøkkel").statusCode() shouldBe 403
     }
 
     @Test
@@ -91,31 +103,40 @@ class AdminControllerTilgangsstyringTest(
         hentPersoner(token).statusCode() shouldBe 401
     }
 
-    private fun personToken(grupper: List<String>?): String =
-        token(buildMap<String, Any> {
-            put("NAVident", "Z999999")
-            grupper?.let { put("groups", it) }
-        })
+    private fun personToken(grupper: List<String>?, klientId: String = consoleKlientId): String =
+        token(
+            buildMap<String, Any> {
+                put("NAVident", "Z999999")
+                grupper?.let { put("groups", it) }
+            },
+            klientId = klientId,
+        )
 
-    private fun maskinToken(): String = token(mapOf("idtyp" to "app"))
+    private fun maskinToken(klientId: String = consoleKlientId): String =
+        token(mapOf("idtyp" to "app"), klientId = klientId)
 
-    private fun token(claims: Map<String, Any>, audience: String = "skattehendelser-test"): String =
+    // mock-oauth2-server setter azp til klient-ID-en tokenet utstedes til
+    private fun token(
+        claims: Map<String, Any>,
+        klientId: String = consoleKlientId,
+        audience: String = "skattehendelser-test",
+    ): String =
         mockOAuth2Server.issueToken(
             "aad",
-            "melosys-console",
+            klientId,
             DefaultOAuth2TokenCallback(
                 issuerId = "aad",
-                subject = "melosys-console",
+                subject = klientId,
                 audience = listOf(audience),
                 claims = claims,
             )
         ).serialize()
 
-    private fun hentPersoner(token: String?, nøkkel: String? = apiNøkkel): HttpResponse<String> {
+    private fun hentPersoner(token: String?, nøkkel: String? = null): HttpResponse<String> {
         val request = HttpRequest.newBuilder(URI("http://localhost:$port/admin/person?max=1"))
             .apply {
                 token?.let { header("Authorization", "Bearer $it") }
-                nøkkel?.let { header(ApiKeyInterceptor.API_KEY_HEADER, it) }
+                nøkkel?.let { header(GAMMEL_NØKKELHEADER, it) }
             }
             .GET()
             .build()
@@ -124,5 +145,8 @@ class AdminControllerTilgangsstyringTest(
 
     companion object {
         private const val ANNEN_GRUPPE = "00000000-0000-0000-0000-000000000002"
+        private const val ANNEN_KLIENT = "annen-klient"
+        // Console sender headeren til fase 5. Den skal ignoreres.
+        private const val GAMMEL_NØKKELHEADER = "X-SKATTEHENDELSER-ADMIN-APIKEY"
     }
 }

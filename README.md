@@ -113,14 +113,13 @@ Kafka-consumer for vedtakshendelser:
    Pass på at du **ikke** har `AZURE_APP_WELL_KNOWN_URL` satt til en ikke-URL (f.eks. `dummy`)
    i run-konfigurasjonen; det gir samme bindingsfeil.
 
-4. **Kall admin-endepunkter lokalt** – krever JWT med driftsgruppe og API-nøkkel:
+4. **Kall admin-endepunkter lokalt** – krever JWT fra Console-klienten med driftsgruppe:
    ```bash
    TOKEN=$(curl -s -X POST http://host.docker.internal:8082/isso/token \
-     -d grant_type=client_credentials -d client_id=melosys-localhost \
+     -d grant_type=client_credentials -d client_id=melosys-api \
      -d client_secret=lol -d audience=melosys-localhost | jq -r .access_token)
 
    curl -H "Authorization: Bearer $TOKEN" \
-        -H "X-SKATTEHENDELSER-ADMIN-APIKEY: dummy" \
         http://localhost:8089/admin/hendelseprosessering/status
    ```
 
@@ -130,6 +129,8 @@ Kafka-consumer for vedtakshendelser:
    `JWT audience rejected: [melosys-localhost]` i loggen og 401 fra endepunktet.
    Bruk `audience`, ikke `scope`: bare da har mock-tokenet `groups: ["0000-GA-MELOSYS"]`,
    som er driftsgruppen i de lokale profilene. Uten gruppen gir admin-kall 403.
+   `client_id` blir `azp` i tokenet og må være `melosys-api`, som Console bruker lokalt.
+   Annen klient gir 403.
 
 ### Testing
 
@@ -162,8 +163,8 @@ docker build -t melosys-skattehendelser .
 | `CRON_JOB_PROSESSER_SKATTE_HENDELSER` | Cron-uttrykk for scheduled job       | `0 0 2 * * *` |
 | `SKATT_FETCHER_BATCH_SIZE` | Batch-størrelse for hendelseshenting | `500`         |
 | `DRY_RUN_PUBLISERING` | Tørrkjør publisering (for testing)   | `false`       |
-| `X-SKATTEHENDELSER-ADMIN-APIKEY` | for tilgang til admin endepunker     | -             |
 | `GROUP_MELOSYS_INNLOGGING_VAKT` | Gruppe-ID som kreves for personkall til admin-endepunkter | -             |
+| `MELOSYS_CONSOLE_CLIENT_ID` | Klient-ID (`azp`) som alle kall til admin-endepunkter må komme fra | -             |
 
 ### Profiler
 - `local` - Lokal utvikling

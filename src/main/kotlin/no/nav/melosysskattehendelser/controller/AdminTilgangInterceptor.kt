@@ -16,20 +16,34 @@ private val log = KotlinLogging.logger { }
 class AdminTilgangInterceptor(
     private val tokenValidationContextHolder: TokenValidationContextHolder,
     @Value("\${admin.driftsgruppe}") private val driftsgruppeId: String,
+    @Value("\${admin.console-klient-id}") private val consoleKlientId: String,
 ) : HandlerInterceptor {
 
     override fun preHandle(request: HttpServletRequest, response: HttpServletResponse, handler: Any): Boolean {
         val claims = claimsFraGyldigToken()
 
         if (claims == null) return true   // @Protected svarer 401
+
+        // Gjelder både person- og maskinkall, så klienten sjekkes før idtyp
+        val azp = claims.getStringClaim("azp")
+        if (azp != consoleKlientId) {
+            // azp er en klient-ID, ikke en personopplysning
+            log.warn { "Admin-kall avvist: ukjent klient (azp=$azp, ${request.method})" }
+            return avvis(response, UKJENT_KLIENT)
+        }
+
         if (erMaskinkall(claims)) return true
         if (erMedlemAvDriftsgruppe(claims)) return true
 
         log.warn { "Admin-kall avvist: personkall uten driftsgruppe (${request.method})" }
-        // Skrives direkte: Spring Boot tar ikke med meldingen fra ResponseStatusException i svaret
+        return avvis(response, MANGLER_DRIFTSGRUPPE)
+    }
+
+    // Skrives direkte: Spring Boot tar ikke med meldingen fra ResponseStatusException i svaret
+    private fun avvis(response: HttpServletResponse, melding: String): Boolean {
         response.status = 403
         response.contentType = MediaType.TEXT_PLAIN_VALUE
-        response.writer.write(MANGLER_DRIFTSGRUPPE)
+        response.writer.write(melding)
         return false
     }
 
@@ -44,6 +58,7 @@ class AdminTilgangInterceptor(
 
     companion object {
         const val MANGLER_DRIFTSGRUPPE = "Mangler tilgang til admin-endepunkter"
+        const val UKJENT_KLIENT = "Kallet kommer ikke fra en godkjent klient"
         private const val ISSUER = "aad"
         private const val IDTYP_MASKIN = "app"
     }

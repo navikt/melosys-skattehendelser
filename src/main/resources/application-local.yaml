@@ -26,7 +26,8 @@ APP_NAME_SIGRUN: sigrun-local
 KAFKA_VEDTAK_TOPIC: teammelosys.melosys-hendelser-local
 KAFKA_SKATTEHENDELSE_TOPIC: teammelosys.skattehendelser.v1-local
 SHUTDOWN_TIMEOUT: 3s
-ADMIN_API_KEY: dummy
+# azp i Consoles lokale mock-token (LOCAL_MOCK_OAUTH_CLIENT_ID i melosys-console)
+MELOSYS_CONSOLE_CLIENT_ID: melosys-api
 # Samme gruppe som i Consoles lokale mock-token (audience=melosys-localhost). I Nais: melosys-innlogging-vakt.
 GROUP_MELOSYS_INNLOGGING_VAKT: 0000-GA-MELOSYS
 SKATTEPLIKTIGE_TILLATTE_KLIENTER: dev-fss:teammelosys:melosys

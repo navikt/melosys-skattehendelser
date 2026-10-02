@@ -89,6 +89,8 @@ spec:
       value: "{{cluster_melosys_api}}:teammelosys:{{app_name_melosys_api}}"
     - name: GROUP_MELOSYS_INNLOGGING_VAKT
       value: "{{group_melosys_innlogging_vakt}}"
+    - name: MELOSYS_CONSOLE_CLIENT_ID
+      value: "{{melosys_console_client_id}}"
 
   envFrom:
     - secret: {{app_name}}
