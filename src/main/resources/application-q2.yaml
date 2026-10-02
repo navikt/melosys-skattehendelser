@@ -30,4 +30,6 @@ KAFKA_VEDTAK_TOPIC: teammelosys.melosys-hendelser-local
 KAFKA_SKATTEHENDELSE_TOPIC: teammelosys.skattehendelser.v1-local
 SIGRUN_REST_URL: https://sigrun-q2.dev-fss-pub.nais.io
 ADMIN_API_KEY: dummy
+# Samme gruppe som i Consoles lokale mock-token (audience=melosys-localhost). I Nais: melosys-innlogging-vakt.
+GROUP_MELOSYS_INNLOGGING_VAKT: 0000-GA-MELOSYS
 SKATTEPLIKTIGE_TILLATTE_KLIENTER: dev-fss:teammelosys:melosys

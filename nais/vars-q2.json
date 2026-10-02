@@ -7,6 +7,7 @@
   "tenant": "trygdeetaten.no",
   "kafka_pool": "nav-dev",
   "group_melosys_innlogging": "52981246-8032-40f0-863a-2bd2844f2d57",
+  "group_melosys_innlogging_vakt": "fb706914-eede-490a-b9cd-2458983e24c1",
   "kafka_topic_name_skattehendelse": "teammelosys.skattehendelser.v1-q2",
   "kafka_topic_name_hendelse": "teammelosys.melosys-hendelser.v1-q2",
   "cluster_sigrun": "dev-fss",

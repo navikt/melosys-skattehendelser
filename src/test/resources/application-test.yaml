@@ -26,6 +26,7 @@ KAFKA_VEDTAK_TOPIC: teammelosys.melosys-hendelser-test
 KAFKA_SKATTEHENDELSE_TOPIC: teammelosys.melosys-skattehendelser-test
 SIGRUN_REST_URL: not-used
 ADMIN_API_KEY: dummy
+GROUP_MELOSYS_INNLOGGING_VAKT: 00000000-0000-0000-0000-000000000001
 AZURE_APP_WELL_KNOWN_URL: http://localhost:${mock-oauth2-server.port}/aad/.well-known/openid-configuration
 
 AZURE_APP_ACCEPTED_AUDIENCE: skattehendelser-test
