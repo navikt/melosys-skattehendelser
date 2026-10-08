@@ -67,7 +67,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Deploy til dev (Q2)
-        uses: nais/deploy/actions/deploy@v2
+        uses: nais/deploy/actions/deploy@v3
         env:
           CLUSTER: dev-gcp
           RESOURCE: nais/nais.yml
@@ -75,7 +75,7 @@ jobs:
           VARS: nais/vars-q2.json
           TELEMETRY: ${{ needs.build.outputs.telemetry }}
 #      - name: Deploy til dev (Q1)
-#        uses: nais/deploy/actions/deploy@v2
+#        uses: nais/deploy/actions/deploy@v3
 #        env:
 #          CLUSTER: dev-gcp
 #          RESOURCE: nais/nais.yml
