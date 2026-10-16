@@ -29,12 +29,12 @@ class KafkaErrorControllerTest {
     }
 
     @Test
-    fun `DELETE gir 409 mens den gamle consumeren fortsatt stopper`() {
+    fun `DELETE merker meldingen og starter lytteren når den har stoppet`() {
+        every { feilHandler.merkForÅHoppeOver(any()) } returns true
         every { kafkaContainerMonitor.isKafkaContainerRunning() } returns false
-        every { kafkaContainerMonitor.isKafkaContainerChildRunning() } returns true
 
-        controller.hoppOver("topic-0-1").statusCode shouldBe HttpStatus.CONFLICT
-        verify(exactly = 0) { feilHandler.merkForÅHoppeOver(any()) }
+        controller.hoppOver("topic-0-1").statusCode shouldBe HttpStatus.OK
+        verify { kafkaContainerMonitor.startKafkaContainerHvisStoppet() }
     }
 
     @Test

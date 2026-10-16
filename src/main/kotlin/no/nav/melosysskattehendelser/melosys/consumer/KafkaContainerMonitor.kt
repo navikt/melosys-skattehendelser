@@ -11,9 +11,6 @@ class KafkaContainerMonitor(
 
     fun isKafkaContainerRunning(): Boolean = container().isRunning
 
-    // Feilhandleren stopper lytteren i en egen tråd, så den gamle consumeren kan kjøre litt etter at isRunning er false
-    fun isKafkaContainerChildRunning(): Boolean = container().isChildRunning
-
     /** Gir true når lytteren ble startet, false når den alt kjørte. */
     fun startKafkaContainerHvisStoppet(): Boolean {
         val container = container()

@@ -48,7 +48,7 @@ class KafkaErrorController(
     )
     @ApiResponses(
         value = [
-            ApiResponse(responseCode = "200", description = "Meldingen hoppes over"),
+            ApiResponse(responseCode = "200", description = "Meldingen er merket, og lytteren leser den på nytt"),
             ApiResponse(responseCode = "404", description = "Ingen feil med nøkkelen på denne poden"),
             ApiResponse(responseCode = "409", description = "Lytteren har ikke stoppet ennå")
         ]
@@ -60,8 +60,8 @@ class KafkaErrorController(
         if (!lytterenHarStoppet()) return ikkeStoppet()
         if (!hoppOverKafkaFeilHandler.merkForÅHoppeOver(key)) return ikkeFunnet(key)
 
-        log.warn { "Hopper over melding $key" }
-        return ResponseEntity.ok("Meldingen $key hoppes over. ${startLytteren()}")
+        log.warn { "Merket melding $key for å hoppes over" }
+        return ResponseEntity.ok("Meldingen $key hoppes over hvis den feiler igjen. ${startLytteren()}")
     }
 
     @PostMapping("/{key}/retry")
@@ -87,9 +87,9 @@ class KafkaErrorController(
         return ResponseEntity.ok("Meldingen $key prøves på nytt. ${startLytteren()}")
     }
 
-    // Feilen vises før lytteren har stoppet. Startes lytteren i det vinduet, stopper den rett etter, og feilen er borte.
-    private fun lytterenHarStoppet() =
-        !kafkaContainerMonitor.isKafkaContainerRunning() && !kafkaContainerMonitor.isKafkaContainerChildRunning()
+    // Feilen vises før feilhandleren har stoppet lytteren. Startes lytteren i det vinduet, stopper den rett etter,
+    // og feilen er borte. Den gamle consumeren trenger ikke ha stoppet: start lager nye consumere.
+    private fun lytterenHarStoppet() = !kafkaContainerMonitor.isKafkaContainerRunning()
 
     private fun startLytteren() =
         if (kafkaContainerMonitor.startKafkaContainerHvisStoppet()) "Lytteren er startet." else "Lytteren kjørte allerede."

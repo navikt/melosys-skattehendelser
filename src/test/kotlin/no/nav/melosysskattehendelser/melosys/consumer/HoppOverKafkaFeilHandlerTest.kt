@@ -91,7 +91,7 @@ class HoppOverKafkaFeilHandlerTest(
 
         val feiletMelding = feil().getValue(nøkkel)
         feiletMelding.feilkjede.joinToString().let {
-            it shouldContain "databasen er nede for *"
+            it shouldContain "databasen er nede for ***********"
             it shouldNotContain FØDSELSNUMMER
         }
 
