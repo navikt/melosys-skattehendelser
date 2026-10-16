@@ -79,58 +79,66 @@ class HoppOverKafkaFeilHandlerTest(
     @AfterEach
     fun tearDown() {
         // Neste test forutsetter at lytteren går og at ingen feil ligger igjen
-        lytteren().isRunning shouldBe true
+        kafkaErrorController.feil().body!!["lytteren"] shouldBe "kjører"
         feil().shouldBeEmpty()
     }
 
     @Test
     fun `melding som kaster stopper lytteren og vises uten innhold, og DELETE hopper over den`() {
-        kafkaOffsetChecker.offsetIncreased {
-            kafkaTemplate.send(topic, vedtaksmelding(FEILER))
-            val nøkkel = ventTilLytterenHarStoppet()
+        val start = kafkaOffsetChecker.committedOffset()
+        kafkaTemplate.send(topic, vedtaksmelding(FEILER))
+        val nøkkel = ventTilLytterenHarStoppet()
 
-            val feiletMelding = feil().getValue(nøkkel)
-            feiletMelding.feilkjede.joinToString().let {
-                it shouldContain "databasen er nede for *"
-                it shouldNotContain FØDSELSNUMMER
-            }
+        val feiletMelding = feil().getValue(nøkkel)
+        feiletMelding.feilkjede.joinToString().let {
+            it shouldContain "databasen er nede for *"
+            it shouldNotContain FØDSELSNUMMER
+        }
 
-            kafkaTemplate.send(topic, vedtaksmelding(NESTE))
-            kafkaErrorController.hoppOver(nøkkel).statusCode shouldBe HttpStatus.OK
+        kafkaErrorController.hoppOver(nøkkel).statusCode shouldBe HttpStatus.OK
+        ventPåCommittedOffset(start + 1)
 
-            verify(timeout = 10_000) { personRepository.save(match<Person> { it.ident == NESTE }) }
-            await.timeout(10, TimeUnit.SECONDS).untilAsserted { lytteren().isRunning shouldBe true }
-        }.shouldBe(2)
+        kafkaTemplate.send(topic, vedtaksmelding(NESTE))
+        verify(timeout = 10_000) { personRepository.save(match<Person> { it.ident == NESTE }) }
+        ventPåCommittedOffset(start + 2)
     }
 
     @Test
     fun `melding som ikke kan leses stopper lytteren, og DELETE hopper over den`() {
-        kafkaOffsetChecker.offsetIncreased {
-            kafkaTemplate.send(topic, """{ "melding": { "type": "VedtakHendelseMelding", "foo": "bar" } }""")
-            val nøkkel = ventTilLytterenHarStoppet()
+        val start = kafkaOffsetChecker.committedOffset()
+        kafkaTemplate.send(topic, """{ "melding": { "type": "VedtakHendelseMelding", "foo": "bar" } }""")
+        val nøkkel = ventTilLytterenHarStoppet()
 
-            feil().getValue(nøkkel).feilkjede.first() shouldContain "RecordDeserializationException"
+        feil().getValue(nøkkel).feilkjede.first() shouldContain "RecordDeserializationException"
 
-            kafkaTemplate.send(topic, vedtaksmelding(NESTE))
-            kafkaErrorController.hoppOver(nøkkel).statusCode shouldBe HttpStatus.OK
+        kafkaErrorController.hoppOver(nøkkel).statusCode shouldBe HttpStatus.OK
+        // Her er det feilhandleren som committer, ikke containeren, så sjekk før neste melding sendes
+        ventPåCommittedOffset(start + 1)
 
-            verify(timeout = 10_000) { personRepository.save(match<Person> { it.ident == NESTE }) }
-        }.shouldBe(2)
+        kafkaTemplate.send(topic, vedtaksmelding(NESTE))
+        verify(timeout = 10_000) { personRepository.save(match<Person> { it.ident == NESTE }) }
+        ventPåCommittedOffset(start + 2)
     }
 
     @Test
     fun `retry leser meldingen på nytt`() {
-        kafkaOffsetChecker.offsetIncreased {
-            kafkaTemplate.send(topic, vedtaksmelding(FEILER))
-            val nøkkel = ventTilLytterenHarStoppet()
+        val start = kafkaOffsetChecker.committedOffset()
+        kafkaTemplate.send(topic, vedtaksmelding(FEILER))
+        val nøkkel = ventTilLytterenHarStoppet()
 
-            // Feilen er rettet
-            every { personRepository.save(match<Person> { it.ident == FEILER }) } answers { firstArg() }
-            kafkaErrorController.prøvIgjen(nøkkel).statusCode shouldBe HttpStatus.OK
+        // Feilen er rettet
+        every { personRepository.save(match<Person> { it.ident == FEILER }) } answers { firstArg() }
+        kafkaErrorController.prøvIgjen(nøkkel).statusCode shouldBe HttpStatus.OK
 
-            verify(timeout = 10_000, exactly = 2) { personRepository.save(match<Person> { it.ident == FEILER }) }
-            await.timeout(10, TimeUnit.SECONDS).untilAsserted { lytteren().isRunning shouldBe true }
-        }.shouldBe(1)
+        verify(timeout = 10_000, exactly = 2) { personRepository.save(match<Person> { it.ident == FEILER }) }
+        ventPåCommittedOffset(start + 1)
+    }
+
+    private fun ventPåCommittedOffset(forventet: Long) {
+        await.timeout(10, TimeUnit.SECONDS).untilAsserted {
+            kafkaOffsetChecker.committedOffset() shouldBe forventet
+            lytteren().isRunning shouldBe true
+        }
     }
 
     @Test

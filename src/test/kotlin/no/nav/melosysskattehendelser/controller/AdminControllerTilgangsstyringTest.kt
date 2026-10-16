@@ -177,7 +177,7 @@ class AdminControllerTilgangsstyringTest(
         }
 
         // Vakt mot falsk grønn: finner oppslaget ingen endepunkter, kjører forEach ingen assertions,
-        // og testene passerer uten å ha sjekket noe. Ett GET- og ett POST-endepunkt viser at begge dekkes.
+        // og testene passerer uten å ha sjekket noe. Ett endepunkt per HTTP-metode viser at alle dekkes.
         endepunkter.map { it.toString() }.shouldContainAll(
             "GET /admin/person",
             "POST /admin/hendelseprosessering/start",

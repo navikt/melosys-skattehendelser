@@ -35,7 +35,7 @@ class KafkaErrorController(
     fun feil(): ResponseEntity<Map<String, Any>> = ResponseEntity.ok(
         mapOf(
             "podnavn" to podnavn,
-            "lytterenKjører" to kafkaContainerMonitor.isKafkaContainerRunning(),
+            "lytteren" to if (kafkaContainerMonitor.isKafkaContainerRunning()) "kjører" else "stoppet",
             "feil" to hoppOverKafkaFeilHandler.feiledeMeldinger()
         )
     )
