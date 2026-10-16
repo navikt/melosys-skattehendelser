@@ -50,9 +50,13 @@ open class VedtakHendelseConsumer(
 
     private fun leggTilPersonOgEllerPeriode(vedtakHendelseMelding: VedtakHendelseMelding) {
         val person = hentEllerLagPerson(vedtakHendelseMelding)
+        val gyldigePerioder = vedtakHendelseMelding.medlemskapsperioder.filter { it.erGyldig() }
+        val unikePerioder = gyldigePerioder.distinctBy { it.fom to it.tom }
+        if (unikePerioder.size < gyldigePerioder.size) {
+            log.info { "fjernet ${gyldigePerioder.size - unikePerioder.size} like perioder i meldingen for person med id: ${person.id}" }
+        }
 
-        vedtakHendelseMelding.medlemskapsperioder
-            .filter { it.erGyldig() }
+        unikePerioder
             .filterNot { person.harPeriode(it) { log.info { "perioden $it finnes allerede på person med id:${person.id}" } } }
             .forEach {
                 log.info { "legger til $it på person med id: ${person.id}" }
