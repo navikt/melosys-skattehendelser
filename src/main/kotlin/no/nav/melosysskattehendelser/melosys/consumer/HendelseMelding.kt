@@ -1,9 +1,11 @@
 package no.nav.melosysskattehendelser.melosys.consumer
 
 import com.fasterxml.jackson.annotation.JsonAnySetter
+import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonSubTypes
 import com.fasterxml.jackson.annotation.JsonTypeInfo
+import tools.jackson.databind.JsonNode
 import java.time.LocalDate
 
 data class MelosysHendelse(
@@ -45,16 +47,32 @@ data class UkjentMelding(
     }
 }
 
+// melosys-api sender Sakstyper og Sakstemaer som {"kode": "...", "term": "..."} siden Spring Boot 4
+// (melosys-api #3272), og som tekst før det. InnvilgelsesResultat sendes fortsatt som tekst.
+private fun JsonNode.kode(): String = if (isObject) path("kode").asString() else asString()
+
 enum class Sakstyper {
     EU_EOS,
     TRYGDEAVTALE,
-    FTRL
+    FTRL;
+
+    companion object {
+        @JvmStatic
+        @JsonCreator(mode = JsonCreator.Mode.DELEGATING)
+        fun fra(verdi: JsonNode): Sakstyper = valueOf(verdi.kode())
+    }
 }
 
 enum class Sakstemaer {
     MEDLEMSKAP_LOVVALG,
     UNNTAK,
-    TRYGDEAVGIFT
+    TRYGDEAVGIFT;
+
+    companion object {
+        @JvmStatic
+        @JsonCreator(mode = JsonCreator.Mode.DELEGATING)
+        fun fra(verdi: JsonNode): Sakstemaer = valueOf(verdi.kode())
+    }
 }
 
 enum class InnvilgelsesResultat() {
