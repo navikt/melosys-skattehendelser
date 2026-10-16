@@ -9,7 +9,17 @@ class KafkaContainerMonitor(
 ) {
     fun isKafkaContainerStopped(): Boolean = !isKafkaContainerRunning()
 
-    fun isKafkaContainerRunning(): Boolean =
-        registry.getListenerContainer(VedtakHendelseConsumer.LISTENER_ID)?.isRunning
+    fun isKafkaContainerRunning(): Boolean = container().isRunning
+
+    /** Gir true når lytteren ble startet, false når den alt kjørte. */
+    fun startKafkaContainerHvisStoppet(): Boolean {
+        val container = container()
+        if (container.isRunning) return false
+        container.start()
+        return true
+    }
+
+    private fun container() =
+        registry.getListenerContainer(VedtakHendelseConsumer.LISTENER_ID)
             ?: throw IllegalStateException("Listener container not found for ID: ${VedtakHendelseConsumer.LISTENER_ID}")
 }

@@ -181,6 +181,7 @@ class AdminControllerTilgangsstyringTest(
         endepunkter.map { it.toString() }.shouldContainAll(
             "GET /admin/person",
             "POST /admin/hendelseprosessering/start",
+            "DELETE /admin/kafka/errors/{key}",
         )
         return endepunkter
     }

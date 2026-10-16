@@ -4,6 +4,7 @@ import tools.jackson.databind.ObjectMapper
 import tools.jackson.databind.json.JsonMapper
 import tools.jackson.module.kotlin.readValue
 import io.github.oshai.kotlinlogging.KotlinLogging
+import no.nav.melosysskattehendelser.melosys.consumer.HoppOverKafkaFeilHandler
 import no.nav.melosysskattehendelser.melosys.consumer.MelosysHendelse
 import org.apache.kafka.clients.CommonClientConfigs
 import org.apache.kafka.clients.consumer.ConsumerConfig
@@ -24,7 +25,6 @@ import org.springframework.kafka.core.DefaultKafkaConsumerFactory
 import org.springframework.kafka.core.DefaultKafkaProducerFactory
 import org.springframework.kafka.core.KafkaTemplate
 import org.springframework.kafka.core.ProducerFactory
-import org.springframework.kafka.listener.CommonContainerStoppingErrorHandler
 import org.springframework.kafka.listener.ContainerProperties
 import org.springframework.kafka.support.serializer.JacksonJsonDeserializer
 import org.springframework.kafka.support.serializer.JacksonJsonSerializer
@@ -52,10 +52,11 @@ class KafkaConfig(
     fun melosysVedtakListenerContainerFactory(
         objectMapper: ObjectMapper,
         kafkaProperties: KafkaProperties,
+        hoppOverKafkaFeilHandler: HoppOverKafkaFeilHandler,
         @Value("\${melosys.kafka.consumer.groupId}") groupId: String
     ) =
         ConcurrentKafkaListenerContainerFactory<String, MelosysHendelse>().apply {
-            setCommonErrorHandler(CommonContainerStoppingErrorHandler())
+            setCommonErrorHandler(hoppOverKafkaFeilHandler)
 
             setConsumerFactory(
                 DefaultKafkaConsumerFactory(
