@@ -110,6 +110,39 @@ class VedtakHendelseConsumerTest(
     }
 
     @Test
+    fun `skal lese kodeverk sendt som objekt med kode og term, slik melosys-api sender dem`() {
+        val vedtakHendelseMelding = """
+            {
+              "melding" : {
+                "type" : "VedtakHendelseMelding",
+                "folkeregisterIdent" : "$ident",
+                "sakstype" : { "kode" : "FTRL", "term" : "Folketrygdloven" },
+                "sakstema" : { "kode" : "TRYGDEAVGIFT", "term" : "Trygdeavgift" },
+                "behandligsresultatType" : { "kode" : "MEDLEM_I_FOLKETRYGDEN", "term" : "Medlem i folketrygden" },
+                "vedtakstype" : { "kode" : "FØRSTEGANGSVEDTAK", "term" : "Førstegangsvedtak" },
+                "medlemskapsperioder": [{
+                      "fom": "2025-01-01",
+                      "tom": "2025-12-31",
+                      "innvilgelsesResultat": "INNVILGET"
+                }],
+                "lovvalgsperioder": []
+              }
+            }
+        """
+
+        kafkaOffsetChecker.offsetIncreased {
+            kafkaTemplate.send(topic, vedtakHendelseMelding)
+
+            await.timeout(5, TimeUnit.SECONDS)
+                .untilAsserted {
+                    personRepository.findPersonByIdent(ident)
+                        .shouldNotBeNull()
+                        .perioder.shouldHaveSize(1)
+                }
+        }.shouldBe(1)
+    }
+
+    @Test
     fun `skal legge til periode om person finnes`() {
         personTestService.savePerson(Person(ident = ident))
 
