@@ -73,7 +73,7 @@ class HoppOverKafkaFeilHandlerTest(
         clearMocks(personRepository)
         every { personRepository.findPersonByIdent(any()) } returns null
         every { personRepository.save(any<Person>()) } answers { firstArg() }
-        every { personRepository.save(match<Person> { it.ident == FEILER }) } throws RuntimeException("databasen er nede for $FØDSELSNUMMER")
+        every { personRepository.save(match<Person> { it.ident == FEILER }) } throws RuntimeException("databasen er nede for 1$FØDSELSNUMMER")
     }
 
     @AfterEach
@@ -91,7 +91,7 @@ class HoppOverKafkaFeilHandlerTest(
 
             val feiletMelding = feil().getValue(nøkkel)
             feiletMelding.feilkjede.joinToString().let {
-                it shouldContain "databasen er nede for ***********"
+                it shouldContain "databasen er nede for *"
                 it shouldNotContain FØDSELSNUMMER
             }
 
@@ -134,9 +134,9 @@ class HoppOverKafkaFeilHandlerTest(
     }
 
     @Test
-    fun `ukjent nøkkel gir 404`() {
-        kafkaErrorController.hoppOver("finnes-ikke-0-0").statusCode shouldBe HttpStatus.NOT_FOUND
-        kafkaErrorController.prøvIgjen("finnes-ikke-0-0").statusCode shouldBe HttpStatus.NOT_FOUND
+    fun `DELETE og retry gir 409 mens lytteren kjører`() {
+        kafkaErrorController.hoppOver("finnes-ikke-0-0").statusCode shouldBe HttpStatus.CONFLICT
+        kafkaErrorController.prøvIgjen("finnes-ikke-0-0").statusCode shouldBe HttpStatus.CONFLICT
     }
 
     // Venter til lytteren har stoppet helt, så DELETE og retry ikke starter den mens den stopper

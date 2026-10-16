@@ -43,18 +43,21 @@ class KafkaErrorController(
     @DeleteMapping("/{key}")
     @Operation(
         summary = "Hopp over en melding",
-        description = "Merker meldingen og starter lytteren. Lytteren committer offset + 1 for meldingen og leser neste."
+        description = "Merker meldingen og starter lytteren, som leser meldingen på nytt. Feiler den igjen, " +
+                "committer lytteren offset + 1 og leser neste. Går den gjennom, er den behandlet som vanlig."
     )
     @ApiResponses(
         value = [
             ApiResponse(responseCode = "200", description = "Meldingen hoppes over"),
-            ApiResponse(responseCode = "404", description = "Ingen feil med nøkkelen på denne poden")
+            ApiResponse(responseCode = "404", description = "Ingen feil med nøkkelen på denne poden"),
+            ApiResponse(responseCode = "409", description = "Lytteren har ikke stoppet ennå")
         ]
     )
     fun hoppOver(
         @Parameter(description = "Nøkkelen fra GET, på formen topic-partisjon-offset")
         @PathVariable key: String
     ): ResponseEntity<String> {
+        if (!lytterenHarStoppet()) return ikkeStoppet()
         if (!hoppOverKafkaFeilHandler.merkForÅHoppeOver(key)) return ikkeFunnet(key)
 
         log.warn { "Hopper over melding $key" }
@@ -69,21 +72,30 @@ class KafkaErrorController(
     @ApiResponses(
         value = [
             ApiResponse(responseCode = "200", description = "Lytteren leser meldingen igjen"),
-            ApiResponse(responseCode = "404", description = "Ingen feil med nøkkelen på denne poden")
+            ApiResponse(responseCode = "404", description = "Ingen feil med nøkkelen på denne poden"),
+            ApiResponse(responseCode = "409", description = "Lytteren har ikke stoppet ennå")
         ]
     )
     fun prøvIgjen(
         @Parameter(description = "Nøkkelen fra GET, på formen topic-partisjon-offset")
         @PathVariable key: String
     ): ResponseEntity<String> {
+        if (!lytterenHarStoppet()) return ikkeStoppet()
         if (!hoppOverKafkaFeilHandler.fjern(key)) return ikkeFunnet(key)
 
         log.info { "Prøver melding $key på nytt" }
         return ResponseEntity.ok("Meldingen $key prøves på nytt. ${startLytteren()}")
     }
 
+    // Feilen vises før lytteren har stoppet. Startes lytteren i det vinduet, stopper den rett etter, og feilen er borte.
+    private fun lytterenHarStoppet() =
+        !kafkaContainerMonitor.isKafkaContainerRunning() && !kafkaContainerMonitor.isKafkaContainerChildRunning()
+
     private fun startLytteren() =
         if (kafkaContainerMonitor.startKafkaContainerHvisStoppet()) "Lytteren er startet." else "Lytteren kjørte allerede."
+
+    private fun ikkeStoppet() =
+        ResponseEntity.status(HttpStatus.CONFLICT).body("Lytteren har ikke stoppet ennå på pod $podnavn. Prøv igjen om noen sekunder.")
 
     private fun ikkeFunnet(key: String) =
         ResponseEntity.status(HttpStatus.NOT_FOUND).body("Ingen feil med nøkkel $key på pod $podnavn")

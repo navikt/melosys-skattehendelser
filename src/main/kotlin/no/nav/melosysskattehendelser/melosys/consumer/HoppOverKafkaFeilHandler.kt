@@ -16,8 +16,8 @@ private val log = KotlinLogging.logger { }
 
 /**
  * Stopper lytteren ved feil, som [CommonContainerStoppingErrorHandler], og husker meldingen som feilet.
- * En melding som er merket med [merkForÅHoppeOver], hoppes over neste gang lytteren leser den:
- * offset + 1 committes, og lytteren fortsetter.
+ * Lytteren leser en melding som er merket med [merkForÅHoppeOver], på nytt når den starter. Feiler meldingen
+ * igjen, committes offset + 1, og lytteren fortsetter med neste. Går den gjennom, er den behandlet som vanlig.
  *
  * Lagrer ikke innholdet i meldingen, bare hvor den ligger og feilkjeden.
  */
@@ -37,7 +37,10 @@ class HoppOverKafkaFeilHandler : CommonContainerStoppingErrorHandler() {
     }
 
     /** Gir false når ingen melding med nøkkelen har feilet. */
-    fun fjern(nøkkel: String): Boolean = feiledeMeldinger.remove(nøkkel) != null
+    fun fjern(nøkkel: String): Boolean {
+        skalHoppesOver.remove(nøkkel)
+        return feiledeMeldinger.remove(nøkkel) != null
+    }
 
     override fun handleRemaining(
         thrownException: Exception,
@@ -113,7 +116,8 @@ class HoppOverKafkaFeilHandler : CommonContainerStoppingErrorHandler() {
             .map { "${it.javaClass.simpleName}: ${it.message?.let(::maskerFødselsnummer)}" }
             .toList()
 
-    // Feilmeldinger kan sitere meldingen, og endepunktet skal aldri gi ut fødselsnummer
+    // Feilmeldinger kan sitere meldingen, og endepunktet skal aldri gi ut fødselsnummer.
+    // Maskerer alle tall på 11 siffer eller mer, også når fødselsnummeret står inntil et annet tall.
     private fun maskerFødselsnummer(tekst: String) = ELLEVE_SIFFER.replace(tekst, "***********")
 
     data class FeiletMelding(
@@ -126,7 +130,7 @@ class HoppOverKafkaFeilHandler : CommonContainerStoppingErrorHandler() {
 
     companion object {
         private const val MAKS_FEILKJEDE = 10
-        private val ELLEVE_SIFFER = Regex("""(?<!\d)\d{11}(?!\d)""")
+        private val ELLEVE_SIFFER = Regex("""\d{11,}""")
 
         fun nøkkel(topicPartition: TopicPartition, offset: Long) =
             "${topicPartition.topic()}-${topicPartition.partition()}-$offset"
