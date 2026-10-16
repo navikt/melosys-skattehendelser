@@ -44,7 +44,6 @@ object dependencyVersions {
     const val tokenSupport = "6.0.11"
     const val shedlockVersion = "7.7.0"
     const val shedlockProvicerJdbcVersion = "7.7.0"
-    const val janino = "3.1.12"
     const val micrometerVersion = "1.17.0"
     const val micrometerJvmExtrasVersion = "0.3.0"
     const val springdocVersion = "3.1.0"
@@ -81,7 +80,6 @@ dependencies {
     implementation("no.nav.security:token-client-spring:${dependencyVersions.tokenSupport}")
     implementation("net.javacrumbs.shedlock:shedlock-spring:${dependencyVersions.shedlockVersion}")
     implementation("net.javacrumbs.shedlock:shedlock-provider-jdbc-template:${dependencyVersions.shedlockProvicerJdbcVersion}")
-    implementation("org.codehaus.janino:janino:${dependencyVersions.janino}")
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:${dependencyVersions.springdocVersion}")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
