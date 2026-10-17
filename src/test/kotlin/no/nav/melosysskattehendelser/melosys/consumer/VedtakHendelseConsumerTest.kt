@@ -46,12 +46,40 @@ class VedtakHendelseConsumerTest(
 ) : PostgresTestContainerBase() {
 
     private val ident = "456789123"
+    private val annenIdent = "321987654"
 
     @AfterEach
     fun tearDown() {
-        personRepository.findPersonByIdent(ident)?.let {
-            personRepository.delete(it)
+        listOf(ident, annenIdent).forEach { ident ->
+            personRepository.findPersonByIdent(ident)?.let {
+                personRepository.delete(it)
+            }
         }
+    }
+
+    @Test
+    fun `skal lagre én periode når meldingen har to like perioder, og lese neste melding`() {
+        val likPeriode = Periode(
+            fom = LocalDate.of(2024, 1, 1),
+            tom = LocalDate.of(2024, 12, 31),
+            innvilgelsesResultat = InnvilgelsesResultat.INNVILGET
+        )
+
+        kafkaOffsetChecker.offsetIncreased {
+            kafkaTemplate.send(topic, vedtakHendelseMelding(listOf(likPeriode, likPeriode)))
+            kafkaTemplate.send(topic, vedtakHendelseMelding(listOf(likPeriode), annenIdent))
+
+            await.timeout(10, TimeUnit.SECONDS)
+                .untilAsserted {
+                    personRepository.findPersonByIdent(annenIdent)
+                        .shouldNotBeNull()
+                        .perioder.shouldHaveSize(1)
+                }
+
+            personRepository.findPersonByIdent(ident)
+                .shouldNotBeNull()
+                .perioder.shouldHaveSize(1)
+        }.shouldBe(2)
     }
 
     @Test
@@ -366,12 +394,13 @@ class VedtakHendelseConsumerTest(
     }
 
     private fun vedtakHendelseMelding(
-        perioder: List<no.nav.melosysskattehendelser.melosys.consumer.Periode>
+        perioder: List<no.nav.melosysskattehendelser.melosys.consumer.Periode>,
+        folkeregisterIdent: String = ident
     ) = """
     {
         "melding": {
             "type": "VedtakHendelseMelding",
-            "folkeregisterIdent": "$ident",
+            "folkeregisterIdent": "$folkeregisterIdent",
             "sakstype": "FTRL",
             "sakstema": "MEDLEMSKAP_LOVVALG",
             "behandligsresultatType": "MEDLEM_I_FOLKETRYGDEN",
