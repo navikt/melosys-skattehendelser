@@ -33,6 +33,7 @@ import java.util.concurrent.TimeUnit
         JacksonAutoConfiguration::class,
         KafkaAutoConfiguration::class,
         KafkaConfig::class,
+        HoppOverKafkaFeilHandler::class,
         KafkaTestProducer::class,
         KafkaOffsetChecker::class,
         VedtakHendelseConsumer::class,

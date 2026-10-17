@@ -19,14 +19,14 @@ class KafkaOffsetChecker(
         )
     ).apply { assign(listOf(topicPartition)) }
 
-    private fun getCommittedOffset(): Long {
+    fun committedOffset(): Long {
         val offsetAndMetadata = consumer.committed(setOf(topicPartition))[topicPartition]
         return offsetAndMetadata?.offset() ?: 0
     }
 
     fun offsetIncreased(block: () -> Unit) : Long {
-        val initialOffset = getCommittedOffset()
+        val initialOffset = committedOffset()
         block()
-        return getCommittedOffset() - initialOffset
+        return committedOffset() - initialOffset
     }
 }
