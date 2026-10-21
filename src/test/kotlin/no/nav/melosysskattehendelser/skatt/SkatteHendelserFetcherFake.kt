@@ -9,6 +9,7 @@ class SkatteHendelserFetcherFake : SkatteHendelserFetcher {
     var høyesteUtgitt: Long? = null
         private set
     var vedUtgivelse: (Hendelse) -> Unit = {}
+    var vedSlutt: () -> Unit = {}
 
     fun reset() = apply {
         hendelser.clear()
@@ -16,6 +17,7 @@ class SkatteHendelserFetcherFake : SkatteHendelserFetcher {
         sekvensnummerForDato = 1L
         høyesteUtgitt = null
         vedUtgivelse = {}
+        vedSlutt = {}
     }
 
     override fun hentHendelser(
@@ -31,6 +33,7 @@ class SkatteHendelserFetcherFake : SkatteHendelserFetcher {
             }
             batchDone(batch.last().sekvensnummer + 1)
         }
+        vedSlutt()
     }
 
     override val consumerId: String

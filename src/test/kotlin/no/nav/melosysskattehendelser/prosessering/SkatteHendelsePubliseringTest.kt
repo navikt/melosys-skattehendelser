@@ -1,5 +1,6 @@
 package no.nav.melosysskattehendelser.prosessering
 
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.collections.shouldHaveSize
@@ -474,6 +475,45 @@ open class SkatteHendelsePubliseringTest {
             get("publisert") shouldBe 1
             get("duplikater") shouldBe 1
         }
+    }
+
+    @Test
+    fun `omlesing skriver startpunktet i fremdriftsraden før første hendelse`() {
+        skatteHendelserStatusRepository.save(SkatteHendelserSekvens("fake", 10))
+        skatteHendelserStatusRepository.save(SkatteHendelserSekvens("fake-omlesing", 99))
+        skatteHendelserFetcher.leggTilHendelseMedGjelderPeriode("2022", sekvensnummer = 5)
+        skatteHendelserFetcher.vedUtgivelse = { skatteHendelsePublisering.stopProsesseringAvSkattHendelser() }
+
+
+        skatteHendelsePublisering.prosesserSkattHendelser(SkatteHendelsePubliseringOptions(fraSekvensnummer = 5))
+
+
+        skatteHendelserStatusRepository.findById("fake-omlesing").get().sekvensnummer shouldBe 5
+    }
+
+    @Test
+    fun `omlesing som når markøren regnes som ferdig selv om stop kommer etterpå`() {
+        skatteHendelserStatusRepository.save(SkatteHendelserSekvens("fake", 10))
+        pensjonsgivendeInntektConsumer.leggTilPensjonsgivendeInntekt(inntektsaar = "2022")
+        skatteHendelserFetcher.leggTilHendelseMedGjelderPeriode("2022", sekvensnummer = 5)
+        skatteHendelserFetcher.vedSlutt = { skatteHendelsePublisering.stopProsesseringAvSkattHendelser() }
+
+
+        skatteHendelsePublisering.prosesserSkattHendelser(SkatteHendelsePubliseringOptions(fraSekvensnummer = 5))
+
+
+        skatteHendelserStatusRepository.findById("fake-omlesing").get().sekvensnummer shouldBe 10
+    }
+
+    @Test
+    fun `omlesing uten lagret markør feiler`() {
+        skatteHendelserFetcher.leggTilHendelseMedGjelderPeriode("2022", sekvensnummer = 5)
+
+
+        shouldThrow<IllegalStateException> {
+            skatteHendelsePublisering.prosesserSkattHendelser(SkatteHendelsePubliseringOptions(fraSekvensnummer = 5))
+        }.message shouldBe "Omlesing krever lagret sekvensnummer for fake"
+        skattehendelserProducer.hendelser.shouldBeEmpty()
     }
 
     private fun SkatteHendelserFetcherFake.leggTilHendelseMedGjelderPeriode(

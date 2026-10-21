@@ -58,7 +58,11 @@ class SkatteHendelsePublisering(
         val markør = if (options.erOmlesing()) hentMarkør() else null
         val statusId = if (markør != null) skatteHendelserFetcher.omlesingConsumerId else skatteHendelserFetcher.consumerId
         val start = hentStartSekvensNummer(options)
-        if (markør != null) log.info { "Omlesing fra sekvensnummer $start til markøren $markør" }
+        if (markør != null) {
+            log.info { "Omlesing fra sekvensnummer $start til markøren $markør" }
+            oppdaterStatus(statusId, start)
+        }
+        var stoppetAvOperatør = false
 
         skatteHendelserFetcher.hentHendelser(
             startSeksvensnummer = start,
@@ -67,7 +71,7 @@ class SkatteHendelsePublisering(
                 antallBatcher = stats.antallBatcher
                 sisteBatchSize = stats.sisteBatchSize
             }
-        ).takeWhile { !jobMonitor.shouldStop }.takeWhile { markør == null || it.sekvensnummer < markør }.forEach { hendelse ->
+        ).takeWhile { !jobMonitor.shouldStop.also { stoppetAvOperatør = it } }.takeWhile { markør == null || it.sekvensnummer < markør }.forEach { hendelse ->
             totaltAntallHendelser++
             metrikker.hendelseHentet()
             personFinder.findPersonByIdent(hendelse)?.also { person ->
@@ -90,7 +94,7 @@ class SkatteHendelsePublisering(
         }
 
         if (markør != null) {
-            if (jobMonitor.shouldStop) {
+            if (stoppetAvOperatør) {
                 log.info { "Omlesingen stoppet før markøren $markør, siste sekvensnummer $sisteSekvensnummer" }
             } else {
                 log.info { "Omlesingen stoppet ved markøren $markør, siste sekvensnummer $sisteSekvensnummer" }
