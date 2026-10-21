@@ -58,8 +58,14 @@ class SkatteHendelserFetcherAPI(
     override val consumerId
         get() = skatteHendelseConsumer.getConsumerId()
 
+    override val omlesingConsumerId
+        get() = skatteHendelseConsumer.getOmlesingConsumerId()
+
     override val startSekvensnummer: Long
-        get() = skatteHendelseConsumer.getStartSekvensnummer(startDato).also {
-            log.info { "Start sekvensnummer:$it fra $startDato hentet for ${skatteHendelseConsumer.getConsumerId()}" }
+        get() = startSekvensnummerFra(startDato)
+
+    override fun startSekvensnummerFra(dato: LocalDate): Long =
+        skatteHendelseConsumer.getStartSekvensnummer(dato).also {
+            log.info { "Start sekvensnummer:$it fra $dato hentet for ${skatteHendelseConsumer.getConsumerId()}" }
         }
 }

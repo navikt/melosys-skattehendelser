@@ -45,7 +45,7 @@ class AdminController(
     @ApiResponses(
         value = [
             ApiResponse(responseCode = "200", description = "Hendelseprosessering startet"),
-            ApiResponse(responseCode = "400", description = "Ugyldig bekreftelseskode"),
+            ApiResponse(responseCode = "400", description = "Ugyldig bekreftelseskode eller ugyldig fraDato/fraSekvensnummer"),
             ApiResponse(responseCode = "503", description = "Kafka container har stoppet")
         ]
     )
@@ -54,6 +54,7 @@ class AdminController(
         @RequestBody(required = false) options: SkatteHendelsePubliseringOptions =
             SkatteHendelsePubliseringOptions()
     ): ResponseEntity<String> {
+        options.valideringsfeil()?.let { return ResponseEntity.badRequest().body(it) }
         if (!jobConfirmationService.isValid(options.confirmationCode)) {
             val newToken = jobConfirmationService.generateToken()
             return ResponseEntity

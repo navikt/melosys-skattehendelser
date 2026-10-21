@@ -1,5 +1,7 @@
 package no.nav.melosysskattehendelser.skatt
 
+import java.time.LocalDate
+
 interface SkatteHendelserFetcher {
     fun hentHendelser(
         startSeksvensnummer: Long,
@@ -9,7 +11,11 @@ interface SkatteHendelserFetcher {
 
     val consumerId: String
 
+    val omlesingConsumerId: String
+
     val startSekvensnummer : Long
+
+    fun startSekvensnummerFra(dato: LocalDate): Long
 
     data class Stats(
         val totaltAntallHendelser: Int,

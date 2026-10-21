@@ -51,6 +51,7 @@ class JobMonitor<T : JobMonitor.Stats>(
             return
         }
         isRunning = true
+        shouldStop = false
         startedAt = LocalDateTime.now()
         stoppedAt = null
         errorCount = 0

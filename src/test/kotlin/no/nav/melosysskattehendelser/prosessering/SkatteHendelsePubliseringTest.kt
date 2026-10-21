@@ -1,6 +1,7 @@
 package no.nav.melosysskattehendelser.prosessering
 
 import io.kotest.matchers.collections.shouldBeEmpty
+import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import io.mockk.every
@@ -11,7 +12,9 @@ import no.nav.melosysskattehendelser.domain.Periode
 import no.nav.melosysskattehendelser.domain.Person
 import no.nav.melosysskattehendelser.domain.PersonRepository
 import no.nav.melosysskattehendelser.domain.PersonRepositoryFake
+import no.nav.melosysskattehendelser.LoggingTestUtils.withLogCapture
 import no.nav.melosysskattehendelser.domain.SekvensHistorikk
+import no.nav.melosysskattehendelser.domain.SkatteHendelserSekvens
 import no.nav.melosysskattehendelser.domain.SkatteHendelserStatusRepository
 import no.nav.melosysskattehendelser.domain.SkatteHendelserStatusRepositoryFake
 import no.nav.melosysskattehendelser.melosys.MelosysSkatteHendelse
@@ -386,6 +389,91 @@ open class SkatteHendelsePubliseringTest {
 
 
         skattehendelserProducer.hendelser.shouldBeEmpty()
+    }
+
+    @Test
+    fun `omlesing med fraDato starter på sekvensnummeret for datoen og ikke på markøren`() {
+        skatteHendelserStatusRepository.save(SkatteHendelserSekvens("fake", 10))
+        skatteHendelserFetcher.sekvensnummerForDato = 5
+        pensjonsgivendeInntektConsumer.leggTilPensjonsgivendeInntekt(inntektsaar = "2022")
+        skatteHendelserFetcher.leggTilHendelseMedGjelderPeriode("2022", sekvensnummer = 4)
+        skatteHendelserFetcher.leggTilHendelseMedGjelderPeriode("2022", sekvensnummer = 5)
+
+
+        skatteHendelsePublisering.prosesserSkattHendelser(
+            SkatteHendelsePubliseringOptions(fraDato = LocalDate.of(2025, 1, 1))
+        )
+
+
+        skattehendelserProducer.hendelser.shouldHaveSize(1)
+        personRepository.findAll().single().sekvensHistorikk.single().sekvensnummer shouldBe 5
+    }
+
+    @Test
+    fun `omlesing behandler ingen hendelse fra markøren og oppover og skriver ikke markøren`() {
+        skatteHendelserStatusRepository.save(SkatteHendelserSekvens("fake", 10))
+        skatteHendelserFetcher.batchSize = 1
+        pensjonsgivendeInntektConsumer.leggTilPensjonsgivendeInntekt(inntektsaar = "2022")
+        listOf(5L, 10L, 11L).forEach { skatteHendelserFetcher.leggTilHendelseMedGjelderPeriode("2022", it) }
+
+
+        val logg = withLogCapture { logEvents ->
+            skatteHendelsePublisering.prosesserSkattHendelser(SkatteHendelsePubliseringOptions(fraSekvensnummer = 5))
+            logEvents.map { it.formattedMessage }
+        }
+
+
+        skattehendelserProducer.hendelser.shouldHaveSize(1)
+        skatteHendelserFetcher.høyesteUtgitt shouldBe 10
+        skatteHendelserStatusRepository.findById("fake").get().sekvensnummer shouldBe 10
+        skatteHendelserStatusRepository.findById("fake-omlesing").get().sekvensnummer shouldBe 10
+        logg.shouldContain("Omlesingen stoppet ved markøren 10, siste sekvensnummer 6")
+    }
+
+    @Test
+    fun `omlesing stoppet med stop logger stoppet før markøren og lagrer fremdriften`() {
+        skatteHendelserStatusRepository.save(SkatteHendelserSekvens("fake", 10))
+        skatteHendelserFetcher.batchSize = 1
+        pensjonsgivendeInntektConsumer.leggTilPensjonsgivendeInntekt(inntektsaar = "2022")
+        listOf(5L, 6L).forEach { skatteHendelserFetcher.leggTilHendelseMedGjelderPeriode("2022", it) }
+        skatteHendelserFetcher.vedUtgivelse = {
+            if (it.sekvensnummer == 6L) skatteHendelsePublisering.stopProsesseringAvSkattHendelser()
+        }
+
+
+        val logg = withLogCapture { logEvents ->
+            skatteHendelsePublisering.prosesserSkattHendelser(SkatteHendelsePubliseringOptions(fraSekvensnummer = 5))
+            logEvents.map { it.formattedMessage }
+        }
+
+
+        skattehendelserProducer.hendelser.shouldHaveSize(1)
+        skatteHendelserStatusRepository.findById("fake").get().sekvensnummer shouldBe 10
+        skatteHendelserStatusRepository.findById("fake-omlesing").get().sekvensnummer shouldBe 6
+        logg.shouldContain("Omlesingen stoppet før markøren 10, siste sekvensnummer 6")
+    }
+
+    @Test
+    fun `omlesing publiserer for person uten historikk og teller hendelser personen har sett som duplikater`() {
+        skatteHendelserStatusRepository.save(SkatteHendelserSekvens("fake", 10))
+        pensjonsgivendeInntektConsumer.leggTilPensjonsgivendeInntekt(inntektsaar = "2022")
+        listOf(5L, 6L).forEach { skatteHendelserFetcher.leggTilHendelseMedGjelderPeriode("2022", it) }
+        personRepository.findAll().single().let { person ->
+            person.sekvensHistorikk.add(SekvensHistorikk(sekvensnummer = 6, antall = 0, person = person))
+            personRepository.save(person)
+        }
+
+
+        skatteHendelsePublisering.prosesserSkattHendelser(
+            SkatteHendelsePubliseringOptions(fraDato = LocalDate.of(2025, 1, 1))
+        )
+
+
+        skattehendelserProducer.hendelser.shouldHaveSize(1)
+        skatteHendelsePublisering.status("", false).run {
+            get("publisert") shouldBe 1
+            get("duplikater") shouldBe 1
+        }
     }
 
     private fun SkatteHendelserFetcherFake.leggTilHendelseMedGjelderPeriode(

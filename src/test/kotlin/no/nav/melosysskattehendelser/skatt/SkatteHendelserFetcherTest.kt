@@ -97,6 +97,7 @@ class SkatteHendelserFetcherTest {
         }.toList()
 
         override fun getConsumerId(): String = "test"
+        override fun getOmlesingConsumerId(): String = "test-omlesing"
         override fun getStartSekvensnummer(start: LocalDate): Long = 1
     }
 
