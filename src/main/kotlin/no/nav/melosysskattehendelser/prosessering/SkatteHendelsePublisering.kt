@@ -71,7 +71,7 @@ class SkatteHendelsePublisering(
                 antallBatcher = stats.antallBatcher
                 sisteBatchSize = stats.sisteBatchSize
             }
-        ).takeWhile { !jobMonitor.shouldStop.also { stoppetAvOperatør = it } }.takeWhile { markør == null || it.sekvensnummer < markør }.forEach { hendelse ->
+        ).takeWhile { markør == null || it.sekvensnummer < markør }.takeWhile { !jobMonitor.shouldStop.also { stoppetAvOperatør = it } }.forEach { hendelse ->
             totaltAntallHendelser++
             metrikker.hendelseHentet()
             personFinder.findPersonByIdent(hendelse)?.also { person ->

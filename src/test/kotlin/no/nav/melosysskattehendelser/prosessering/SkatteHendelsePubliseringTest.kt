@@ -506,6 +506,38 @@ open class SkatteHendelsePubliseringTest {
     }
 
     @Test
+    fun `omlesing som når markøren regnes som ferdig selv om stop kommer mens markørhendelsen hentes`() {
+        skatteHendelserStatusRepository.save(SkatteHendelserSekvens("fake", 10))
+        skatteHendelserFetcher.batchSize = 1
+        pensjonsgivendeInntektConsumer.leggTilPensjonsgivendeInntekt(inntektsaar = "2022")
+        listOf(5L, 10L).forEach { skatteHendelserFetcher.leggTilHendelseMedGjelderPeriode("2022", it) }
+        skatteHendelserFetcher.vedUtgivelse = {
+            if (it.sekvensnummer == 10L) skatteHendelsePublisering.stopProsesseringAvSkattHendelser()
+        }
+
+
+        skatteHendelsePublisering.prosesserSkattHendelser(SkatteHendelsePubliseringOptions(fraSekvensnummer = 5))
+
+
+        skatteHendelserStatusRepository.findById("fake-omlesing").get().sekvensnummer shouldBe 10
+    }
+
+    @Test
+    fun `omlesing uten hendelser fram til markøren skriver markøren`() {
+        skatteHendelserStatusRepository.save(SkatteHendelserSekvens("fake", 10))
+
+
+        val logg = withLogCapture { logEvents ->
+            skatteHendelsePublisering.prosesserSkattHendelser(SkatteHendelsePubliseringOptions(fraSekvensnummer = 5))
+            logEvents.map { it.formattedMessage }
+        }
+
+
+        skatteHendelserStatusRepository.findById("fake-omlesing").get().sekvensnummer shouldBe 10
+        logg.shouldContain("Omlesingen stoppet ved markøren 10, siste sekvensnummer 5")
+    }
+
+    @Test
     fun `omlesing uten lagret markør feiler`() {
         skatteHendelserFetcher.leggTilHendelseMedGjelderPeriode("2022", sekvensnummer = 5)
 
