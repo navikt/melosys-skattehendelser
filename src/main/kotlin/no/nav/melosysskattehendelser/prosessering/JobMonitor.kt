@@ -115,6 +115,6 @@ class JobMonitor<T : JobMonitor.Stats>(
 
     interface Stats {
         fun reset()
-        fun asMap(): Map<String, Any>
+        fun asMap(): Map<String, Any?>
     }
 }
