@@ -548,9 +548,51 @@ open class SkatteHendelsePubliseringTest {
         skattehendelserProducer.hendelser.shouldBeEmpty()
     }
 
+    @Test
+    fun `status viser registreringstidspunkt for første og siste leste hendelse`() {
+        skatteHendelserFetcher.leggTilHendelseMedGjelderPeriode("2030", sekvensnummer = 1, registreringstidspunkt = "2025-06-01T10:00:00")
+        skatteHendelserFetcher.leggTilHendelseMedGjelderPeriode("2030", sekvensnummer = 2, registreringstidspunkt = "2025-07-15T12:30:00")
+        skatteHendelserFetcher.leggTilHendelseMedGjelderPeriode("2030", sekvensnummer = 3, registreringstidspunkt = null)
+
+
+        skatteHendelsePublisering.prosesserSkattHendelser()
+
+
+        skatteHendelsePublisering.status("", false).run {
+            get("startSekvensnummer") shouldBe 1L
+            get("førsteRegistreringstidspunkt") shouldBe "2025-06-01T10:00:00"
+            get("sisteRegistreringstidspunkt") shouldBe "2025-07-15T12:30:00"
+            get("markør") shouldBe null
+            get("omlesingFremdriftProsent") shouldBe null
+        }
+    }
+
+    @Test
+    fun `status viser fremdrift i prosent mot markøren når omlesingen stoppes underveis`() {
+        skatteHendelserStatusRepository.save(SkatteHendelserSekvens("fake", 10))
+        skatteHendelserFetcher.batchSize = 1
+        pensjonsgivendeInntektConsumer.leggTilPensjonsgivendeInntekt(inntektsaar = "2022")
+        listOf(5L, 6L).forEach { skatteHendelserFetcher.leggTilHendelseMedGjelderPeriode("2022", it) }
+        skatteHendelserFetcher.vedUtgivelse = {
+            if (it.sekvensnummer == 6L) skatteHendelsePublisering.stopProsesseringAvSkattHendelser()
+        }
+
+
+        skatteHendelsePublisering.prosesserSkattHendelser(SkatteHendelsePubliseringOptions(fraSekvensnummer = 5))
+
+
+        skatteHendelsePublisering.status("", false).run {
+            get("startSekvensnummer") shouldBe 5L
+            get("markør") shouldBe 10L
+            get("sisteSekvensnummer") shouldBe 6L
+            get("omlesingFremdriftProsent") shouldBe 20
+        }
+    }
+
     private fun SkatteHendelserFetcherFake.leggTilHendelseMedGjelderPeriode(
         gjelderPeriode: String,
-        sekvensnummer: Long = 1
+        sekvensnummer: Long = 1,
+        registreringstidspunkt: String? = null
     ) {
         hendelser.add(
             Hendelse(
@@ -558,7 +600,8 @@ open class SkatteHendelsePubliseringTest {
                 identifikator = "123",
                 sekvensnummer = sekvensnummer,
                 somAktoerid = false,
-                hendelsetype = "ny"
+                hendelsetype = "ny",
+                registreringstidspunkt = registreringstidspunkt
             )
         )
     }

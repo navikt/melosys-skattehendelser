@@ -58,6 +58,8 @@ class SkatteHendelsePublisering(
         val markør = if (options.erOmlesing()) hentMarkør() else null
         val statusId = if (markør != null) skatteHendelserFetcher.omlesingConsumerId else skatteHendelserFetcher.consumerId
         val start = hentStartSekvensNummer(options)
+        startSekvensnummer = start
+        this.markør = markør
         if (markør != null) {
             log.info { "Omlesing fra sekvensnummer $start til markøren $markør" }
             oppdaterStatus(statusId, start)
@@ -73,6 +75,7 @@ class SkatteHendelsePublisering(
             }
         ).takeWhile { markør == null || it.sekvensnummer < markør }.takeWhile { !jobMonitor.shouldStop.also { stoppetAvOperatør = it } }.forEach { hendelse ->
             totaltAntallHendelser++
+            registrerHendelseTid(hendelse.registreringstidspunkt)
             metrikker.hendelseHentet()
             personFinder.findPersonByIdent(hendelse)?.also { person ->
                 metrikker.personFunnet()
