@@ -94,6 +94,7 @@ class SkatteHendelsePublisering(
                 personRepository.save(person)
                 oppdaterStatus(statusId, hendelse.sekvensnummer + 1)
             }
+            sisteLesteSekvensnummer = hendelse.sekvensnummer + 1
         }
 
         if (markør != null) {

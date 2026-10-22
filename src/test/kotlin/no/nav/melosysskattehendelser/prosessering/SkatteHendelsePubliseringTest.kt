@@ -429,6 +429,7 @@ open class SkatteHendelsePubliseringTest {
         skatteHendelserStatusRepository.findById("fake").get().sekvensnummer shouldBe 10
         skatteHendelserStatusRepository.findById("fake-omlesing").get().sekvensnummer shouldBe 10
         logg.shouldContain("Omlesingen stoppet ved markøren 10, siste sekvensnummer 6")
+        skatteHendelsePublisering.status("", false)["omlesingFremdriftProsent"] shouldBe 100
     }
 
     @Test
@@ -587,6 +588,21 @@ open class SkatteHendelsePubliseringTest {
             get("sisteSekvensnummer") shouldBe 6L
             get("omlesingFremdriftProsent") shouldBe 20
         }
+    }
+
+    @Test
+    fun `status viser fremdrift mot markøren for hver leste hendelse, ikke bare per batch`() {
+        skatteHendelserStatusRepository.save(SkatteHendelserSekvens("fake", 10))
+        listOf(5L, 6L, 7L).forEach { skatteHendelserFetcher.leggTilHendelseMedGjelderPeriode("2030", it) }
+        skatteHendelserFetcher.vedUtgivelse = {
+            if (it.sekvensnummer == 7L) skatteHendelsePublisering.stopProsesseringAvSkattHendelser()
+        }
+
+
+        skatteHendelsePublisering.prosesserSkattHendelser(SkatteHendelsePubliseringOptions(fraSekvensnummer = 5))
+
+
+        skatteHendelsePublisering.status("", false)["omlesingFremdriftProsent"] shouldBe 40
     }
 
     private fun SkatteHendelserFetcherFake.leggTilHendelseMedGjelderPeriode(

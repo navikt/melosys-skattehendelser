@@ -5,6 +5,7 @@ data class SkatteHendelsePubliseringStats(
     @Volatile var personerFunnet: Int = 0,
     @Volatile var startSekvensnummer: Long? = null,
     @Volatile var sisteSekvensnummer: Long = 0,
+    @Volatile var sisteLesteSekvensnummer: Long = 0,
     @Volatile var markør: Long? = null,
     @Volatile var førsteRegistreringstidspunkt: String? = null,
     @Volatile var sisteRegistreringstidspunkt: String? = null,
@@ -21,6 +22,7 @@ data class SkatteHendelsePubliseringStats(
         personerFunnet = 0
         startSekvensnummer = null
         sisteSekvensnummer = 0
+        sisteLesteSekvensnummer = 0
         markør = null
         førsteRegistreringstidspunkt = null
         sisteRegistreringstidspunkt = null
@@ -41,7 +43,8 @@ data class SkatteHendelsePubliseringStats(
         val start = startSekvensnummer ?: return null
         val slutt = markør ?: return null
         if (slutt <= start) return 100
-        return ((sisteSekvensnummer - start) * 100 / (slutt - start)).toInt().coerceIn(0, 100)
+        val lest = maxOf(sisteSekvensnummer, sisteLesteSekvensnummer)
+        return ((lest - start) * 100 / (slutt - start)).toInt().coerceIn(0, 100)
     }
 
     override fun asMap(): Map<String, Any?> {
