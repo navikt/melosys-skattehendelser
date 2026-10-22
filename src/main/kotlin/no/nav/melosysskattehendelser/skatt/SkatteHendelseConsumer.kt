@@ -9,6 +9,7 @@ import java.time.Year
 interface SkatteHendelseConsumer {
     fun hentHendelseListe(request: HendelseRequest): List<Hendelse>
     fun getConsumerId(): String
+    fun getOmlesingConsumerId(): String
     fun getStartSekvensnummer(start: LocalDate): Long
 }
 

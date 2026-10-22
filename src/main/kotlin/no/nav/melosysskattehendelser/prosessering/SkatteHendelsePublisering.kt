@@ -55,33 +55,50 @@ class SkatteHendelsePublisering(
         options: SkatteHendelsePubliseringOptions = SkatteHendelsePubliseringOptions()
     ) = jobMonitor.execute {
         val personFinder = finderFromOptions(options)
-        val start = hentStartSekvensNummer()
+        val markør = if (options.erOmlesing()) hentMarkør() else null
+        val statusId = if (markør != null) skatteHendelserFetcher.omlesingConsumerId else skatteHendelserFetcher.consumerId
+        val start = hentStartSekvensNummer(options)
+        if (markør != null) {
+            log.info { "Omlesing fra sekvensnummer $start til markøren $markør" }
+            oppdaterStatus(statusId, start)
+        }
+        var stoppetAvOperatør = false
 
         skatteHendelserFetcher.hentHendelser(
             startSeksvensnummer = start,
-            batchDone = ::oppdaterStatus,
+            batchDone = { oppdaterStatus(statusId, it) },
             reportStats = { stats ->
                 antallBatcher = stats.antallBatcher
                 sisteBatchSize = stats.sisteBatchSize
             }
-        ).takeWhile { !jobMonitor.shouldStop }.forEach { hendelse ->
+        ).takeWhile { markør == null || it.sekvensnummer < markør }.takeWhile { !jobMonitor.shouldStop.also { stoppetAvOperatør = it } }.forEach { hendelse ->
             totaltAntallHendelser++
             metrikker.hendelseHentet()
             personFinder.findPersonByIdent(hendelse)?.also { person ->
                 metrikker.personFunnet()
                 personerFunnet++
 
-                log.info { "Fant person ${person.ident} for sekvensnummer ${hendelse.sekvensnummer}" }
+                log.info { "Fant person ${person.id} for sekvensnummer ${hendelse.sekvensnummer}" }
 
                 val sekvensHistorikk = person.hentEllerLagSekvensHistorikk(hendelse.sekvensnummer)
                 if (sekvensHistorikk.erNyHendelse()) {
                     sjekkInntektOgPubliserOmNy(hendelse, person)
                 } else {
                     metrikker.duplikatHendelse()
-                    log.warn { "Hendelse med ${hendelse.sekvensnummer} er allerede kjørt ${sekvensHistorikk.antall} ganger for person ${person.ident}" }
+                    duplikater++
+                    log.warn { "Hendelse med ${hendelse.sekvensnummer} er allerede kjørt ${sekvensHistorikk.antall} ganger for person ${person.id}" }
                 }
                 personRepository.save(person)
-                oppdaterStatus(hendelse.sekvensnummer + 1)
+                oppdaterStatus(statusId, hendelse.sekvensnummer + 1)
+            }
+        }
+
+        if (markør != null) {
+            if (stoppetAvOperatør) {
+                log.info { "Omlesingen stoppet før markøren $markør, siste sekvensnummer $sisteSekvensnummer" }
+            } else {
+                log.info { "Omlesingen stoppet ved markøren $markør, siste sekvensnummer $sisteSekvensnummer" }
+                oppdaterStatus(statusId, markør)
             }
         }
     }
@@ -92,10 +109,11 @@ class SkatteHendelsePublisering(
             log.warn { "inntektsaar ${inntekt.inntektsaar} er ikke lik hendelse.gjelderPeriode ${hendelse.gjelderPeriode}" }
         }
         val periode = person.perioder.find { it.harTreff(hendelse.gjelderPeriodeSomÅr()) }
-            ?: throw IllegalArgumentException("Fant ikke periode for ${hendelse.gjelderPeriodeSomÅr()} for person ${person.ident}")
+            ?: throw IllegalArgumentException("Fant ikke periode for ${hendelse.gjelderPeriodeSomÅr()} for person ${person.id}")
 
         if (harNyInntekt(inntekt, periode)) {
             publiserMelding(hendelse, person)
+            jobMonitor.stats.publisert++
             periode.lagPubliseringsHistorikk(inntekt.inntektsaar, hendelse.sekvensnummer)
             periode.publiseringsHistorikk
                 .count { it.inntektÅr == inntekt.inntektsaar }
@@ -152,7 +170,17 @@ class SkatteHendelsePublisering(
             }
         }
 
-    private fun hentStartSekvensNummer(): Long {
+    private fun hentMarkør(): Long =
+        skatteHendelserStatusRepository.findById(skatteHendelserFetcher.consumerId).getOrNull()?.sekvensnummer
+            ?: error("Omlesing krever lagret sekvensnummer for ${skatteHendelserFetcher.consumerId}")
+
+    private fun hentStartSekvensNummer(options: SkatteHendelsePubliseringOptions): Long {
+        options.fraSekvensnummer?.let {
+            log.info { "Start sekvensnummer:$it fra fraSekvensnummer" }
+            return it
+        }
+        options.fraDato?.let { return skatteHendelserFetcher.startSekvensnummerFra(it) }
+
         val sekvensnummer = skatteHendelserStatusRepository.findById(skatteHendelserFetcher.consumerId)
             .getOrNull()?.sekvensnummer?.also { log.info { "Sekvensnummer:$it funnet i databasen" } }
 
@@ -184,11 +212,11 @@ class SkatteHendelsePublisering(
         return jobMonitor.status()
     }
 
-    private fun oppdaterStatus(sekvensnummer: Long) {
+    private fun oppdaterStatus(consumerId: String, sekvensnummer: Long) {
         jobMonitor.stats.sisteSekvensnummer = sekvensnummer
         skatteHendelserStatusRepository.save(
             SkatteHendelserSekvens(
-                skatteHendelserFetcher.consumerId,
+                consumerId,
                 sekvensnummer
             )
         )

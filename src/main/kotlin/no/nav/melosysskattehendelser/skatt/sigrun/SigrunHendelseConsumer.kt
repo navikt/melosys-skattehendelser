@@ -29,6 +29,8 @@ open class SigrunHendelseConsumer(
 
     override fun getConsumerId(): String = "sigrun-skatteoppgjoer-hendelser"
 
+    override fun getOmlesingConsumerId(): String = "sigrun-skatteoppgjoer-omlesing"
+
     override fun getStartSekvensnummer(start: LocalDate): Long = hentStartSekvensnummer(start).sekvensnummer
 
     private fun hentStartSekvensnummer(start: LocalDate): StartSekvensnummer =

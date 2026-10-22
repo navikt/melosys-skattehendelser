@@ -7,6 +7,8 @@ data class SkatteHendelsePubliseringStats(
     @Volatile var antallBatcher: Int = 0,
     @Volatile var sisteBatchSize: Int = 0,
     @Volatile var personCacheSize: Int = 0,
+    @Volatile var publisert: Int = 0,
+    @Volatile var duplikater: Int = 0,
     var periodeFilter: String? = "2024",
     var kunIdentMatch: Boolean = false,
 ) : JobMonitor.Stats {
@@ -17,6 +19,8 @@ data class SkatteHendelsePubliseringStats(
         antallBatcher = 0
         sisteBatchSize = 0
         personCacheSize = 0
+        publisert = 0
+        duplikater = 0
     }
 
     override fun asMap(): Map<String, Any> {
@@ -27,6 +31,8 @@ data class SkatteHendelsePubliseringStats(
             "sisteSekvensnummer" to sisteSekvensnummer,
             "antallBatcher" to antallBatcher,
             "sisteBatchSize" to sisteBatchSize,
+            "publisert" to publisert,
+            "duplikater" to duplikater,
         )
     }
 }
