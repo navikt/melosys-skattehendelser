@@ -42,6 +42,7 @@ class AdminControllerTest {
 
 
         respons.statusCode shouldBe HttpStatus.OK
+        respons.body shouldBe "Melding publisert for person 7, gjelderPeriode 2025"
         skattehendelserProducer.hendelser.single() shouldBe MelosysSkatteHendelse("2025", "12345678901", "ny")
         skattehendelserProducer.personIder.single() shouldBe 7L
     }
