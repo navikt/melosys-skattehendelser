@@ -20,8 +20,9 @@ class SkattehendelserProducerKafka(
         log.info { "dryRunPublisering er satt til $dryRunPublisering" }
     }
 
-    override fun publiserMelding(hendelse: MelosysSkatteHendelse) {
-        val hendelseRecord = ProducerRecord<String, MelosysSkatteHendelse>(topicName, hendelse)
+    override fun publiserMelding(hendelse: MelosysSkatteHendelse, personId: Long?) {
+        // Person-id som nøkkel lar melosys-api logge hvem meldingen gjelder uten fødselsnummer.
+        val hendelseRecord = ProducerRecord<String, MelosysSkatteHendelse>(topicName, personId?.toString(), hendelse)
 
         try {
             if (dryRunPublisering) {

@@ -193,7 +193,7 @@ class SkatteHendelsePublisering(
 
     private fun publiserMelding(hendelse: Hendelse, person: Person) {
         try {
-            skattehendelserProducer.publiserMelding(hendelse.toMelosysSkatteHendelse())
+            skattehendelserProducer.publiserMelding(hendelse.toMelosysSkatteHendelse(), person.id)
             metrikker.hendelsePublisert()
         } catch (e: Exception) {
             metrikker.publiseringFeilet()

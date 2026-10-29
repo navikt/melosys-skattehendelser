@@ -146,8 +146,42 @@ class AdminController(
         @RequestBody melosysSkatteHendelse: MelosysSkatteHendelse
     ): ResponseEntity<String> {
         log.info { "publiserer melding til kafka: $melosysSkatteHendelse" }
-        skattehendelserProducer.publiserMelding(melosysSkatteHendelse)
+        skattehendelserProducer.publiserMelding(melosysSkatteHendelse, null)
         return ResponseEntity.ok("Melding publisert")
+    }
+
+    @PostMapping("/kafka/person/{id}")
+    @Operation(
+        summary = "Publiser Kafka-melding for en person",
+        description = "Publiserer en skattehendelse for personen og året til melosys-api, med person-id som nøkkel. " +
+                "Henter ikke inntekt fra Sigrun og skriver ikke i publiseringshistorikken. " +
+                "Melosys-api oppretter eller oppdaterer årsavregning som for en vanlig hendelse."
+    )
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "200", description = "Melding publisert"),
+            ApiResponse(responseCode = "400", description = "Ugyldig år, eller personen har ingen periode i året"),
+            ApiResponse(responseCode = "404", description = "Person ikke funnet")
+        ]
+    )
+    fun lagKafkaMeldingForPerson(
+        @Parameter(description = "Intern person-ID")
+        @PathVariable id: Long,
+        @Parameter(description = "Inntektsåret hendelsen gjelder, for eksempel 2025")
+        @RequestParam gjelderPeriode: String,
+        @Parameter(description = "Hendelsetypen i meldingen")
+        @RequestParam(defaultValue = "ny") hendelsetype: String
+    ): ResponseEntity<String> {
+        val år = gjelderPeriode.takeIf { it.matches(Regex("\\d{4}")) }?.toInt()
+            ?: return ResponseEntity.badRequest().body("gjelderPeriode må være et årstall")
+        val person = personRepository.findPersonById(id) ?: return ResponseEntity(HttpStatus.NOT_FOUND)
+        if (!person.harTreffIPeriode(år)) {
+            return ResponseEntity.badRequest().body("Person $id har ingen periode i $år")
+        }
+
+        log.info { "Publiserer melding til kafka for person $id, gjelderPeriode $gjelderPeriode, hendelsetype $hendelsetype" }
+        skattehendelserProducer.publiserMelding(MelosysSkatteHendelse(gjelderPeriode, person.ident, hendelsetype), person.id)
+        return ResponseEntity.ok("Melding publisert for person $id, gjelderPeriode $gjelderPeriode")
     }
 
     fun Person.toMap(): Map<String, Any?> = linkedMapOf(

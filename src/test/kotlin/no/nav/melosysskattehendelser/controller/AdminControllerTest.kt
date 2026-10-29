@@ -1,9 +1,15 @@
 package no.nav.melosysskattehendelser.controller
 
+import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.shouldBe
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import no.nav.melosysskattehendelser.domain.Periode
+import no.nav.melosysskattehendelser.domain.Person
+import no.nav.melosysskattehendelser.domain.PersonRepository
+import no.nav.melosysskattehendelser.melosys.MelosysSkatteHendelse
+import no.nav.melosysskattehendelser.melosys.producer.SkattehendelserProducerFake
 import no.nav.melosysskattehendelser.prosessering.JobConfirmationService
 import no.nav.melosysskattehendelser.prosessering.SkatteHendelsePubliseringOptions
 import org.junit.jupiter.api.Test
@@ -12,14 +18,68 @@ import java.time.LocalDate
 
 class AdminControllerTest {
     private val jobConfirmationService = mockk<JobConfirmationService>(relaxed = true)
+    private val personRepository = mockk<PersonRepository>()
+    private val skattehendelserProducer = SkattehendelserProducerFake()
     private val controller = AdminController(
         mockk(relaxed = true),
+        personRepository,
         mockk(relaxed = true),
         mockk(relaxed = true),
-        mockk(relaxed = true),
-        mockk(relaxed = true),
+        skattehendelserProducer,
         jobConfirmationService
     )
+
+    private fun personMedPeriode2025() = Person(id = 7, ident = "12345678901").apply {
+        perioder.add(Periode(person = this, fom = LocalDate.of(2025, 1, 1), tom = LocalDate.of(2025, 12, 31)))
+    }
+
+    @Test
+    fun `publiserer melding for person med person-id som nøkkel`() {
+        every { personRepository.findPersonById(7) } returns personMedPeriode2025()
+
+
+        val respons = controller.lagKafkaMeldingForPerson(7, "2025", "ny")
+
+
+        respons.statusCode shouldBe HttpStatus.OK
+        skattehendelserProducer.hendelser.single() shouldBe MelosysSkatteHendelse("2025", "12345678901", "ny")
+        skattehendelserProducer.personIder.single() shouldBe 7L
+    }
+
+    @Test
+    fun `ukjent person gir 404`() {
+        every { personRepository.findPersonById(7) } returns null
+
+
+        val respons = controller.lagKafkaMeldingForPerson(7, "2025", "ny")
+
+
+        respons.statusCode shouldBe HttpStatus.NOT_FOUND
+        skattehendelserProducer.hendelser.shouldBeEmpty()
+    }
+
+    @Test
+    fun `person uten periode i året gir 400`() {
+        every { personRepository.findPersonById(7) } returns personMedPeriode2025()
+
+
+        val respons = controller.lagKafkaMeldingForPerson(7, "2024", "ny")
+
+
+        respons.statusCode shouldBe HttpStatus.BAD_REQUEST
+        respons.body shouldBe "Person 7 har ingen periode i 2024"
+        skattehendelserProducer.hendelser.shouldBeEmpty()
+    }
+
+    @Test
+    fun `gjelderPeriode som ikke er et årstall gir 400`() {
+        val respons = controller.lagKafkaMeldingForPerson(7, "25", "ny")
+
+
+        respons.statusCode shouldBe HttpStatus.BAD_REQUEST
+        respons.body shouldBe "gjelderPeriode må være et årstall"
+        skattehendelserProducer.hendelser.shouldBeEmpty()
+    }
 
     @Test
     fun `fraDato og fraSekvensnummer sammen gir 400 før bekreftelseskoden`() {

@@ -3,6 +3,7 @@ package no.nav.melosysskattehendelser.melosys.producer
 import io.kotest.assertions.json.shouldEqualJson
 import io.kotest.matchers.booleans.shouldBeTrue
 import io.kotest.matchers.nulls.shouldNotBeNull
+import io.kotest.matchers.shouldBe
 import no.nav.melosysskattehendelser.PostgresTestContainerBase
 import no.nav.melosysskattehendelser.melosys.KafkaTestConsumer
 import no.nav.melosysskattehendelser.melosys.MelosysSkatteHendelse
@@ -38,7 +39,7 @@ class SkattehendelserProducerTest(
             "123456",
             "ny"
         )
-        skattehendelserProducer.publiserMelding(hendelse)
+        skattehendelserProducer.publiserMelding(hendelse, 42)
         kafkaTestConsumer.latch.await(10, TimeUnit.SECONDS)
             .shouldBeTrue()
         kafkaTestConsumer.payload
@@ -52,6 +53,6 @@ class SkattehendelserProducerTest(
                     }
                 """
             )
-
+        kafkaTestConsumer.key shouldBe "42"
     }
 }
