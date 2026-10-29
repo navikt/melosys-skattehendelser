@@ -1,6 +1,9 @@
 package no.nav.melosysskattehendelser.controller
 
 import io.kotest.matchers.collections.shouldBeEmpty
+import io.kotest.matchers.collections.shouldHaveSize
+import io.kotest.matchers.nulls.shouldBeNull
+import org.springframework.cache.concurrent.ConcurrentMapCacheManager
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldNotContain
 import no.nav.melosysskattehendelser.LoggingTestUtils
@@ -27,6 +30,7 @@ class AdminControllerTest {
     private val personRepository = mockk<PersonRepository>()
     private val skattehendelserProducer = SkattehendelserProducerFake()
     private val pensjonsgivendeInntektConsumer = mockk<PensjonsgivendeInntektConsumer>()
+    private val cacheManager = ConcurrentMapCacheManager("pensjonsgivendeInntekt")
     private val controller = AdminController(
         mockk(relaxed = true),
         personRepository,
@@ -35,6 +39,7 @@ class AdminControllerTest {
         skattehendelserProducer,
         jobConfirmationService,
         pensjonsgivendeInntektConsumer,
+        cacheManager,
     )
 
     private fun personMedPeriode2025() = Person(id = 7, ident = "12345678901").apply {
@@ -82,6 +87,56 @@ class AdminControllerTest {
         respons.statusCode shouldBe HttpStatus.OK
         respons.body shouldBe PensjonsgivendeInntektOppslag(7, "2025", funnet = true, ordninger = listOf(ordning))
         respons.body.toString() shouldNotContain "12345678901"
+    }
+
+    @Test
+    fun `oppslaget går utenom cachen nattjobben bruker`() {
+        every { personRepository.findPersonById(7) } returns personMedPeriode2025()
+        val cache = cacheManager.getCache("pensjonsgivendeInntekt")!!
+        var cacheVedKall: Any? = "ikke kalt"
+        every { pensjonsgivendeInntektConsumer.hentPensjonsgivendeInntekt(any()) } answers {
+            cacheVedKall = cache.get("12345678901-2025")
+            cache.put("12345678901-2025", "nytt svar")
+            PensjonsgivendeInntektResponse(slettet = true, norskPersonidentifikator = "12345678901", inntektsaar = "2025")
+        }
+        cache.put("12345678901-2025", "gammelt svar")
+
+
+        controller.hentPensjonsgivendeInntekt(7, "2025")
+
+
+        cacheVedKall.shouldBeNull()
+        cache.get("12345678901-2025").shouldBeNull()
+    }
+
+    @Test
+    fun `oppslaget sender inntektsåret videre til Sigrun`() {
+        every { personRepository.findPersonById(7) } returns personMedPeriode2025()
+        every { pensjonsgivendeInntektConsumer.hentPensjonsgivendeInntekt(any()) } returns PensjonsgivendeInntektResponse(
+            slettet = true, norskPersonidentifikator = "12345678901", inntektsaar = "2024"
+        )
+
+
+        controller.hentPensjonsgivendeInntekt(7, "2024")
+
+
+        verify { pensjonsgivendeInntektConsumer.hentPensjonsgivendeInntekt(PensjonsgivendeInntektRequest("2024", "12345678901")) }
+    }
+
+    @Test
+    fun `oppslaget logger ikke fødselsnummer`() {
+        every { personRepository.findPersonById(7) } returns personMedPeriode2025()
+        every { pensjonsgivendeInntektConsumer.hentPensjonsgivendeInntekt(any()) } returns PensjonsgivendeInntektResponse(
+            slettet = true, norskPersonidentifikator = "12345678901", inntektsaar = "2025"
+        )
+
+
+        LoggingTestUtils.withLogCapture { logg ->
+            controller.hentPensjonsgivendeInntekt(7, "2025")
+
+            logg.map { it.formattedMessage }.filter { it.contains("pensjonsgivende inntekt for person 7") }.shouldHaveSize(1)
+            logg.forEach { it.formattedMessage shouldNotContain "12345678901" }
+        }
     }
 
     @Test
