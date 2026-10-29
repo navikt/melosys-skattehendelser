@@ -2,6 +2,8 @@ package no.nav.melosysskattehendelser.controller
 
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldNotContain
+import no.nav.melosysskattehendelser.LoggingTestUtils
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -45,6 +47,16 @@ class AdminControllerTest {
         respons.body shouldBe "Melding publisert for person 7, gjelderPeriode 2025"
         skattehendelserProducer.hendelser.single() shouldBe MelosysSkatteHendelse("2025", "12345678901", "ny")
         skattehendelserProducer.personIder.single() shouldBe 7L
+    }
+
+    @Test
+    fun `publisering uten person logger ikke fødselsnummer`() {
+        LoggingTestUtils.withLogCapture { logg ->
+            controller.lagKafkaMelding(MelosysSkatteHendelse("2025", "12345678901", "ny"))
+
+            logg.forEach { it.formattedMessage shouldNotContain "12345678901" }
+        }
+        skattehendelserProducer.hendelser.single().identifikator shouldBe "12345678901"
     }
 
     @Test

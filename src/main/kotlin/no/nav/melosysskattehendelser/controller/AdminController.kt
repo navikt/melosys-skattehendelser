@@ -145,7 +145,7 @@ class AdminController(
         @Parameter(description = "Melosys skattehendelse å publisere")
         @RequestBody melosysSkatteHendelse: MelosysSkatteHendelse
     ): ResponseEntity<String> {
-        log.info { "publiserer melding til kafka: $melosysSkatteHendelse" }
+        log.info { "Publiserer melding til kafka, gjelderPeriode ${melosysSkatteHendelse.gjelderPeriode}, hendelsetype ${melosysSkatteHendelse.hendelsetype}" }
         skattehendelserProducer.publiserMelding(melosysSkatteHendelse, null)
         return ResponseEntity.ok("Melding publisert")
     }

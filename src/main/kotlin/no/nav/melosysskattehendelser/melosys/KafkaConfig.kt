@@ -24,6 +24,7 @@ import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory
 import org.springframework.kafka.core.DefaultKafkaProducerFactory
 import org.springframework.kafka.core.KafkaTemplate
+import org.springframework.kafka.support.LoggingProducerListener
 import org.springframework.kafka.core.ProducerFactory
 import org.springframework.kafka.listener.ContainerProperties
 import org.springframework.kafka.support.serializer.JacksonJsonDeserializer
@@ -45,7 +46,7 @@ class KafkaConfig(
         val config: Map<String, Any> = producerConfig()
         val producerFactory: ProducerFactory<String, MelosysSkatteHendelse> =
             DefaultKafkaProducerFactory(config, StringSerializer(), JacksonJsonSerializer(objectMapper))
-        return KafkaTemplate(producerFactory)
+        return skattehendelseKafkaTemplate(producerFactory)
     }
 
     @Bean
@@ -116,3 +117,9 @@ class KafkaConfig(
                     it.equals("test", ignoreCase = true)
         }
 }
+
+// Spring Kafka logger meldingen ved feilet sending, og meldingen inneholder fødselsnummeret.
+internal fun skattehendelseKafkaTemplate(producerFactory: ProducerFactory<String, MelosysSkatteHendelse>) =
+    KafkaTemplate(producerFactory).apply {
+        setProducerListener(LoggingProducerListener<String, MelosysSkatteHendelse>().apply { setIncludeContents(false) })
+    }
