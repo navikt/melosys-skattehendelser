@@ -105,6 +105,7 @@ open class SkatteHendelsePubliseringTest {
                 "ny"
             )
         )
+        skattehendelserProducer.personIder.single() shouldBe personRepository.findPersonByIdent("123")!!.id
     }
 
     @Test

@@ -13,11 +13,13 @@ class KafkaTestConsumer {
 
     var latch = CountDownLatch(1)
     var payload: String? = null
+    var key: String? = null
 
     @KafkaListener(topics = ["\${melosys.kafka.producer.topic}"])
     fun receive(consumerRecord: ConsumerRecord<*, *>) {
         log.info { "received payload='${consumerRecord}'" }
         payload = consumerRecord.value().toString()
+        key = consumerRecord.key()?.toString()
         latch.countDown()
     }
 

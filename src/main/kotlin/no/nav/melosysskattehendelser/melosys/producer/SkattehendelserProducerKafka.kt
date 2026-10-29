@@ -20,22 +20,25 @@ class SkattehendelserProducerKafka(
         log.info { "dryRunPublisering er satt til $dryRunPublisering" }
     }
 
-    override fun publiserMelding(hendelse: MelosysSkatteHendelse) {
-        val hendelseRecord = ProducerRecord<String, MelosysSkatteHendelse>(topicName, hendelse)
+    override fun publiserMelding(hendelse: MelosysSkatteHendelse, personId: Long?) {
+        // Person-id som nøkkel lar melosys-api logge hvem meldingen gjelder uten fødselsnummer.
+        val hendelseRecord = ProducerRecord<String, MelosysSkatteHendelse>(topicName, personId?.toString(), hendelse)
+        // Uten fødselsnummer: meldingene havner i loggen.
+        val beskrivelse = "person $personId, gjelderPeriode ${hendelse.gjelderPeriode}"
 
         try {
             if (dryRunPublisering) {
-                log.info { "Dry run: sending melding til topic $topicName med hendelse: $hendelse" }
+                log.info { "Dry run: sending melding til topic $topicName for $beskrivelse" }
                 return
             }
             kafkaTemplate.send(hendelseRecord)[15L, TimeUnit.SECONDS]
         } catch (e: InterruptedException) {
             Thread.currentThread().interrupt() // Restore interrupted state
-            throw RuntimeException("Avbrutt ved sending av melding for hendelse: $hendelse", e)
+            throw RuntimeException("Avbrutt ved sending av melding for $beskrivelse", e)
         } catch (e: ExecutionException) {
-            throw RuntimeException("Kunne ikke sende melding for hendelse: $hendelse", e.cause ?: e)
+            throw RuntimeException("Kunne ikke sende melding for $beskrivelse", e.cause ?: e)
         } catch (e: TimeoutException) {
-            throw RuntimeException("Timeout ved sending av melding for hendelse: $hendelse", e)
+            throw RuntimeException("Timeout ved sending av melding for $beskrivelse", e)
         }
     }
 }
