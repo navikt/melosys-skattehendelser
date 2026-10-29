@@ -13,6 +13,10 @@ import no.nav.melosysskattehendelser.domain.PersonRepository
 import no.nav.melosysskattehendelser.melosys.MelosysSkatteHendelse
 import no.nav.melosysskattehendelser.melosys.producer.SkattehendelserProducerFake
 import no.nav.melosysskattehendelser.prosessering.JobConfirmationService
+import no.nav.melosysskattehendelser.skatt.PensjonsgivendeInntekt
+import no.nav.melosysskattehendelser.skatt.PensjonsgivendeInntektConsumer
+import no.nav.melosysskattehendelser.skatt.PensjonsgivendeInntektRequest
+import no.nav.melosysskattehendelser.skatt.PensjonsgivendeInntektResponse
 import no.nav.melosysskattehendelser.prosessering.SkatteHendelsePubliseringOptions
 import org.junit.jupiter.api.Test
 import org.springframework.http.HttpStatus
@@ -22,13 +26,15 @@ class AdminControllerTest {
     private val jobConfirmationService = mockk<JobConfirmationService>(relaxed = true)
     private val personRepository = mockk<PersonRepository>()
     private val skattehendelserProducer = SkattehendelserProducerFake()
+    private val pensjonsgivendeInntektConsumer = mockk<PensjonsgivendeInntektConsumer>()
     private val controller = AdminController(
         mockk(relaxed = true),
         personRepository,
         mockk(relaxed = true),
         mockk(relaxed = true),
         skattehendelserProducer,
-        jobConfirmationService
+        jobConfirmationService,
+        pensjonsgivendeInntektConsumer,
     )
 
     private fun personMedPeriode2025() = Person(id = 7, ident = "12345678901").apply {
@@ -57,6 +63,60 @@ class AdminControllerTest {
             logg.forEach { it.formattedMessage shouldNotContain "12345678901" }
         }
         skattehendelserProducer.hendelser.single().identifikator shouldBe "12345678901"
+    }
+
+    @Test
+    fun `oppslag i Sigrun gir ordningene uten fødselsnummer`() {
+        every { personRepository.findPersonById(7) } returns personMedPeriode2025()
+        val ordning = PensjonsgivendeInntekt("FASTLAND", "2026-08-14", "500000", null, null, null)
+        every {
+            pensjonsgivendeInntektConsumer.hentPensjonsgivendeInntekt(PensjonsgivendeInntektRequest("2025", "12345678901"))
+        } returns PensjonsgivendeInntektResponse(
+            norskPersonidentifikator = "12345678901", inntektsaar = "2025", pensjonsgivendeInntekt = listOf(ordning)
+        )
+
+
+        val respons = controller.hentPensjonsgivendeInntekt(7, "2025")
+
+
+        respons.statusCode shouldBe HttpStatus.OK
+        respons.body shouldBe PensjonsgivendeInntektOppslag(7, "2025", funnet = true, ordninger = listOf(ordning))
+        respons.body.toString() shouldNotContain "12345678901"
+    }
+
+    @Test
+    fun `404 fra Sigrun gir funnet false`() {
+        every { personRepository.findPersonById(7) } returns personMedPeriode2025()
+        every { pensjonsgivendeInntektConsumer.hentPensjonsgivendeInntekt(any()) } returns PensjonsgivendeInntektResponse(
+            slettet = true, norskPersonidentifikator = "12345678901", inntektsaar = "2025"
+        )
+
+
+        val respons = controller.hentPensjonsgivendeInntekt(7, "2025")
+
+
+        respons.body shouldBe PensjonsgivendeInntektOppslag(7, "2025", funnet = false, ordninger = emptyList())
+    }
+
+    @Test
+    fun `oppslag for ukjent person gir 404 uten kall til Sigrun`() {
+        every { personRepository.findPersonById(7) } returns null
+
+
+        val respons = controller.hentPensjonsgivendeInntekt(7, "2025")
+
+
+        respons.statusCode shouldBe HttpStatus.NOT_FOUND
+        verify(exactly = 0) { pensjonsgivendeInntektConsumer.hentPensjonsgivendeInntekt(any()) }
+    }
+
+    @Test
+    fun `oppslag med ugyldig inntektsår gir 400`() {
+        val respons = controller.hentPensjonsgivendeInntekt(7, "25")
+
+
+        respons.statusCode shouldBe HttpStatus.BAD_REQUEST
+        verify(exactly = 0) { pensjonsgivendeInntektConsumer.hentPensjonsgivendeInntekt(any()) }
     }
 
     @Test

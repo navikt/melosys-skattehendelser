@@ -18,6 +18,9 @@ import no.nav.melosysskattehendelser.melosys.producer.SkattehendelserProducer
 import no.nav.melosysskattehendelser.melosys.MelosysSkatteHendelse
 import no.nav.melosysskattehendelser.prosessering.JobConfirmationService
 import no.nav.melosysskattehendelser.prosessering.SkatteHendelsePubliseringOptions
+import no.nav.melosysskattehendelser.skatt.PensjonsgivendeInntekt
+import no.nav.melosysskattehendelser.skatt.PensjonsgivendeInntektConsumer
+import no.nav.melosysskattehendelser.skatt.PensjonsgivendeInntektRequest
 import no.nav.security.token.support.core.api.Protected
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -35,7 +38,8 @@ class AdminController(
     private val pensjonsgivendeInntektRepository: PensjonsgivendeInntektRepository,
     private val kafkaContainerMonitor: KafkaContainerMonitor,
     private val skattehendelserProducer: SkattehendelserProducer,
-    private val jobConfirmationService: JobConfirmationService
+    private val jobConfirmationService: JobConfirmationService,
+    private val pensjonsgivendeInntektConsumer: PensjonsgivendeInntektConsumer,
 ) {
     @PostMapping("/hendelseprosessering/start")
     @Operation(
@@ -135,6 +139,44 @@ class AdminController(
         return ResponseEntity(list, HttpStatus.OK)
     }
 
+    @GetMapping("/person/{id}/pensjonsgivende-inntekt")
+    @Operation(
+        summary = "Slå opp pensjonsgivende inntekt i Sigrun for en person",
+        description = "Henter pensjonsgivende inntekt for folketrygden for personen og inntektsåret direkte fra Sigrun. " +
+                "Lagrer ingenting og publiserer ingenting. Svaret kan være opptil 15 minutter gammelt (cache)."
+    )
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "200", description = "Oppslag gjort; funnet = false betyr at Sigrun svarte 404"),
+            ApiResponse(responseCode = "400", description = "Ugyldig inntektsår"),
+            ApiResponse(responseCode = "404", description = "Person ikke funnet")
+        ]
+    )
+    fun hentPensjonsgivendeInntekt(
+        @Parameter(description = "Intern person-ID")
+        @PathVariable id: Long,
+        @Parameter(description = "Inntektsåret, for eksempel 2025")
+        @RequestParam inntektsaar: String
+    ): ResponseEntity<Any> {
+        if (!inntektsaar.matches(Regex("\\d{4}"))) {
+            return ResponseEntity.badRequest().body("inntektsaar må være et årstall")
+        }
+        val person = personRepository.findPersonById(id) ?: return ResponseEntity(HttpStatus.NOT_FOUND)
+
+        val svar = pensjonsgivendeInntektConsumer.hentPensjonsgivendeInntekt(
+            PensjonsgivendeInntektRequest(inntektsaar = inntektsaar, navPersonident = person.ident)
+        )
+        log.info { "Slo opp pensjonsgivende inntekt for person $id, inntektsår $inntektsaar: funnet=${!svar.slettet}" }
+        return ResponseEntity.ok(
+            PensjonsgivendeInntektOppslag(
+                personId = id,
+                inntektsaar = inntektsaar,
+                funnet = !svar.slettet,
+                ordninger = svar.pensjonsgivendeInntekt,
+            )
+        )
+    }
+
     @PostMapping("/kafka")
     @Operation(
         summary = "Publiser Kafka-melding",
@@ -220,3 +262,11 @@ class AdminController(
         )
     }
 }
+
+/** Svaret fra Sigrun uten fødselsnummer. */
+data class PensjonsgivendeInntektOppslag(
+    val personId: Long,
+    val inntektsaar: String,
+    val funnet: Boolean,
+    val ordninger: List<PensjonsgivendeInntekt>,
+)
