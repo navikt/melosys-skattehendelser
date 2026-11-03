@@ -4,4 +4,6 @@ import no.nav.melosysskattehendelser.melosys.MelosysSkatteHendelse
 
 fun interface SkattehendelserProducer {
     fun publiserMelding(hendelse: MelosysSkatteHendelse, personId: Long?)
+
+    val dryRun: Boolean get() = false
 }

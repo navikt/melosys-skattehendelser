@@ -606,6 +606,36 @@ open class SkatteHendelsePubliseringTest {
         skatteHendelsePublisering.status("", false)["omlesingFremdriftProsent"] shouldBe 40
     }
 
+    @Test
+    fun `status viser om dry run er på`() {
+        skatteHendelsePublisering.status("", false)["dryRunPublisering"] shouldBe false
+
+        skattehendelserProducer.dryRun = true
+
+        skatteHendelsePublisering.status("", false)["dryRunPublisering"] shouldBe true
+    }
+
+    @Test
+    fun `kjøring med dry run på advarer om at ingenting sendes på Kafka`() {
+        skattehendelserProducer.dryRun = true
+
+
+        withLogCapture { logg ->
+            skatteHendelsePublisering.prosesserSkattHendelser()
+
+            logg.filter { it.formattedMessage.startsWith("Dry run er på") }.shouldHaveSize(1)
+        }
+    }
+
+    @Test
+    fun `kjøring uten dry run advarer ikke`() {
+        withLogCapture { logg ->
+            skatteHendelsePublisering.prosesserSkattHendelser()
+
+            logg.filter { it.formattedMessage.startsWith("Dry run er på") }.shouldBeEmpty()
+        }
+    }
+
     private fun SkatteHendelserFetcherFake.leggTilHendelseMedGjelderPeriode(
         gjelderPeriode: String,
         sekvensnummer: Long = 1,
