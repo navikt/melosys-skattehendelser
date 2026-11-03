@@ -16,6 +16,8 @@ class SkattehendelserProducerKafka(
     private val dryRunPublisering: Boolean,
 ) : SkattehendelserProducer {
 
+    override val dryRun: Boolean get() = dryRunPublisering
+
     init {
         log.info { "dryRunPublisering er satt til $dryRunPublisering" }
     }
@@ -31,7 +33,8 @@ class SkattehendelserProducerKafka(
                 log.info { "Dry run: sending melding til topic $topicName for $beskrivelse" }
                 return
             }
-            kafkaTemplate.send(hendelseRecord)[15L, TimeUnit.SECONDS]
+            val metadata = kafkaTemplate.send(hendelseRecord)[15L, TimeUnit.SECONDS].recordMetadata
+            log.info { "Sendt melding til topic $topicName for $beskrivelse, partition ${metadata.partition()}, offset ${metadata.offset()}" }
         } catch (e: InterruptedException) {
             Thread.currentThread().interrupt() // Restore interrupted state
             throw RuntimeException("Avbrutt ved sending av melding for $beskrivelse", e)
