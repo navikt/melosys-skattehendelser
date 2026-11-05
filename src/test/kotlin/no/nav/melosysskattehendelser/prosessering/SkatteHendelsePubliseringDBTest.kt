@@ -67,6 +67,7 @@ class SkatteHendelsePubliseringDBTest(
 
 
         shouldThrow<IllegalStateException> { skatteHendelsePublisering.prosesserSkattHendelser() }
+        skatteHendelsePublisering.status("", false)["sisteSekvensnummer"] shouldBe 0L
         skatteHendelsePublisering.prosesserSkattHendelser()
 
 

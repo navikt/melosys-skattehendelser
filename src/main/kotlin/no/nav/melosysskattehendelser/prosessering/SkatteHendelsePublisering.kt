@@ -94,15 +94,16 @@ class SkatteHendelsePublisering(
                     log.warn { "Hendelse med ${hendelse.sekvensnummer} er allerede kjørt ${sekvensHistorikk.antall} ganger for person ${person.id}" }
                     null
                 }
-                // Lagres samlet etter sendingen. Feiler sendingen eller lagringen, behandles hendelsen på nytt i neste kjøring.
+                // Lagres samlet etter sendingen. Feiler sendingen eller lagringen, behandles hendelsen på nytt neste gang den leses.
                 transaksjoner.executeWithoutResult {
                     publisertInntekt?.let {
                         pensjonsgivendeInntektRepository.save(it)
                         log.info { "Lagrer pensjonsgivende inntekt for periode ${it.periode.id}" }
                     }
                     personRepository.save(person)
-                    oppdaterStatus(statusId, hendelse.sekvensnummer + 1)
+                    lagreStatus(statusId, hendelse.sekvensnummer + 1)
                 }
+                sisteSekvensnummer = hendelse.sekvensnummer + 1
             }
             sisteLesteSekvensnummer = hendelse.sekvensnummer + 1
         }
@@ -227,7 +228,11 @@ class SkatteHendelsePublisering(
     }
 
     private fun oppdaterStatus(consumerId: String, sekvensnummer: Long) {
+        lagreStatus(consumerId, sekvensnummer)
         jobMonitor.stats.sisteSekvensnummer = sekvensnummer
+    }
+
+    private fun lagreStatus(consumerId: String, sekvensnummer: Long) {
         skatteHendelserStatusRepository.save(
             SkatteHendelserSekvens(
                 consumerId,
