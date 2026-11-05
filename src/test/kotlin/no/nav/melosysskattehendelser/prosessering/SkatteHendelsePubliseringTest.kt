@@ -31,6 +31,7 @@ import no.nav.melosysskattehendelser.skatt.SkatteHendelserFetcherFake
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.springframework.transaction.support.TransactionOperations
 import java.time.LocalDate
 
 open class SkatteHendelsePubliseringTest {
@@ -39,11 +40,12 @@ open class SkatteHendelsePubliseringTest {
         PensjonsgivendeInntektRepositoryFake()
     protected open var skatteHendelserStatusRepository: SkatteHendelserStatusRepository =
         SkatteHendelserStatusRepositoryFake()
-    private val skattehendelserProducer: SkattehendelserProducerFake = SkattehendelserProducerFake()
-    private val skatteHendelserFetcher: SkatteHendelserFetcherFake = SkatteHendelserFetcherFake()
-    private val pensjonsgivendeInntektConsumer = PensjonsgivendeInntektConsumerFake()
+    protected open var transaksjoner: TransactionOperations = TransactionOperations.withoutTransaction()
+    protected val skattehendelserProducer: SkattehendelserProducerFake = SkattehendelserProducerFake()
+    protected val skatteHendelserFetcher: SkatteHendelserFetcherFake = SkatteHendelserFetcherFake()
+    protected val pensjonsgivendeInntektConsumer = PensjonsgivendeInntektConsumerFake()
 
-    private val skatteHendelsePublisering by lazy {
+    protected val skatteHendelsePublisering by lazy {
         SkatteHendelsePublisering(
             skatteHendelserFetcher,
             personRepository,
@@ -53,6 +55,7 @@ open class SkatteHendelsePubliseringTest {
             pensjonsgivendeInntektConsumer,
             Metrikker(),
             mockk<PersonFinderSelector>().apply { every { find(any()) } returns PersonFinderDB(personRepository) },
+            transaksjoner,
             mockk<KafkaContainerMonitor>().apply {
                 every { isKafkaContainerRunning() } returns true
             },
@@ -606,7 +609,7 @@ open class SkatteHendelsePubliseringTest {
         skatteHendelsePublisering.status("", false)["omlesingFremdriftProsent"] shouldBe 40
     }
 
-    private fun SkatteHendelserFetcherFake.leggTilHendelseMedGjelderPeriode(
+    protected fun SkatteHendelserFetcherFake.leggTilHendelseMedGjelderPeriode(
         gjelderPeriode: String,
         sekvensnummer: Long = 1,
         registreringstidspunkt: String? = null

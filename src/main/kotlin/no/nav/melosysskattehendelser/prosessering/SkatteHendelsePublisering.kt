@@ -20,6 +20,7 @@ import no.nav.melosysskattehendelser.skatt.PensjonsgivendeInntektResponse
 import no.nav.melosysskattehendelser.skatt.SkatteHendelserFetcher
 import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Component
+import org.springframework.transaction.support.TransactionOperations
 import kotlin.jvm.optionals.getOrNull
 
 private val log = KotlinLogging.logger { }
@@ -34,6 +35,7 @@ class SkatteHendelsePublisering(
     private val pensjonsgivendeInntektConsumer: PensjonsgivendeInntektConsumer,
     private val metrikker: Metrikker,
     private val personFinderSelector: PersonFinderSelector,
+    private val transaksjoner: TransactionOperations,
     kafkaContainerMonitor: KafkaContainerMonitor,
     measuredMetricsProvider: MeasuredMetricsProvider
 ) {
@@ -84,15 +86,23 @@ class SkatteHendelsePublisering(
                 log.info { "Fant person ${person.id} for sekvensnummer ${hendelse.sekvensnummer}" }
 
                 val sekvensHistorikk = person.hentEllerLagSekvensHistorikk(hendelse.sekvensnummer)
-                if (sekvensHistorikk.erNyHendelse()) {
+                val publisertInntekt = if (sekvensHistorikk.erNyHendelse()) {
                     sjekkInntektOgPubliserOmNy(hendelse, person)
                 } else {
                     metrikker.duplikatHendelse()
                     duplikater++
                     log.warn { "Hendelse med ${hendelse.sekvensnummer} er allerede kjørt ${sekvensHistorikk.antall} ganger for person ${person.id}" }
+                    null
                 }
-                personRepository.save(person)
-                oppdaterStatus(statusId, hendelse.sekvensnummer + 1)
+                // Lagres samlet etter sendingen. Feiler sendingen eller lagringen, behandles hendelsen på nytt i neste kjøring.
+                transaksjoner.executeWithoutResult {
+                    publisertInntekt?.let {
+                        pensjonsgivendeInntektRepository.save(it)
+                        log.info { "Lagrer pensjonsgivende inntekt for periode ${it.periode.id}" }
+                    }
+                    personRepository.save(person)
+                    oppdaterStatus(statusId, hendelse.sekvensnummer + 1)
+                }
             }
             sisteLesteSekvensnummer = hendelse.sekvensnummer + 1
         }
@@ -107,7 +117,7 @@ class SkatteHendelsePublisering(
         }
     }
 
-    private fun sjekkInntektOgPubliserOmNy(hendelse: Hendelse, person: Person) {
+    private fun sjekkInntektOgPubliserOmNy(hendelse: Hendelse, person: Person): PensjonsgivendeInntekt? {
         val inntekt = hentPensjonsgivendeInntekt(hendelse, person)
         if (inntekt.inntektsaar != hendelse.gjelderPeriode) {
             log.warn { "inntektsaar ${inntekt.inntektsaar} er ikke lik hendelse.gjelderPeriode ${hendelse.gjelderPeriode}" }
@@ -128,7 +138,9 @@ class SkatteHendelsePublisering(
                     }
                     metrikker.hendelseFlerePublisertPrInntektsÅr()
                 }
+            return inntekt.tilDomain(periode)
         }
+        return null
     }
 
     fun harNyInntekt(ny: PensjonsgivendeInntektResponse, periode: Periode): Boolean {
@@ -145,8 +157,6 @@ class SkatteHendelsePublisering(
             pensjonsgivendeInntektRepository.save(ny.tilDomain(periode))
             return false
         }
-        pensjonsgivendeInntektRepository.save(ny.tilDomain(periode))
-        log.info { "Lagrer pensjonsgivende inntekt for periode ${periode.id}" }
         return true
     }
 
