@@ -609,6 +609,26 @@ open class SkatteHendelsePubliseringTest {
         skatteHendelsePublisering.status("", false)["omlesingFremdriftProsent"] shouldBe 40
     }
 
+    @Test
+    fun `status viser sekvensnummeret etter hver lagrede hendelse, ikke bare per batch`() {
+        pensjonsgivendeInntektConsumer
+            .leggTilPensjonsgivendeInntekt(inntektsaar = "2022")
+            .leggTilPensjonsgivendeInntekt(inntektsaar = "2022")
+        listOf(1L, 2L).forEach { skatteHendelserFetcher.leggTilHendelseMedGjelderPeriode("2022", it) }
+        var sisteSekvensnummerUnderveis: Any? = null
+        skatteHendelserFetcher.vedUtgivelse = {
+            if (it.sekvensnummer == 2L) {
+                sisteSekvensnummerUnderveis = skatteHendelsePublisering.status("", false)["sisteSekvensnummer"]
+            }
+        }
+
+
+        skatteHendelsePublisering.prosesserSkattHendelser()
+
+
+        sisteSekvensnummerUnderveis shouldBe 2L
+    }
+
     protected fun SkatteHendelserFetcherFake.leggTilHendelseMedGjelderPeriode(
         gjelderPeriode: String,
         sekvensnummer: Long = 1,

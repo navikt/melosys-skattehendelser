@@ -7,7 +7,6 @@ import io.mockk.mockk
 import no.nav.melosysskattehendelser.PostgresTestContainer
 import no.nav.melosysskattehendelser.domain.PensjonsgivendeInntektRepository
 import no.nav.melosysskattehendelser.domain.PersonRepository
-import no.nav.melosysskattehendelser.domain.SkatteHendelserSekvens
 import no.nav.melosysskattehendelser.domain.SkatteHendelserStatusRepository
 import no.nav.melosysskattehendelser.melosys.KafkaConfig
 import no.nav.security.token.support.spring.test.EnableMockOAuth2Server
@@ -20,6 +19,8 @@ import org.springframework.context.annotation.Bean
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
+import org.springframework.transaction.TransactionStatus
+import org.springframework.transaction.support.TransactionCallback
 import org.springframework.transaction.support.TransactionOperations
 
 @ActiveProfiles("test")
@@ -28,13 +29,13 @@ import org.springframework.transaction.support.TransactionOperations
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class SkatteHendelsePubliseringDBTest(
     @Autowired override var personRepository: PersonRepository,
-    @Autowired statusRepository: SkatteHendelserStatusRepository,
+    @Autowired override var skatteHendelserStatusRepository: SkatteHendelserStatusRepository,
     @Autowired override var pensjonsgivendeInntektRepository: PensjonsgivendeInntektRepository,
-    @Autowired override var transaksjoner: TransactionOperations,
+    @Autowired transaksjonerFraSpring: TransactionOperations,
 ) : SkatteHendelsePubliseringTest() {
 
-    private val statusRepositoryMedFeil = StatusRepositoryMedFeil(statusRepository)
-    override var skatteHendelserStatusRepository: SkatteHendelserStatusRepository = statusRepositoryMedFeil
+    private val transaksjonerMedFeil = TransaksjonerMedFeil(transaksjonerFraSpring)
+    override var transaksjoner: TransactionOperations = transaksjonerMedFeil
 
     // Denne testen og den neste går bare mot Postgres. PersonRepositoryFake gir tilbake samme objekt,
     // så sekvenshistorikken fra den feilede kjøringen ville blitt med inn i neste kjøring.
@@ -63,7 +64,7 @@ class SkatteHendelsePubliseringDBTest(
             .leggTilPensjonsgivendeInntekt(inntektsaar = "2022")
             .leggTilPensjonsgivendeInntekt(inntektsaar = "2022")
         skatteHendelserFetcher.leggTilHendelseMedGjelderPeriode("2022")
-        statusRepositoryMedFeil.feilVedNesteLagring = IllegalStateException("Databasen er nede")
+        transaksjonerMedFeil.feilVedNesteTransaksjon = IllegalStateException("Databasen er nede")
 
 
         shouldThrow<IllegalStateException> { skatteHendelsePublisering.prosesserSkattHendelser() }
@@ -80,18 +81,19 @@ class SkatteHendelsePubliseringDBTest(
         skatteHendelserStatusRepository.findById("fake").get().sekvensnummer shouldBe 2
     }
 
-    class StatusRepositoryMedFeil(
-        private val repository: SkatteHendelserStatusRepository
-    ) : SkatteHendelserStatusRepository by repository {
-        var feilVedNesteLagring: Exception? = null
+    // Feiler etter at alt er lagret, men før transaksjonen er fullført.
+    class TransaksjonerMedFeil(private val transaksjoner: TransactionOperations) : TransactionOperations {
+        var feilVedNesteTransaksjon: Exception? = null
 
-        override fun <S : SkatteHendelserSekvens> save(entity: S): S {
-            feilVedNesteLagring?.let {
-                feilVedNesteLagring = null
-                throw it
+        override fun <T> execute(action: TransactionCallback<T>): T =
+            transaksjoner.execute { status: TransactionStatus ->
+                val resultat = action.doInTransaction(status)
+                feilVedNesteTransaksjon?.let { feil ->
+                    feilVedNesteTransaksjon = null
+                    throw feil
+                }
+                resultat
             }
-            return repository.save(entity)
-        }
     }
 
     @TestConfiguration
