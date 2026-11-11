@@ -6,11 +6,13 @@ class SkattehendelserProducerFake : SkattehendelserProducer {
     val hendelser = mutableListOf<MelosysSkatteHendelse>()
     val personIder = mutableListOf<Long?>()
     var feilVedNesteSending: Exception? = null
+    override var dryRun: Boolean = false
 
     fun reset() = apply {
         hendelser.clear()
         personIder.clear()
         feilVedNesteSending = null
+        dryRun = false
     }
 
     override fun publiserMelding(hendelse: MelosysSkatteHendelse, personId: Long?) {

@@ -56,6 +56,9 @@ class SkatteHendelsePublisering(
     fun prosesserSkattHendelser(
         options: SkatteHendelsePubliseringOptions = SkatteHendelsePubliseringOptions()
     ) = jobMonitor.execute {
+        if (skattehendelserProducer.dryRun) {
+            log.warn { "Dry run er på: publiseringer lagres, men ingen meldinger sendes på Kafka" }
+        }
         val personFinder = finderFromOptions(options)
         val markør = if (options.erOmlesing()) hentMarkør() else null
         val statusId = if (markør != null) skatteHendelserFetcher.omlesingConsumerId else skatteHendelserFetcher.consumerId
@@ -224,7 +227,7 @@ class SkatteHendelsePublisering(
     fun status(periodeFilter: String, kunIdentMatch: Boolean): Map<String, Any?> {
         jobMonitor.stats.periodeFilter = periodeFilter
         jobMonitor.stats.kunIdentMatch = kunIdentMatch
-        return jobMonitor.status()
+        return jobMonitor.status() + ("dryRunPublisering" to skattehendelserProducer.dryRun)
     }
 
     private fun oppdaterStatus(consumerId: String, sekvensnummer: Long) {

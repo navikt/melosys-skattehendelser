@@ -9,6 +9,9 @@ import no.nav.melosysskattehendelser.melosys.MelosysSkatteHendelse
 import io.kotest.matchers.collections.shouldHaveSize
 import no.nav.melosysskattehendelser.LoggingTestUtils
 import org.apache.kafka.clients.producer.ProducerRecord
+import org.apache.kafka.clients.producer.RecordMetadata
+import org.apache.kafka.common.TopicPartition
+import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.Test
 import org.springframework.kafka.core.KafkaTemplate
 import org.springframework.kafka.support.SendResult
@@ -48,6 +51,30 @@ class SkattehendelserProducerKafkaTest {
 
 
         feil.message!! shouldNotContain "12345678901"
+    }
+
+    @Test
+    fun `vellykket sending logger person-id, partition og offset, ikke fødselsnummer`() {
+        val metadata = RecordMetadata(TopicPartition("topic", 3), 41L, 0, 0L, 0, 0)
+        every { kafkaTemplate.send(any<ProducerRecord<String, MelosysSkatteHendelse>>()) } returns
+            CompletableFuture.completedFuture(SendResult(mockk(), metadata))
+
+
+        LoggingTestUtils.withLogCapture { logg ->
+            producer.publiserMelding(MelosysSkatteHendelse("2025", "12345678901", "ny"), 7)
+
+            logg.map { it.formattedMessage }.filter { it.startsWith("Sendt melding") }.single().run {
+                this shouldContain "person 7"
+                this shouldContain "partition 3, offset 41"
+            }
+            logg.forEach { it.formattedMessage shouldNotContain "12345678901" }
+        }
+    }
+
+    @Test
+    fun `dryRun følger flagget`() {
+        producer.dryRun shouldBe false
+        SkattehendelserProducerKafka(kafkaTemplate, "topic", dryRunPublisering = true).dryRun shouldBe true
     }
 
     @Test
