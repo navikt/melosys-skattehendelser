@@ -12,6 +12,7 @@ import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldNotContain
+import net.logstash.logback.argument.StructuredArguments
 import org.junit.jupiter.api.Test
 
 class LogbackKonfigurasjonTest {
@@ -62,6 +63,41 @@ class LogbackKonfigurasjonTest {
         konfigurer(naisClusterName = "prod-gcp").formater(melding) shouldContain "\"message\":\"$melding\""
     }
 
+    @Test
+    fun `i prod maskeres ikke MDC-felt, også når de har 11 sifre på rad`() {
+        val mdc = mapOf(
+            "trace_id" to "4bf92f35a12345678901b4da6a3ce929",
+            "span_id" to "a12345678901bcde",
+            "trace_flags" to "01",
+            "callId" to "12345678901-4a5b-8c9d-0e1f2a3b4c5d",
+        )
+
+        konfigurer(naisClusterName = "prod-gcp").formater("Ugyldig personident_$fnr", mdc = mdc).run {
+            mdc.forEach { (felt, verdi) -> shouldContain("\"$felt\":\"$verdi\"") }
+            shouldContain("\"message\":\"Ugyldig personident_***********\"")
+        }
+    }
+
+    @Test
+    fun `i prod maskeres ikke strukturerte felt, heller ikke et nøstet message`() {
+        val argument = StructuredArguments.keyValue("otel", mapOf("message" to "a12345678901bcde"))
+
+        konfigurer(naisClusterName = "prod-gcp").formater("Ugyldig personident_$fnr", argumenter = arrayOf(argument)).run {
+            shouldContain("\"otel\":{\"message\":\"a12345678901bcde\"}")
+            shouldContain("\"message\":\"Ugyldig personident_***********\"")
+        }
+    }
+
+    @Test
+    fun `i prod maskeres fødselsnummer i stack_trace`() {
+        val feil = IllegalArgumentException("Ugyldig personident_$fnr")
+
+        konfigurer(naisClusterName = "prod-gcp").formater("Feil", feil = feil).run {
+            shouldContain("\"stack_trace\":\"java.lang.IllegalArgumentException: Ugyldig personident_***********")
+            shouldNotContain(fnr)
+        }
+    }
+
     private fun konfigurer(naisClusterName: String?): LoggerContext =
         LoggerContext().apply {
             mdcAdapter = LogbackMDCAdapter()
@@ -76,10 +112,16 @@ class LogbackKonfigurasjonTest {
     private fun LoggerContext.advarsler(): List<String> =
         statusManager.copyOfStatusList.filter { it.level >= Status.WARN }.map { it.message }
 
-    private fun LoggerContext.formater(melding: String): String {
+    private fun LoggerContext.formater(
+        melding: String,
+        mdc: Map<String, String> = emptyMap(),
+        feil: Throwable? = null,
+        argumenter: Array<Any>? = null,
+    ): String {
         val logger = getLogger("test")
         val appender = getLogger(Logger.ROOT_LOGGER_NAME).getAppender("stdout_json") as OutputStreamAppender<*>
-        val event = LoggingEvent(Logger::class.java.name, logger, Level.INFO, melding, null, null)
+        val event = LoggingEvent(Logger::class.java.name, logger, Level.INFO, melding, feil, argumenter)
+        event.setMDCPropertyMap(mdc)
         @Suppress("UNCHECKED_CAST")
         val encoder = appender.encoder as ch.qos.logback.core.encoder.Encoder<LoggingEvent>
         return String(encoder.encode(event))

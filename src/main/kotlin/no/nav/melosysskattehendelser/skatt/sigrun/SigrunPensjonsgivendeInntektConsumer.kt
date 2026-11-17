@@ -10,6 +10,7 @@ import org.springframework.http.MediaType
 import org.springframework.web.reactive.function.client.ClientResponse
 import org.springframework.web.reactive.function.client.WebClient
 import reactor.core.publisher.Mono
+import reactor.core.scheduler.Schedulers
 import java.time.Duration
 
 private val log = io.github.oshai.kotlinlogging.KotlinLogging.logger {}
@@ -110,8 +111,12 @@ open class SigrunPensjonsgivendeInntektConsumer(private val webClient: WebClient
                         )
                 }
             }
-        // block(tidsfrist) avbryter kallet til Sigrun når tidsfristen går ut
-        return (if (tidsfrist == null) svar.block() else svar.block(tidsfrist))
+        if (tidsfrist == null) {
+            return svar.block() ?: throw IllegalStateException("Ingen body - kunne ikke hente PensjonsgivendeInntektResponse")
+        }
+        // Filtrene kjører når kallet startes, og AzureContextExchangeFilter henter token synkront der.
+        // På en egen tråd teller også det med i tidsfristen; block(tidsfrist) avbryter kallet når den går ut.
+        return svar.subscribeOn(Schedulers.boundedElastic()).block(tidsfrist)
             ?: throw IllegalStateException("Ingen body - kunne ikke hente PensjonsgivendeInntektResponse")
     }
 

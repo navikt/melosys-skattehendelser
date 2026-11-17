@@ -308,6 +308,37 @@ class SkattepliktigPersonoppslagTest(
     }
 
     @Test
+    fun `annen klient med ugyldig Content-Type gir 403 og avvisningslinjen`() {
+        val (svar, logg) = LoggingTestUtils.withLogCapture { logg ->
+            UGYLDIGE_CONTENT_TYPES.map { slåOpp("{nope", token(azpName = "x"), contentType = it) } to logg.toList()
+        }
+
+        svar.map { it.statusCode() } shouldBe listOf(403, 403)
+        logg.count { it.formattedMessage == "Personoppslag avvist for klient=x" } shouldBe 2
+    }
+
+    @Test
+    fun `ugyldig Content-Type gir 400 som JSON, også med gyldig body`() {
+        lagrePerson(FNR, periode(LocalDate.of(2023, 1, 1)))
+
+        val (svar, logg) = LoggingTestUtils.withLogCapture { logg ->
+            UGYLDIGE_CONTENT_TYPES.map {
+                slåOpp(forespørsel(2025, FNR to true), accept = "application/json", contentType = it)
+            } to logg.toList()
+        }
+
+        svar.forEach { respons ->
+            respons.statusCode() shouldBe 400
+            respons.headers().firstValue("Content-Type").get() shouldContain "application/json"
+            objectMapper.readTree(respons.body())["status"].asInt() shouldBe 400
+        }
+        val loggtekst = logg.joinToString("\n") { it.fullTekst() }
+        loggtekst shouldContain "Ugyldig Content-Type i kall til skattepliktige"
+        loggtekst shouldNotContain "bogus"
+        (svar.map { it.body() } + loggtekst).forEach { ELLEVE_SIFRE.find(it)?.value.shouldBeNull() }
+    }
+
+    @Test
     fun `ugyldig body gir 400 som JSON, uten ident`() {
         val (svar, logg) = LoggingTestUtils.withLogCapture { logg ->
             listOf("{nope", UGYLDIG_GJELDENDE, "").map { slåOpp(it, accept = "application/json") } to logg.toList()
@@ -509,11 +540,16 @@ class SkattepliktigPersonoppslagTest(
             )
         ).serialize()
 
-    private fun slåOpp(body: String, token: String? = token(), accept: String? = null): HttpResponse<String> {
+    private fun slåOpp(
+        body: String,
+        token: String? = token(),
+        accept: String? = null,
+        contentType: String = "application/json",
+    ): HttpResponse<String> {
         val request = HttpRequest.newBuilder(URI("http://localhost:$port/api/admin/skattepliktige/personoppslag"))
             .apply { token?.let { header("Authorization", "Bearer $it") } }
             .apply { accept?.let { header("Accept", it) } }
-            .header("Content-Type", "application/json")
+            .header("Content-Type", contentType)
             .POST(HttpRequest.BodyPublishers.ofString(body))
             .build()
         return httpClient.send(request, HttpResponse.BodyHandlers.ofString())
@@ -525,6 +561,7 @@ class SkattepliktigPersonoppslagTest(
         private const val UKJENT = "99999999999"
         private val ELLEVE_SIFRE = Regex("""\d{11}""")
         private const val SIGRUN_FORSINKELSE_MS = 5_000
+        private val UGYLDIGE_CONTENT_TYPES = listOf("foo", "application/json; charset=bogus-xx")
 
         // Jackson tar med verdien i feilmeldingen når typen er feil
         private val UGYLDIG_GJELDENDE = """{"inntektsaar": 2025, "identer": [{"ident": "$FNR", "gjeldende": "$FNR"}]}"""

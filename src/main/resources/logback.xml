@@ -16,13 +16,8 @@
                     <appender name="stdout_json" class="ch.qos.logback.core.ConsoleAppender">
                         <encoder class="net.logstash.logback.encoder.LogstashEncoder">
                             <decorator class="net.logstash.logback.mask.MaskingJsonGeneratorDecorator">
-                                <!-- 11 sifre som ikke står inntil et annet siffer, også etter bokstav eller _ (fnr12345678901).
-                                     Bare 11: 13 sifre ville også treffe millisekundene i Nav-Call-Id (CallId_<ms>_<n>).
-                                     Pris: rundt 2 % av trace_id-ene (32 hex-tegn) har 11 sifre på rad og maskeres delvis. -->
-                                <valueMask>
-                                    <value>(?&lt;!\d)\d{11}(?!\d)</value>
-                                    <mask>***********</mask>
-                                </valueMask>
+                                <!-- Bare message og stack_trace; MDC-felt som trace_id maskeres ikke. Se klassen. -->
+                                <valueMasker class="no.nav.melosysskattehendelser.logging.PersonidentMasker"/>
                             </decorator>
                             <fieldNames>
                                 <version>[ignore]</version>
