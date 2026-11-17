@@ -12,16 +12,21 @@ import java.time.LocalDateTime
 
 private val log = KotlinLogging.logger { }
 
+// toString() uten ident, så identen ikke havner i loggen om objektet logges
 data class PersonoppslagForespørsel(
     val inntektsaar: Int,
     val identer: List<IdentForOppslag>,
-)
+) {
+    override fun toString(): String = "PersonoppslagForespørsel(inntektsaar=$inntektsaar, antallIdenter=${identer.size})"
+}
 
 /** [gjeldende] sier om identen er personens gjeldende ident i PDL. */
 data class IdentForOppslag(
     val ident: String,
     val gjeldende: Boolean,
-)
+) {
+    override fun toString(): String = "IdentForOppslag(ident=***********, gjeldende=$gjeldende)"
+}
 
 /** Én rad per person. Har aldri ident. */
 data class PersonoppslagRad(

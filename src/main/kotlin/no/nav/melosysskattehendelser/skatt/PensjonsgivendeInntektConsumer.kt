@@ -12,7 +12,10 @@ fun interface PensjonsgivendeInntektConsumer {
 data class PensjonsgivendeInntektRequest(
     val inntektsaar: String,
     val navPersonident: String,
-)
+) {
+    // Uten ident, så identen ikke havner i loggen om objektet logges
+    override fun toString(): String = "PensjonsgivendeInntektRequest(inntektsaar=$inntektsaar, navPersonident=***********)"
+}
 
 data class PensjonsgivendeInntektResponse(
     val slettet: Boolean = false,

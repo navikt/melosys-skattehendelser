@@ -20,11 +20,15 @@ private const val RETTIGHETSPAKKE = "navtrygdeavgift"
  * Feltnavnene er Sigrun sine (personident, ikke navPersonident). Rettighetspakke leses
  * kun fra bodyen - den har ingen effekt som header.
  */
-private data class PensjonsgivendeInntektForFolketrygdenRequest(
+internal data class PensjonsgivendeInntektForFolketrygdenRequest(
     val personident: String,
     val inntektsaar: String,
     val rettighetspakke: String = RETTIGHETSPAKKE,
-)
+) {
+    // Uten ident: WebClient skriver toString() i DEBUG-loggen. Internal for testen.
+    override fun toString(): String =
+        "PensjonsgivendeInntektForFolketrygdenRequest(personident=***********, inntektsaar=$inntektsaar, rettighetspakke=$rettighetspakke)"
+}
 
 const val PENSJONSGIVENDE_INNTEKT_CACHE = "pensjonsgivendeInntekt"
 

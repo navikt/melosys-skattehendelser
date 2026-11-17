@@ -27,6 +27,7 @@ import no.nav.melosysskattehendelser.domain.Person
 import no.nav.melosysskattehendelser.domain.PersonRepository
 import no.nav.melosysskattehendelser.domain.PubliseringsHistorikk
 import no.nav.melosysskattehendelser.melosys.KafkaConfig
+import no.nav.melosysskattehendelser.melosys.producer.SkattehendelserProducerFake
 import no.nav.melosysskattehendelser.skatt.PensjonsgivendeInntektRequest
 import no.nav.melosysskattehendelser.skatt.PensjonsgivendeInntektResponse
 import no.nav.melosysskattehendelser.skatt.sigrun.PENSJONSGIVENDE_INNTEKT_CACHE
@@ -74,6 +75,7 @@ class SkattepliktigPersonoppslagTest(
     @Autowired private val objectMapper: ObjectMapper,
     @Autowired private val cacheManager: CacheManager,
     @Autowired private val dataSource: DataSource,
+    @Autowired private val skattehendelserProducer: SkattehendelserProducerFake,
     @LocalServerPort private val port: Int,
 ) : PostgresTestContainerBase() {
 
@@ -85,6 +87,9 @@ class SkattepliktigPersonoppslagTest(
         @Bean // Samme navn som i SigrunConsumerConfig, så den erstattes; uten token mot WireMock
         fun sigrunPensjonsgivendeInntektConsumer() =
             SigrunPensjonsgivendeInntektConsumer(WebClient.builder().baseUrl("http://localhost:${sigrun.port()}").build())
+
+        @Bean // Samme navn som i SkatteHendelserConfig, så den erstattes: testene ser alt som publiseres
+        fun skatteHendelserProducer() = SkattehendelserProducerFake()
     }
 
     private val httpClient = HttpClient.newHttpClient()
@@ -95,6 +100,7 @@ class SkattepliktigPersonoppslagTest(
         personRepository.deleteAll()
         sigrun.resetAll()
         cacheManager.getCache(PENSJONSGIVENDE_INNTEKT_CACHE)?.clear()
+        skattehendelserProducer.reset()
     }
 
     @AfterEach
@@ -108,7 +114,10 @@ class SkattepliktigPersonoppslagTest(
         val respons = slåOpp(forespørsel(2025, UKJENT to true))
 
         respons.statusCode() shouldBe 200
-        objectMapper.readTree(respons.body()).values().toList().shouldBeEmpty()
+        objectMapper.readTree(respons.body()).let {
+            it.isArray shouldBe true
+            it.size() shouldBe 0
+        }
         sigrun.findAll(WireMock.anyRequestedFor(WireMock.anyUrl())).shouldBeEmpty()
     }
 
@@ -170,10 +179,11 @@ class SkattepliktigPersonoppslagTest(
         rader.getValue(baresSlettet).asBoolean() shouldBe false
         listOf(publisert, medInntekt, utenPeriode).forEach { rader.getValue(it).isNull shouldBe true }
         sigrunSpurtFor() shouldBe listOf("10000000001", "10000000005")
+        skattehendelserProducer.hendelser.shouldBeEmpty()
     }
 
     @Test
-    fun `publisering og inntekt for et annet år hindrer ikke oppslag i Sigrun`() {
+    fun `publisering og inntekt for et annet år hindrer ikke oppslag i Sigrun, og ingenting publiseres`() {
         lagrePerson(FNR, periode(LocalDate.of(2024, 6, 1), "2024" to LocalDateTime.of(2025, 9, 1, 2, 0)))
         lagreInntekt(FNR, "2024", slettet = false)
         sigrunSvarer(FNR, 200)
@@ -182,6 +192,7 @@ class SkattepliktigPersonoppslagTest(
 
         rad["sigrunHarInntektForAaret"].asBoolean() shouldBe true
         sigrunSpurtFor() shouldBe listOf(FNR)
+        skattehendelserProducer.hendelser.shouldBeEmpty()
     }
 
     @Test
@@ -201,7 +212,7 @@ class SkattepliktigPersonoppslagTest(
     }
 
     @Test
-    fun `404 fra Sigrun gir false, og ingenting lagres`() {
+    fun `404 fra Sigrun gir false, og ingenting lagres eller publiseres`() {
         lagrePerson(FNR, periode(LocalDate.of(2025, 1, 1)))
         sigrunSvarer(FNR, 404)
 
@@ -209,6 +220,7 @@ class SkattepliktigPersonoppslagTest(
 
         rad["sigrunHarInntektForAaret"].asBoolean() shouldBe false
         pensjonsgivendeInntektRepository.findAll().toList().shouldBeEmpty()
+        skattehendelserProducer.hendelser.shouldBeEmpty()
     }
 
     @Test
