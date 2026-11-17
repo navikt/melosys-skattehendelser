@@ -2,6 +2,7 @@ package no.nav.melosysskattehendelser.controller
 
 import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.classic.spi.IThrowableProxy
+import com.github.benmanes.caffeine.cache.Cache
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration
@@ -11,6 +12,7 @@ import com.github.tomakehurst.wiremock.http.ResponseDefinition
 import com.github.tomakehurst.wiremock.stubbing.ServeEvent
 import com.zaxxer.hikari.HikariDataSource
 import io.kotest.matchers.collections.shouldBeEmpty
+import io.kotest.matchers.longs.shouldBeLessThan
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
@@ -25,7 +27,9 @@ import no.nav.melosysskattehendelser.domain.Person
 import no.nav.melosysskattehendelser.domain.PersonRepository
 import no.nav.melosysskattehendelser.domain.PubliseringsHistorikk
 import no.nav.melosysskattehendelser.melosys.KafkaConfig
+import no.nav.melosysskattehendelser.skatt.PensjonsgivendeInntektRequest
 import no.nav.melosysskattehendelser.skatt.PensjonsgivendeInntektResponse
+import no.nav.melosysskattehendelser.skatt.sigrun.PENSJONSGIVENDE_INNTEKT_CACHE
 import no.nav.melosysskattehendelser.skatt.sigrun.SigrunPensjonsgivendeInntektConsumer
 import no.nav.security.mock.oauth2.MockOAuth2Server
 import no.nav.security.mock.oauth2.token.DefaultOAuth2TokenCallback
@@ -57,9 +61,13 @@ import javax.sql.DataSource
  * Går gjennom hele Spring-konteksten: ekte token, Postgres og den ekte Sigrun-klienten (med cachen) mot WireMock.
  */
 @ActiveProfiles("test")
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(
+    webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+    properties = ["sigrun.tidsfrist-utenom-cache=1s"],
+)
 @EnableMockOAuth2Server
 class SkattepliktigPersonoppslagTest(
+    @Autowired private val sigrunConsumer: SigrunPensjonsgivendeInntektConsumer,
     @Autowired private val personRepository: PersonRepository,
     @Autowired private val pensjonsgivendeInntektRepository: PensjonsgivendeInntektRepository,
     @Autowired private val mockOAuth2Server: MockOAuth2Server,
@@ -86,7 +94,7 @@ class SkattepliktigPersonoppslagTest(
         pensjonsgivendeInntektRepository.deleteAll()
         personRepository.deleteAll()
         sigrun.resetAll()
-        cacheManager.getCache("pensjonsgivendeInntekt")?.clear()
+        cacheManager.getCache(PENSJONSGIVENDE_INNTEKT_CACHE)?.clear()
     }
 
     @AfterEach
@@ -195,14 +203,48 @@ class SkattepliktigPersonoppslagTest(
     fun `oppslaget går utenom cachen nattjobben bruker og etterlater ingenting i den`() {
         lagrePerson(FNR, periode(LocalDate.of(2025, 1, 1)))
         sigrunSvarer(FNR, 200)
-        val cache = cacheManager.getCache("pensjonsgivendeInntekt")!!
-        cache.put("$FNR-2025", PensjonsgivendeInntektResponse(slettet = true, norskPersonidentifikator = FNR, inntektsaar = "2025"))
+        val cache = cacheManager.getCache(PENSJONSGIVENDE_INNTEKT_CACHE)!!
+        val nøkkel = SigrunPensjonsgivendeInntektConsumer.cachenokkel(PensjonsgivendeInntektRequest("2025", FNR))
+        cache.put(nøkkel, PensjonsgivendeInntektResponse(slettet = true, norskPersonidentifikator = FNR, inntektsaar = "2025"))
 
         val rad = objectMapper.readTree(slåOpp(forespørsel(2025, FNR to true)).body()).single()
 
         rad["sigrunHarInntektForAaret"].asBoolean() shouldBe true
         sigrun.findAll(WireMock.anyRequestedFor(WireMock.anyUrl())).size shouldBe 1
-        cache.get("$FNR-2025").shouldBeNull()
+        cache.get(nøkkel).shouldBeNull()
+    }
+
+    @Test
+    fun `oppslaget fjerner svaret nattjobben la i cachen, under nøkkelen Cacheable bruker`() {
+        lagrePerson(FNR, periode(LocalDate.of(2025, 1, 1)))
+        sigrunSvarer(FNR, 200)
+        // Gjennom cache-proxyen, som nattjobben: svaret lagres under nøkkelen @Cacheable lager
+        sigrunConsumer.hentPensjonsgivendeInntekt(PensjonsgivendeInntektRequest(inntektsaar = "2025", navPersonident = FNR))
+        val caffeine = cacheManager.getCache(PENSJONSGIVENDE_INNTEKT_CACHE)!!.nativeCache as Cache<*, *>
+        caffeine.estimatedSize() shouldBe 1
+
+        slåOpp(forespørsel(2025, FNR to true)).statusCode() shouldBe 200
+
+        caffeine.cleanUp()
+        caffeine.estimatedSize() shouldBe 0
+    }
+
+    @Test
+    fun `Sigrun som ikke svarer innen tidsfristen gir null for personen, og svaret er fortsatt 200`() {
+        val personer = listOf(FNR, DNR).map { lagrePerson(it, periode(LocalDate.of(2025, 1, 1))) }
+        listOf(FNR, DNR).forEach {
+            sigrun.stubFor(sigrunKall(it).willReturn(WireMock.aResponse().withStatus(404).withFixedDelay(SIGRUN_FORSINKELSE_MS)))
+        }
+
+        val start = System.nanoTime()
+        val respons = slåOpp(forespørsel(2025, FNR to true, DNR to false))
+        val bruktMs = (System.nanoTime() - start) / 1_000_000
+
+        // Tidsfristen er 1 s i denne testen: to oppslag tar rundt 2 s, ikke 2 × forsinkelsen
+        bruktMs shouldBeLessThan SIGRUN_FORSINKELSE_MS.toLong()
+        respons.statusCode() shouldBe 200
+        val rader = objectMapper.readTree(respons.body()).values().associate { it["personId"].asLong() to it["sigrunHarInntektForAaret"] }
+        personer.forEach { rader.getValue(it).isNull shouldBe true }
     }
 
     @Test
@@ -436,6 +478,7 @@ class SkattepliktigPersonoppslagTest(
         private const val DNR = "41234567890"
         private const val UKJENT = "99999999999"
         private val ELLEVE_SIFRE = Regex("""\d{11}""")
+        private const val SIGRUN_FORSINKELSE_MS = 5_000
 
         // Jackson tar med verdien i feilmeldingen når typen er feil
         private val UGYLDIG_GJELDENDE = """{"inntektsaar": 2025, "identer": [{"ident": "$FNR", "gjeldende": "$FNR"}]}"""

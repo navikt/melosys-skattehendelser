@@ -5,9 +5,7 @@ import no.nav.melosysskattehendelser.domain.LagredeInntektsaar
 import no.nav.melosysskattehendelser.domain.LagretInntektsaarRepository
 import no.nav.melosysskattehendelser.domain.Person
 import no.nav.melosysskattehendelser.domain.PersonRepository
-import no.nav.melosysskattehendelser.skatt.PensjonsgivendeInntektConsumer
-import no.nav.melosysskattehendelser.skatt.PensjonsgivendeInntektRequest
-import org.springframework.cache.CacheManager
+import no.nav.melosysskattehendelser.skatt.sigrun.SigrunOppslagUtenomCache
 import org.springframework.stereotype.Component
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -51,8 +49,7 @@ data class PersonoppslagPublisering(
 class SkattepliktigPersonoppslag(
     private val personRepository: PersonRepository,
     private val lagretInntektsaarRepository: LagretInntektsaarRepository,
-    private val pensjonsgivendeInntektConsumer: PensjonsgivendeInntektConsumer,
-    private val cacheManager: CacheManager,
+    private val sigrunOppslag: SigrunOppslagUtenomCache,
 ) {
     fun slåOpp(inntektsaar: Int, identer: List<IdentForOppslag>): List<PersonoppslagRad> {
         val gjeldendeIdenter = identer.filter { it.gjeldende }.map { it.ident }.toSet()
@@ -89,22 +86,13 @@ class SkattepliktigPersonoppslag(
         return person.harTreffIPeriode(inntektsaar) && !publisert && år !in lagret.medInntekt
     }
 
-    // Som GET /admin/person/{id}/pensjonsgivende-inntekt: lagrer og publiserer ingenting.
-    // Nattjobben bruker samme cache, så den tømmes før og etter.
-    private fun spørSigrun(person: Person, inntektsaar: String): Boolean? {
-        val cache = cacheManager.getCache("pensjonsgivendeInntekt")
-        val cachenøkkel = "${person.ident}-$inntektsaar"
-        cache?.evict(cachenøkkel)
-        val harInntekt = try {
-            !pensjonsgivendeInntektConsumer.hentPensjonsgivendeInntekt(
-                PensjonsgivendeInntektRequest(inntektsaar = inntektsaar, navPersonident = person.ident)
-            ).slettet
+    // Som GET /admin/person/{id}/pensjonsgivende-inntekt: lagrer og publiserer ingenting
+    private fun spørSigrun(person: Person, inntektsaar: String): Boolean? =
+        try {
+            !sigrunOppslag.hentUtenomCache(person.ident, inntektsaar).slettet
         } catch (e: Exception) {
             // Bare typen: meldingen er ikke vår og kan inneholde personopplysninger
             log.warn { "Oppslag i Sigrun feilet for person ${person.id}, inntektsår $inntektsaar: ${e.javaClass.simpleName}" }
             null
         }
-        cache?.evict(cachenøkkel)
-        return harInntekt
-    }
 }

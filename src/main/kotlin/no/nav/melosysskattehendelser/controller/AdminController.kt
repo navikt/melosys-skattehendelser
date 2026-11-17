@@ -19,10 +19,8 @@ import no.nav.melosysskattehendelser.melosys.MelosysSkatteHendelse
 import no.nav.melosysskattehendelser.prosessering.JobConfirmationService
 import no.nav.melosysskattehendelser.prosessering.SkatteHendelsePubliseringOptions
 import no.nav.melosysskattehendelser.skatt.PensjonsgivendeInntekt
-import no.nav.melosysskattehendelser.skatt.PensjonsgivendeInntektConsumer
-import no.nav.melosysskattehendelser.skatt.PensjonsgivendeInntektRequest
+import no.nav.melosysskattehendelser.skatt.sigrun.SigrunOppslagUtenomCache
 import no.nav.security.token.support.core.api.Protected
-import org.springframework.cache.CacheManager
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -40,8 +38,7 @@ class AdminController(
     private val kafkaContainerMonitor: KafkaContainerMonitor,
     private val skattehendelserProducer: SkattehendelserProducer,
     private val jobConfirmationService: JobConfirmationService,
-    private val pensjonsgivendeInntektConsumer: PensjonsgivendeInntektConsumer,
-    private val cacheManager: CacheManager,
+    private val sigrunOppslag: SigrunOppslagUtenomCache,
 ) {
     @PostMapping("/hendelseprosessering/start")
     @Operation(
@@ -165,14 +162,7 @@ class AdminController(
         }
         val person = personRepository.findPersonById(id) ?: return ResponseEntity(HttpStatus.NOT_FOUND)
 
-        // Nattjobben bruker samme cache. Tøm før og etter, så oppslaget går til Sigrun og ikke gir nattjobben et gammelt svar.
-        val cache = cacheManager.getCache("pensjonsgivendeInntekt")
-        val cachenøkkel = "${person.ident}-$inntektsaar"
-        cache?.evict(cachenøkkel)
-        val svar = pensjonsgivendeInntektConsumer.hentPensjonsgivendeInntekt(
-            PensjonsgivendeInntektRequest(inntektsaar = inntektsaar, navPersonident = person.ident)
-        )
-        cache?.evict(cachenøkkel)
+        val svar = sigrunOppslag.hentUtenomCache(person.ident, inntektsaar)
         log.info { "Slo opp pensjonsgivende inntekt for person $id, inntektsår $inntektsaar: funnet=${!svar.slettet}" }
         return ResponseEntity.ok(
             PensjonsgivendeInntektOppslag(

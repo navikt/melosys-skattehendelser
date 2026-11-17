@@ -47,6 +47,21 @@ class LogbackKonfigurasjonTest {
         }
     }
 
+    @Test
+    fun `i prod maskeres fødselsnummer som står inntil bokstav eller understrek`() {
+        konfigurer(naisClusterName = "prod-gcp").formater("Ugyldig personident_$fnr, fnr$fnr").run {
+            shouldContain("\"message\":\"Ugyldig personident_***********, fnr***********\"")
+            shouldNotContain(fnr)
+        }
+    }
+
+    @Test
+    fun `i prod maskeres ikke sifferserier som ikke er 11 sifre`() {
+        val melding = "Nav-Call-Id: CallId_1763380000000_123, sekvensnummer 1234567890, 123456789012"
+
+        konfigurer(naisClusterName = "prod-gcp").formater(melding) shouldContain "\"message\":\"$melding\""
+    }
+
     private fun konfigurer(naisClusterName: String?): LoggerContext =
         LoggerContext().apply {
             mdcAdapter = LogbackMDCAdapter()

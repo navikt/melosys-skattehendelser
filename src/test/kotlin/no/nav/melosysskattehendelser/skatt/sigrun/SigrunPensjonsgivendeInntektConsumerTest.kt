@@ -11,6 +11,7 @@ import com.github.tomakehurst.wiremock.core.WireMockConfiguration
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.ints.shouldBeLessThan
+import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldNotContain
@@ -278,6 +279,40 @@ class SigrunPensjonsgivendeInntektConsumerTest {
         melding shouldContain "***********"
         melding shouldNotContain navPersonident
         melding shouldNotContain "hemmelig-token-abc123"
+    }
+
+    @Test
+    fun `skal maskere personident som står inntil bokstav eller understrek i feilbody`() {
+        val navPersonident = "26468141648"
+        wireMockServer.stubFor(
+            createPostRequest(navPersonident)
+                .willReturn(
+                    WireMock.aResponse()
+                        .withStatus(400)
+                        .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                        .withBody("""{"melding":"Ugyldig personident_$navPersonident","fnr$navPersonident":"x"}""")
+                )
+        )
+
+        val melding = fangErrorLogg {
+            shouldThrow<WebClientResponseException> {
+                sigrunPensjonsgivendeInntektConsumer.hentPensjonsgivendeInntekt(
+                    PensjonsgivendeInntektRequest(inntektsaar = "2024", navPersonident = navPersonident)
+                )
+            }.statusCode.value() shouldBe 400
+        }
+
+        melding shouldContain "Ugyldig personident_***********"
+        Regex("""\d{11}""").find(melding)?.value.shouldBeNull()
+    }
+
+    @Test
+    fun `maskering tar 11 til 13 sifre som ikke står inntil et annet siffer, og lar andre sifferserier være`() {
+        """{"melding":"Ugyldig personident_12345678901","fnr12345678901":"x"}""".maskertOgAvkortet() shouldBe
+            """{"melding":"Ugyldig personident_***********","fnr***********":"x"}"""
+        "aktør1234567890123x, fnr: 12345678901.".maskertOgAvkortet() shouldBe "aktør***********x, fnr: ***********."
+        "12345678901".maskertOgAvkortet() shouldBe "***********"
+        "ti 1234567890 og fjorten 12345678901234".maskertOgAvkortet() shouldBe "ti 1234567890 og fjorten 12345678901234"
     }
 
     @Test

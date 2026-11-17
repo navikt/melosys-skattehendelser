@@ -17,20 +17,23 @@ import no.nav.melosysskattehendelser.melosys.MelosysSkatteHendelse
 import no.nav.melosysskattehendelser.melosys.producer.SkattehendelserProducerFake
 import no.nav.melosysskattehendelser.prosessering.JobConfirmationService
 import no.nav.melosysskattehendelser.skatt.PensjonsgivendeInntekt
-import no.nav.melosysskattehendelser.skatt.PensjonsgivendeInntektConsumer
 import no.nav.melosysskattehendelser.skatt.PensjonsgivendeInntektRequest
 import no.nav.melosysskattehendelser.skatt.PensjonsgivendeInntektResponse
 import no.nav.melosysskattehendelser.prosessering.SkatteHendelsePubliseringOptions
+import no.nav.melosysskattehendelser.skatt.sigrun.SigrunOppslagUtenomCache
+import no.nav.melosysskattehendelser.skatt.sigrun.SigrunPensjonsgivendeInntektConsumer
 import org.junit.jupiter.api.Test
 import org.springframework.http.HttpStatus
+import java.time.Duration
 import java.time.LocalDate
 
 class AdminControllerTest {
     private val jobConfirmationService = mockk<JobConfirmationService>(relaxed = true)
     private val personRepository = mockk<PersonRepository>()
     private val skattehendelserProducer = SkattehendelserProducerFake()
-    private val pensjonsgivendeInntektConsumer = mockk<PensjonsgivendeInntektConsumer>()
+    private val pensjonsgivendeInntektConsumer = mockk<SigrunPensjonsgivendeInntektConsumer>()
     private val cacheManager = ConcurrentMapCacheManager("pensjonsgivendeInntekt")
+    private val tidsfrist = Duration.ofSeconds(10)
     private val controller = AdminController(
         mockk(relaxed = true),
         personRepository,
@@ -38,8 +41,7 @@ class AdminControllerTest {
         mockk(relaxed = true),
         skattehendelserProducer,
         jobConfirmationService,
-        pensjonsgivendeInntektConsumer,
-        cacheManager,
+        SigrunOppslagUtenomCache(pensjonsgivendeInntektConsumer, cacheManager, tidsfrist),
     )
 
     private fun personMedPeriode2025() = Person(id = 7, ident = "12345678901").apply {
@@ -75,7 +77,7 @@ class AdminControllerTest {
         every { personRepository.findPersonById(7) } returns personMedPeriode2025()
         val ordning = PensjonsgivendeInntekt("FASTLAND", "2026-08-14", "500000", null, null, null)
         every {
-            pensjonsgivendeInntektConsumer.hentPensjonsgivendeInntekt(PensjonsgivendeInntektRequest("2025", "12345678901"))
+            pensjonsgivendeInntektConsumer.hentUtenCache(PensjonsgivendeInntektRequest("2025", "12345678901"), tidsfrist)
         } returns PensjonsgivendeInntektResponse(
             norskPersonidentifikator = "12345678901", inntektsaar = "2025", pensjonsgivendeInntekt = listOf(ordning)
         )
@@ -93,26 +95,26 @@ class AdminControllerTest {
     fun `oppslaget går utenom cachen nattjobben bruker`() {
         every { personRepository.findPersonById(7) } returns personMedPeriode2025()
         val cache = cacheManager.getCache("pensjonsgivendeInntekt")!!
+        val nøkkel = SigrunPensjonsgivendeInntektConsumer.cachenokkel(PensjonsgivendeInntektRequest("2025", "12345678901"))
         var cacheVedKall: Any? = "ikke kalt"
-        every { pensjonsgivendeInntektConsumer.hentPensjonsgivendeInntekt(any()) } answers {
-            cacheVedKall = cache.get("12345678901-2025")
-            cache.put("12345678901-2025", "nytt svar")
+        every { pensjonsgivendeInntektConsumer.hentUtenCache(any(), any()) } answers {
+            cacheVedKall = cache.get(nøkkel)
             PensjonsgivendeInntektResponse(slettet = true, norskPersonidentifikator = "12345678901", inntektsaar = "2025")
         }
-        cache.put("12345678901-2025", "gammelt svar")
+        cache.put(nøkkel, "gammelt svar")
 
 
         controller.hentPensjonsgivendeInntekt(7, "2025")
 
 
         cacheVedKall.shouldBeNull()
-        cache.get("12345678901-2025").shouldBeNull()
+        cache.get(nøkkel).shouldBeNull()
     }
 
     @Test
     fun `oppslaget sender inntektsåret videre til Sigrun`() {
         every { personRepository.findPersonById(7) } returns personMedPeriode2025()
-        every { pensjonsgivendeInntektConsumer.hentPensjonsgivendeInntekt(any()) } returns PensjonsgivendeInntektResponse(
+        every { pensjonsgivendeInntektConsumer.hentUtenCache(any(), any()) } returns PensjonsgivendeInntektResponse(
             slettet = true, norskPersonidentifikator = "12345678901", inntektsaar = "2024"
         )
 
@@ -120,13 +122,13 @@ class AdminControllerTest {
         controller.hentPensjonsgivendeInntekt(7, "2024")
 
 
-        verify { pensjonsgivendeInntektConsumer.hentPensjonsgivendeInntekt(PensjonsgivendeInntektRequest("2024", "12345678901")) }
+        verify { pensjonsgivendeInntektConsumer.hentUtenCache(PensjonsgivendeInntektRequest("2024", "12345678901"), tidsfrist) }
     }
 
     @Test
     fun `oppslaget logger ikke fødselsnummer`() {
         every { personRepository.findPersonById(7) } returns personMedPeriode2025()
-        every { pensjonsgivendeInntektConsumer.hentPensjonsgivendeInntekt(any()) } returns PensjonsgivendeInntektResponse(
+        every { pensjonsgivendeInntektConsumer.hentUtenCache(any(), any()) } returns PensjonsgivendeInntektResponse(
             slettet = true, norskPersonidentifikator = "12345678901", inntektsaar = "2025"
         )
 
@@ -142,7 +144,7 @@ class AdminControllerTest {
     @Test
     fun `404 fra Sigrun gir funnet false`() {
         every { personRepository.findPersonById(7) } returns personMedPeriode2025()
-        every { pensjonsgivendeInntektConsumer.hentPensjonsgivendeInntekt(any()) } returns PensjonsgivendeInntektResponse(
+        every { pensjonsgivendeInntektConsumer.hentUtenCache(any(), any()) } returns PensjonsgivendeInntektResponse(
             slettet = true, norskPersonidentifikator = "12345678901", inntektsaar = "2025"
         )
 
@@ -162,7 +164,7 @@ class AdminControllerTest {
 
 
         respons.statusCode shouldBe HttpStatus.NOT_FOUND
-        verify(exactly = 0) { pensjonsgivendeInntektConsumer.hentPensjonsgivendeInntekt(any()) }
+        verify(exactly = 0) { pensjonsgivendeInntektConsumer.hentUtenCache(any(), any()) }
     }
 
     @Test
@@ -171,7 +173,7 @@ class AdminControllerTest {
 
 
         respons.statusCode shouldBe HttpStatus.BAD_REQUEST
-        verify(exactly = 0) { pensjonsgivendeInntektConsumer.hentPensjonsgivendeInntekt(any()) }
+        verify(exactly = 0) { pensjonsgivendeInntektConsumer.hentUtenCache(any(), any()) }
     }
 
     @Test

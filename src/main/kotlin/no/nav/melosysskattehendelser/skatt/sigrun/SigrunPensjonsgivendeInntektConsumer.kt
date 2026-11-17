@@ -10,6 +10,7 @@ import org.springframework.http.MediaType
 import org.springframework.web.reactive.function.client.ClientResponse
 import org.springframework.web.reactive.function.client.WebClient
 import reactor.core.publisher.Mono
+import java.time.Duration
 
 private val log = io.github.oshai.kotlinlogging.KotlinLogging.logger {}
 
@@ -25,11 +26,24 @@ private data class PensjonsgivendeInntektForFolketrygdenRequest(
     val rettighetspakke: String = RETTIGHETSPAKKE,
 )
 
+const val PENSJONSGIVENDE_INNTEKT_CACHE = "pensjonsgivendeInntekt"
+
 open class SigrunPensjonsgivendeInntektConsumer(private val webClient: WebClient) : PensjonsgivendeInntektConsumer {
     @Measured
-    @Cacheable(value = ["pensjonsgivendeInntekt"], key = "#request.navPersonident + '-' + #request.inntektsaar")
-    override fun hentPensjonsgivendeInntekt(request: PensjonsgivendeInntektRequest): PensjonsgivendeInntektResponse {
-        return webClient.post()
+    @Cacheable(
+        value = [PENSJONSGIVENDE_INNTEKT_CACHE],
+        key = "T(no.nav.melosysskattehendelser.skatt.sigrun.SigrunPensjonsgivendeInntektConsumer).cachenokkel(#request)"
+    )
+    override fun hentPensjonsgivendeInntekt(request: PensjonsgivendeInntektRequest): PensjonsgivendeInntektResponse =
+        hent(request, tidsfrist = null)
+
+    /** Skriver ikke til cachen. Kaster IllegalStateException når Sigrun ikke har svart innen [tidsfrist]. */
+    @Measured
+    open fun hentUtenCache(request: PensjonsgivendeInntektRequest, tidsfrist: Duration): PensjonsgivendeInntektResponse =
+        hent(request, tidsfrist)
+
+    private fun hent(request: PensjonsgivendeInntektRequest, tidsfrist: Duration?): PensjonsgivendeInntektResponse {
+        val svar = webClient.post()
             .uri("/api/v1/pensjonsgivendeinntektforfolketrygden")
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(
@@ -92,7 +106,15 @@ open class SigrunPensjonsgivendeInntektConsumer(private val webClient: WebClient
                         )
                 }
             }
-            .block() ?: throw IllegalStateException("Ingen body - kunne ikke hente PensjonsgivendeInntektResponse")
+        // block(tidsfrist) avbryter kallet til Sigrun når tidsfristen går ut
+        return (if (tidsfrist == null) svar.block() else svar.block(tidsfrist))
+            ?: throw IllegalStateException("Ingen body - kunne ikke hente PensjonsgivendeInntektResponse")
+    }
+
+    companion object {
+        /** Nøkkelen i [PENSJONSGIVENDE_INNTEKT_CACHE], både for @Cacheable over og for den som tømmer cachen. */
+        @JvmStatic
+        fun cachenokkel(request: PensjonsgivendeInntektRequest) = "${request.navPersonident}-${request.inntektsaar}"
     }
 }
 
@@ -119,16 +141,17 @@ private fun ClientResponse.loggbareResponseHeadere(): String =
 private const val MAKS_BODY_LENGDE = 500
 
 /**
- * Sifferserier på 11-13 tegn - fødselsnummer, d-nummer og aktørid. Samme intensjon som
- * masken i logback.xml, men den er kun aktiv i prod-clusteret; her gjelder den i alle miljøer.
+ * Sifferserier på 11-13 tegn - fødselsnummer, d-nummer og aktørid - også når de står inntil en
+ * bokstav eller understrek (`personident_<fnr>`). Samme intensjon som masken i logback.xml, men
+ * den er kun aktiv i prod-clusteret; her gjelder den i alle miljøer.
  */
-private val PERSONIDENTIFIKATOR = Regex("""(^|\W)\d{11,13}(?=$|\W)""")
+private val PERSONIDENTIFIKATOR = Regex("""(?<!\d)\d{11,13}(?!\d)""")
 
 /**
  * Feilbodyen fra Sigrun er fritekst vi ikke eier og kan inneholde personidentifikatorer
  * (typisk "Ugyldig personidentifikator: <fnr>"), så den maskeres før logging. Den avkortes
  * også: svarer proxyen med en HTML-feilside blir bodyen titusenvis av tegn på én loggslinje.
  */
-private fun String.maskertOgAvkortet(): String =
-    PERSONIDENTIFIKATOR.replace(take(MAKS_BODY_LENGDE)) { "${it.groupValues[1]}***********" }
+internal fun String.maskertOgAvkortet(): String =
+    PERSONIDENTIFIKATOR.replace(take(MAKS_BODY_LENGDE), "***********")
         .let { if (length > MAKS_BODY_LENGDE) "$it...[avkortet, $length tegn totalt]" else it }
