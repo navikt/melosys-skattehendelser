@@ -169,8 +169,35 @@ class SkattepliktigPersonoppslagTest(
         rader.getValue(skalSpørres).asBoolean() shouldBe true
         rader.getValue(baresSlettet).asBoolean() shouldBe false
         listOf(publisert, medInntekt, utenPeriode).forEach { rader.getValue(it).isNull shouldBe true }
-        sigrun.findAll(WireMock.anyRequestedFor(WireMock.anyUrl())).map { objectMapper.readTree(it.bodyAsString)["personident"].asString() }
-            .sorted() shouldBe listOf("10000000001", "10000000005")
+        sigrunSpurtFor() shouldBe listOf("10000000001", "10000000005")
+    }
+
+    @Test
+    fun `publisering og inntekt for et annet år hindrer ikke oppslag i Sigrun`() {
+        lagrePerson(FNR, periode(LocalDate.of(2024, 6, 1), "2024" to LocalDateTime.of(2025, 9, 1, 2, 0)))
+        lagreInntekt(FNR, "2024", slettet = false)
+        sigrunSvarer(FNR, 200)
+
+        val rad = objectMapper.readTree(slåOpp(forespørsel(2025, FNR to true)).body()).single()
+
+        rad["sigrunHarInntektForAaret"].asBoolean() shouldBe true
+        sigrunSpurtFor() shouldBe listOf(FNR)
+    }
+
+    @Test
+    fun `publisering for året på den tidligste av to perioder hindrer oppslag i Sigrun`() {
+        val publisering = "2025" to LocalDateTime.of(2026, 5, 1, 2, 0)
+        // Periodene lagres i hver sin rekkefølge, så testen ikke avhenger av rekkefølgen de lastes i
+        val tidligstFørst = lagrePerson(FNR, periode(LocalDate.of(2024, 6, 1), publisering), periode(LocalDate.of(2025, 1, 1)))
+        val tidligstSist = lagrePerson(DNR, periode(LocalDate.of(2025, 1, 1)), periode(LocalDate.of(2024, 6, 1), publisering))
+        sigrunSvarer(FNR, 200)
+        sigrunSvarer(DNR, 200)
+
+        val rader = objectMapper.readTree(slåOpp(forespørsel(2025, FNR to true, DNR to true)).body())
+            .values().associate { it["personId"].asLong() to it["sigrunHarInntektForAaret"] }
+
+        listOf(tidligstFørst, tidligstSist).forEach { rader.getValue(it).isNull shouldBe true }
+        sigrunSpurtFor().shouldBeEmpty()
     }
 
     @Test
@@ -197,6 +224,7 @@ class SkattepliktigPersonoppslagTest(
         val rader = objectMapper.readTree(respons.body()).values().associate { it["personId"].asLong() to it["sigrunHarInntektForAaret"] }
         rader.getValue(med500).isNull shouldBe true
         rader.getValue(brutt).isNull shouldBe true
+        sigrunSpurtFor() shouldBe listOf(FNR, DNR)
     }
 
     @Test
@@ -437,6 +465,12 @@ class SkattepliktigPersonoppslagTest(
     private fun sigrunKall(ident: String) =
         WireMock.post(WireMock.urlEqualTo("/api/v1/pensjonsgivendeinntektforfolketrygden"))
             .withRequestBody(WireMock.matchingJsonPath("$.personident", WireMock.equalTo(ident)))
+
+    /** Identene appen spurte Sigrun om, sortert, ett element per kall. */
+    private fun sigrunSpurtFor() =
+        sigrun.findAll(WireMock.anyRequestedFor(WireMock.anyUrl()))
+            .map { objectMapper.readTree(it.bodyAsString)["personident"].asString() }
+            .sorted()
 
     private fun sigrunSvarer(ident: String, status: Int) {
         val svar = WireMock.aResponse().withStatus(status)
