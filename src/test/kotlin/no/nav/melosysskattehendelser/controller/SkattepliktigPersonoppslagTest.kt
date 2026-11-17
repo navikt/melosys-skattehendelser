@@ -103,10 +103,13 @@ class SkattepliktigPersonoppslagTest(
         skattehendelserProducer.reset()
     }
 
+    // Oppslaget publiserer aldri, heller ikke når Sigrun feiler. Feiler testen selv, er dens feil
+    // den som vises; JUnit legger feil fra @AfterEach til som suppressed.
     @AfterEach
     fun tearDown() {
         pensjonsgivendeInntektRepository.deleteAll()
         personRepository.deleteAll()
+        skattehendelserProducer.hendelser.shouldBeEmpty()
     }
 
     @Test
