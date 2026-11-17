@@ -5,7 +5,11 @@ import ch.qos.logback.classic.spi.IThrowableProxy
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration
+import com.github.tomakehurst.wiremock.extension.ResponseDefinitionTransformerV2
 import com.github.tomakehurst.wiremock.http.Fault
+import com.github.tomakehurst.wiremock.http.ResponseDefinition
+import com.github.tomakehurst.wiremock.stubbing.ServeEvent
+import com.zaxxer.hikari.HikariDataSource
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe
@@ -46,6 +50,8 @@ import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.util.concurrent.CopyOnWriteArrayList
+import javax.sql.DataSource
 
 /**
  * Går gjennom hele Spring-konteksten: ekte token, Postgres og den ekte Sigrun-klienten (med cachen) mot WireMock.
@@ -59,6 +65,7 @@ class SkattepliktigPersonoppslagTest(
     @Autowired private val mockOAuth2Server: MockOAuth2Server,
     @Autowired private val objectMapper: ObjectMapper,
     @Autowired private val cacheManager: CacheManager,
+    @Autowired private val dataSource: DataSource,
     @LocalServerPort private val port: Int,
 ) : PostgresTestContainerBase() {
 
@@ -206,6 +213,95 @@ class SkattepliktigPersonoppslagTest(
     }
 
     @Test
+    fun `annen klient med ugyldig body gir 403 og avvisningslinjen, uten ident`() {
+        val (svar, logg) = LoggingTestUtils.withLogCapture { logg ->
+            listOf("{nope", UGYLDIG_GJELDENDE, "").map { slåOpp(it, token(azpName = "x")) } to logg.toList()
+        }
+
+        svar.map { it.statusCode() } shouldBe listOf(403, 403, 403)
+        val loggtekst = logg.joinToString("\n") { it.fullTekst() }
+        loggtekst shouldContain "Personoppslag avvist for klient=x"
+        loggtekst shouldNotContain "Ugyldig body"
+        (svar.map { it.body() } + loggtekst).forEach { ELLEVE_SIFRE.find(it)?.value.shouldBeNull() }
+    }
+
+    @Test
+    fun `ugyldig body gir 400 som JSON, uten ident`() {
+        val (svar, logg) = LoggingTestUtils.withLogCapture { logg ->
+            listOf("{nope", UGYLDIG_GJELDENDE, "").map { slåOpp(it, accept = "application/json") } to logg.toList()
+        }
+
+        svar.forEach { respons ->
+            respons.statusCode() shouldBe 400
+            respons.headers().firstValue("Content-Type").get() shouldContain "application/json"
+            objectMapper.readTree(respons.body()).let {
+                it["status"].asInt() shouldBe 400
+                it["error"].asString() shouldBe "Bad Request"
+                it["path"].asString() shouldBe "/api/admin/skattepliktige/personoppslag"
+            }
+        }
+        val loggtekst = logg.joinToString("\n") { it.fullTekst() }
+        loggtekst shouldContain "Ugyldig body i kall til skattepliktige"
+        (svar.map { it.body() } + loggtekst).forEach { ELLEVE_SIFRE.find(it)?.value.shouldBeNull() }
+    }
+
+    @Test
+    fun `400 for antall identer og inntektsår er JSON`() {
+        listOf(
+            forespørsel(2025, *(0..10).map { "2000000000$it".takeLast(11) to true }.toTypedArray()),
+            forespørsel(2025),
+            forespørsel(25, FNR to true),
+        ).map { slåOpp(it, accept = "application/json") }.forEach { respons ->
+            respons.statusCode() shouldBe 400
+            respons.headers().firstValue("Content-Type").get() shouldContain "application/json"
+            objectMapper.readTree(respons.body())["status"].asInt() shouldBe 400
+            ELLEVE_SIFRE.find(respons.body())?.value.shouldBeNull()
+        }
+    }
+
+    @Test
+    fun `ingen databasetilkobling er i bruk mens Sigrun svarer`() {
+        lagrePerson(FNR, periode(LocalDate.of(2025, 1, 1)))
+        lagrePerson(DNR, periode(LocalDate.of(2025, 1, 1)))
+        val pool = dataSource.unwrap(HikariDataSource::class.java).hikariPoolMXBean
+        MålTilkoblinger.målinger.clear()
+        MålTilkoblinger.måler = { pool.activeConnections }
+        listOf(FNR, DNR).forEach {
+            sigrun.stubFor(
+                sigrunKall(it).willReturn(
+                    WireMock.aResponse().withStatus(404).withFixedDelay(200).withTransformers(MålTilkoblinger.NAVN)
+                )
+            )
+        }
+
+        val respons = try {
+            slåOpp(forespørsel(2025, FNR to true, DNR to false))
+        } finally {
+            MålTilkoblinger.måler = null
+        }
+
+        respons.statusCode() shouldBe 200
+        MålTilkoblinger.målinger.toList() shouldBe listOf(0, 0)
+    }
+
+    /** Leser antall aktive databasetilkoblinger mens appen venter på svar fra Sigrun. */
+    private object MålTilkoblinger : ResponseDefinitionTransformerV2 {
+        const val NAVN = "mal-tilkoblinger"
+
+        @Volatile
+        var måler: (() -> Int)? = null
+        val målinger = CopyOnWriteArrayList<Int>()
+
+        override fun transform(serveEvent: ServeEvent): ResponseDefinition {
+            måler?.let { målinger.add(it()) }
+            return serveEvent.responseDefinition
+        }
+
+        override fun getName() = NAVN
+        override fun applyGlobally() = false
+    }
+
+    @Test
     fun `11 identer gir 400, og det gjør ingen identer også`() {
         slåOpp(forespørsel(2025, *(0..10).map { "2000000000$it".takeLast(11) to true }.toTypedArray())).statusCode() shouldBe 400
         slåOpp(forespørsel(2025)).statusCode() shouldBe 400
@@ -325,9 +421,10 @@ class SkattepliktigPersonoppslagTest(
             )
         ).serialize()
 
-    private fun slåOpp(body: String, token: String? = token()): HttpResponse<String> {
+    private fun slåOpp(body: String, token: String? = token(), accept: String? = null): HttpResponse<String> {
         val request = HttpRequest.newBuilder(URI("http://localhost:$port/api/admin/skattepliktige/personoppslag"))
             .apply { token?.let { header("Authorization", "Bearer $it") } }
+            .apply { accept?.let { header("Accept", it) } }
             .header("Content-Type", "application/json")
             .POST(HttpRequest.BodyPublishers.ofString(body))
             .build()
@@ -343,7 +440,9 @@ class SkattepliktigPersonoppslagTest(
         // Jackson tar med verdien i feilmeldingen når typen er feil
         private val UGYLDIG_GJELDENDE = """{"inntektsaar": 2025, "identer": [{"ident": "$FNR", "gjeldende": "$FNR"}]}"""
 
-        private val sigrun = WireMockServer(WireMockConfiguration.wireMockConfig().dynamicPort()).apply { start() }
+        private val sigrun = WireMockServer(
+            WireMockConfiguration.wireMockConfig().dynamicPort().extensions(MålTilkoblinger)
+        ).apply { start() }
 
         @JvmStatic
         @AfterAll

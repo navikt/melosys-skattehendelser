@@ -12,6 +12,8 @@ spring:
     locations: classpath:db/migration
     enabled: true
   jpa:
+    # Ellers holder hver forespørsel en databasetilkobling til svaret er sendt, også mens Sigrun kalles
+    open-in-view: false
     properties:
       hibernate:
         ddl-auto: none

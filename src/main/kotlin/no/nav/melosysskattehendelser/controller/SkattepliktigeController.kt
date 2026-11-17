@@ -15,8 +15,6 @@ import no.nav.security.token.support.core.context.TokenValidationContextHolder
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
-import org.springframework.http.converter.HttpMessageNotReadableException
-import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -24,6 +22,8 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.server.ResponseStatusException
+import tools.jackson.core.JacksonException
+import tools.jackson.databind.ObjectMapper
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
@@ -38,6 +38,7 @@ class SkattepliktigeController(
     private val skattepliktigUttrekkRepository: SkattepliktigUttrekkRepository,
     private val skattepliktigPersonoppslag: SkattepliktigPersonoppslag,
     private val tokenValidationContextHolder: TokenValidationContextHolder,
+    private val objectMapper: ObjectMapper,
     @Value("\${skattepliktige.tillatte-klienter}") private val tillatteKlienter: List<String>,
 ) {
     @GetMapping
@@ -80,8 +81,10 @@ class SkattepliktigeController(
      */
     @Hidden
     @PostMapping("/personoppslag")
-    fun personoppslag(@RequestBody forespørsel: PersonoppslagForespørsel): ResponseEntity<List<PersonoppslagRad>> {
+    fun personoppslag(@RequestBody(required = false) body: ByteArray?): ResponseEntity<List<PersonoppslagRad>> {
         val klient = krevTillattKlient("Personoppslag")
+        // Leses først etter klientsjekken, så en klient uten tilgang får 403 også når body er ugyldig
+        val forespørsel = lesForespørsel(body)
         // Sjekkes for hånd: @Size får Spring til å logge hele lista som «rejected value»
         if (forespørsel.identer.size !in 1..MAKS_IDENTER) {
             throw ResponseStatusException(HttpStatus.BAD_REQUEST, "identer må ha 1 til $MAKS_IDENTER identer")
@@ -98,11 +101,15 @@ class SkattepliktigeController(
         return ResponseEntity.ok(rader)
     }
 
-    // Spring logger ellers feilmeldingen fra Jackson, og den har med verdien, for eksempel en ident
-    @ExceptionHandler(HttpMessageNotReadableException::class)
-    fun ugyldigBody(e: HttpMessageNotReadableException): ResponseEntity<String> {
-        log.warn { "Ugyldig body i kall til skattepliktige: ${e.mostSpecificCause.javaClass.simpleName}" }
-        return ResponseEntity.badRequest().body("Ugyldig body")
+    private fun lesForespørsel(body: ByteArray?): PersonoppslagForespørsel {
+        val forespørsel = try {
+            body?.let { objectMapper.readValue(it, PersonoppslagForespørsel::class.java) }
+        } catch (e: JacksonException) {
+            // Bare typen: Jackson tar med verdien i meldingen, for eksempel en ident
+            log.warn { "Ugyldig body i kall til skattepliktige: ${e.javaClass.simpleName}" }
+            null
+        }
+        return forespørsel ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Ugyldig body")
     }
 
     private fun krevTillattKlient(handling: String): String? {
