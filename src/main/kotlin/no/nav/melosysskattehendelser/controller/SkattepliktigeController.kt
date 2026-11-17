@@ -1,6 +1,7 @@
 package no.nav.melosysskattehendelser.controller
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import io.swagger.v3.oas.annotations.Hidden
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.responses.ApiResponse
@@ -14,7 +15,11 @@ import no.nav.security.token.support.core.context.TokenValidationContextHolder
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.http.converter.HttpMessageNotReadableException
+import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
@@ -31,6 +36,7 @@ private val log = KotlinLogging.logger { }
 @Tag(name = "Skattepliktige", description = "Grunnlag til årsavregningskjøringen i melosys-api")
 class SkattepliktigeController(
     private val skattepliktigUttrekkRepository: SkattepliktigUttrekkRepository,
+    private val skattepliktigPersonoppslag: SkattepliktigPersonoppslag,
     private val tokenValidationContextHolder: TokenValidationContextHolder,
     @Value("\${skattepliktige.tillatte-klienter}") private val tillatteKlienter: List<String>,
 ) {
@@ -55,11 +61,7 @@ class SkattepliktigeController(
         @Parameter(description = "Ta bare med personer med siste publisering etter dette tidspunktet (norsk tid, uten tidssone), for eksempel 2026-09-08T00:00:00")
         @RequestParam("publisertEtter", required = false) publisertEtterTekst: String?,
     ): ResponseEntity<SkattepliktigeRespons> {
-        val klient = klient()
-        if (klient !in tillatteKlienter) {
-            log.warn { "Uttrekk av skattepliktige avvist for klient=$klient" }
-            throw ResponseStatusException(HttpStatus.FORBIDDEN, "Klienten har ikke tilgang")
-        }
+        val klient = krevTillattKlient("Uttrekk av skattepliktige")
         val publisertEtter = publisertEtterTekst?.let(::tilNorskTid)
         val skattepliktige = skattepliktigUttrekkRepository.hentPubliserte(gjelderÅr, årFilter, publisertEtter)
         log.info {
@@ -69,6 +71,47 @@ class SkattepliktigeController(
         return ResponseEntity.ok(
             SkattepliktigeRespons(gjelderÅr, årFilter, publisertEtter, skattepliktige.size, skattepliktige)
         )
+    }
+
+    /**
+     * Fødselsnummeret står i body, så det ikke havner i access-loggen. Skjult i API-dokumentasjonen,
+     * så melosys-console ikke tilbyr det i endepunktkjøreren og lagrer et innskrevet fødselsnummer i historikken.
+     * Svaret og loggen har aldri ident.
+     */
+    @Hidden
+    @PostMapping("/personoppslag")
+    fun personoppslag(@RequestBody forespørsel: PersonoppslagForespørsel): ResponseEntity<List<PersonoppslagRad>> {
+        val klient = krevTillattKlient("Personoppslag")
+        // Sjekkes for hånd: @Size får Spring til å logge hele lista som «rejected value»
+        if (forespørsel.identer.size !in 1..MAKS_IDENTER) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "identer må ha 1 til $MAKS_IDENTER identer")
+        }
+        if (forespørsel.inntektsaar !in 1000..9999) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "inntektsaar må være et årstall")
+        }
+        val rader = skattepliktigPersonoppslag.slåOpp(forespørsel.inntektsaar, forespørsel.identer)
+        log.info {
+            "Personoppslag: klient=$klient, inntektsaar=${forespørsel.inntektsaar}, " +
+                "antallIdenter=${forespørsel.identer.size}, personIder=${rader.map { it.personId }}, " +
+                "sigrunHarInntektForAaret=${rader.associate { it.personId to it.sigrunHarInntektForAaret }}"
+        }
+        return ResponseEntity.ok(rader)
+    }
+
+    // Spring logger ellers feilmeldingen fra Jackson, og den har med verdien, for eksempel en ident
+    @ExceptionHandler(HttpMessageNotReadableException::class)
+    fun ugyldigBody(e: HttpMessageNotReadableException): ResponseEntity<String> {
+        log.warn { "Ugyldig body i kall til skattepliktige: ${e.mostSpecificCause.javaClass.simpleName}" }
+        return ResponseEntity.badRequest().body("Ugyldig body")
+    }
+
+    private fun krevTillattKlient(handling: String): String? {
+        val klient = klient()
+        if (klient !in tillatteKlienter) {
+            log.warn { "$handling avvist for klient=$klient" }
+            throw ResponseStatusException(HttpStatus.FORBIDDEN, "Klienten har ikke tilgang")
+        }
+        return klient
     }
 
     private fun klient(): String? =
@@ -81,6 +124,10 @@ class SkattepliktigeController(
         } catch (e: DateTimeParseException) {
             throw ResponseStatusException(HttpStatus.BAD_REQUEST, "publisertEtter må være norsk tid uten tidssone: $tekst")
         }
+
+    private companion object {
+        const val MAKS_IDENTER = 10
+    }
 }
 
 data class SkattepliktigeRespons(
