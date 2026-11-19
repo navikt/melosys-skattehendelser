@@ -16,10 +16,8 @@
                     <appender name="stdout_json" class="ch.qos.logback.core.ConsoleAppender">
                         <encoder class="net.logstash.logback.encoder.LogstashEncoder">
                             <decorator class="net.logstash.logback.mask.MaskingJsonGeneratorDecorator">
-                                <valueMask>
-                                    <value>(^|\W)\d{11}(?=$|\W)</value>
-                                    <mask>$1***********</mask>
-                                </valueMask>
+                                <!-- Bare message og stack_trace; MDC-felt som trace_id maskeres ikke. Se klassen. -->
+                                <valueMasker class="no.nav.melosysskattehendelser.logging.PersonidentMasker"/>
                             </decorator>
                             <fieldNames>
                                 <version>[ignore]</version>

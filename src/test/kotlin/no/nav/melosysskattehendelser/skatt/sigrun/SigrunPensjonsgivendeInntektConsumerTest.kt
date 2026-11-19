@@ -11,7 +11,10 @@ import com.github.tomakehurst.wiremock.core.WireMockConfiguration
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.ints.shouldBeLessThan
+import io.kotest.matchers.longs.shouldBeLessThan
+import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.types.shouldBeInstanceOf
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldNotContain
 import no.nav.melosysskattehendelser.skatt.PensjonsgivendeInntektRequest
@@ -26,6 +29,7 @@ import org.springframework.web.reactive.function.client.ExchangeFilterFunction
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.WebClientResponseException
 import reactor.core.publisher.Mono
+import java.time.Duration
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class SigrunPensjonsgivendeInntektConsumerTest {
@@ -281,6 +285,40 @@ class SigrunPensjonsgivendeInntektConsumerTest {
     }
 
     @Test
+    fun `skal maskere personident som står inntil bokstav eller understrek i feilbody`() {
+        val navPersonident = "26468141648"
+        wireMockServer.stubFor(
+            createPostRequest(navPersonident)
+                .willReturn(
+                    WireMock.aResponse()
+                        .withStatus(400)
+                        .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                        .withBody("""{"melding":"Ugyldig personident_$navPersonident","fnr$navPersonident":"x"}""")
+                )
+        )
+
+        val melding = fangErrorLogg {
+            shouldThrow<WebClientResponseException> {
+                sigrunPensjonsgivendeInntektConsumer.hentPensjonsgivendeInntekt(
+                    PensjonsgivendeInntektRequest(inntektsaar = "2024", navPersonident = navPersonident)
+                )
+            }.statusCode.value() shouldBe 400
+        }
+
+        melding shouldContain "Ugyldig personident_***********"
+        Regex("""\d{11}""").find(melding)?.value.shouldBeNull()
+    }
+
+    @Test
+    fun `maskering tar 11 til 13 sifre som ikke står inntil et annet siffer, og lar andre sifferserier være`() {
+        """{"melding":"Ugyldig personident_12345678901","fnr12345678901":"x"}""".maskertOgAvkortet() shouldBe
+            """{"melding":"Ugyldig personident_***********","fnr***********":"x"}"""
+        "aktør1234567890123x, fnr: 12345678901.".maskertOgAvkortet() shouldBe "aktør***********x, fnr: ***********."
+        "12345678901".maskertOgAvkortet() shouldBe "***********"
+        "ti 1234567890 og fjorten 12345678901234".maskertOgAvkortet() shouldBe "ti 1234567890 og fjorten 12345678901234"
+    }
+
+    @Test
     fun `skal avkorte lang feilbody`() {
         val navPersonident = "26468141644"
         val langBody = "<html>" + "x".repeat(20_000) + "</html>"
@@ -341,6 +379,38 @@ class SigrunPensjonsgivendeInntektConsumerTest {
                 PensjonsgivendeInntektRequest(inntektsaar = "2024", navPersonident = "26468141646")
             )
         }.message shouldContain "norskPersonidentifikator mangler"
+    }
+
+    @Test
+    fun `tidsfristen gjelder også arbeid filteret gjør når kallet starter, som å hente token`() {
+        val navPersonident = "26468141649"
+        val consumerMedTregtToken = SigrunPensjonsgivendeInntektConsumer(
+            WebClient.builder()
+                .baseUrl("http://localhost:${wireMockServer.port()}")
+                // Som AzureContextExchangeFilter: henter token synkront i filter(), før Mono-en returneres
+                .filter { request, next ->
+                    try {
+                        Thread.sleep(3_000)
+                    } catch (_: InterruptedException) {
+                        Thread.currentThread().interrupt()
+                    }
+                    next.exchange(request)
+                }
+                .build()
+        )
+
+        val start = System.nanoTime()
+        val resultat = runCatching {
+            consumerMedTregtToken.hentUtenCache(
+                PensjonsgivendeInntektRequest(inntektsaar = "2024", navPersonident = navPersonident),
+                Duration.ofMillis(500),
+            )
+        }
+        val bruktMs = (System.nanoTime() - start) / 1_000_000
+
+        bruktMs shouldBeLessThan 1_500L
+        val feil = resultat.exceptionOrNull().shouldBeInstanceOf<IllegalStateException>()
+        feil.message.orEmpty() shouldNotContain navPersonident
     }
 
     private fun fangErrorLogg(block: () -> Unit): String {
