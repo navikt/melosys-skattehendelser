@@ -54,6 +54,7 @@ out/
 /anon*/
 /analyse-*/
 /*.json
+!/.fnr-guard.json
 /*.ndjson
 /*.csv
 /*.txt
